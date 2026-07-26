@@ -1,0 +1,53 @@
+$compact-action-height: 25px;
+$compact-action-radius: 3px;
+$compact-action-padding: 2px 15px;
+$compact-action-font-size: 12px;
+$light-action-text: #1c1c1c;
+
+@mixin compact-action($background, $color) {
+  display: inline-block;
+  height: $compact-action-height;
+  padding: $compact-action-padding;
+  border-radius: $compact-action-radius;
+  color: $color;
+  background-color: $background;
+  font-size: $compact-action-font-size;
+  line-height: $compact-action-height;
+  cursor: pointer;
+  user-select: none;
+}
+
+.edit-button {
+  @include compact-action(rgb(56, 183, 129), #fff);
+  margin-right: 6px;
+
+  &:hover {
+    color: #fff;
+    background-color: rgb(25, 136, 88);
+  }
+}
+
+.channel-button {
+  @include compact-action(rgb(245, 245, 245), $light-action-text);
+  margin: 0 10px;
+
+  &:hover {
+    color: #304a99;
+  }
+}
+
+.text-button {
+  margin-right: 10px;
+  color: rgb(43, 121, 203);
+  cursor: pointer;
+}
+
+.delete-button {
+  @include compact-action(rgb(241, 241, 241), $light-action-text);
+
+  &:hover {
+    color: #fff;
+    background-color: rgb(167, 83, 90);
+    font-size: $compact-action-font-size;
+  }
+}

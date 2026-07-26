@@ -1,0 +1,21 @@
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router";
+import "element-plus/dist/index.css";
+import "./assets/css/button.scss";
+import "./assets/css/element-plus-overrides.scss";
+import "./assets/css/basic.scss";
+import "./assets/css/dialog.scss";
+import "./assets/css/input.scss";
+import "./assets/css/reader-system.scss";
+import request from "@/utils/request";
+import message from "@/utils/message";
+import { swalConfirm, swalFire } from "@/utils/swalPlugin.js";
+
+const app = createApp(App);
+app.use(router);
+app.config.globalProperties.$axios = request;
+app.config.globalProperties.$message = message;
+app.config.globalProperties.$swalConfirm = swalConfirm;
+app.config.globalProperties.$swal = Object.freeze({ fire: swalFire });
+app.mount("#app");

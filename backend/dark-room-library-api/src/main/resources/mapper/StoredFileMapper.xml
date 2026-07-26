@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.StoredFileMapper">
+
+    <sql id="queryWhere">
+        <if test="fileName != null and fileName != ''">
+            AND sf.file_name LIKE concat('%', #{fileName}, '%')
+        </if>
+        <if test="originalName != null and originalName != ''">
+            AND sf.original_name LIKE concat('%', #{originalName}, '%')
+        </if>
+        <if test="uploaderId != null">
+            AND sf.uploader_id = #{uploaderId}
+        </if>
+        <if test="status != null">
+            AND sf.status = #{status}
+        </if>
+        <if test="refType != null and refType != ''">
+            AND sf.ref_type = #{refType}
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND sf.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <select id="query" resultMap="StoredFileViewMap">
+        SELECT sf.*, u.user_name AS uploader_name
+        FROM stored_file sf
+        LEFT JOIN user u ON u.id = sf.uploader_id
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY sf.create_time DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM stored_file sf
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <select id="findByReference" resultMap="StoredFileMap">
+        SELECT *
+        FROM stored_file
+        WHERE ref_type = #{refType} AND ref_id = #{refId} AND status = 1
+    </select>
+
+    <update id="bind">
+        UPDATE stored_file
+        SET status = 1,
+            ref_type = #{refType},
+            ref_id = #{refId},
+            bind_time = COALESCE(bind_time, #{now}),
+            update_time = #{now}
+        WHERE file_name = #{fileName}
+          AND (
+            (status = 0 AND uploader_id = #{uploaderId})
+            OR (status = 1 AND ref_type = #{refType} AND ref_id = #{refId})
+          )
+    </update>
+
+    <update id="markDeletePending">
+        UPDATE stored_file
+        SET status = 2,
+            ref_type = NULL,
+            ref_id = NULL,
+            update_time = #{now}
+        WHERE file_name IN
+        <foreach collection="fileNames" item="fileName" open="(" separator="," close=")">
+            #{fileName}
+        </foreach>
+    </update>
+
+    <select id="findCleanupCandidates" resultMap="StoredFileMap">
+        SELECT *
+        FROM stored_file
+        WHERE status = 2 OR (status = 0 AND create_time &lt; #{temporaryCutoff})
+        ORDER BY status DESC, create_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countLegacyReferences" resultType="integer">
+        SELECT
+          (SELECT COUNT(*) FROM book WHERE cover LIKE concat('%', #{fileName}, '%'))
+          + (SELECT COUNT(*) FROM user WHERE user_avatar LIKE concat('%', #{fileName}, '%'))
+          + (SELECT COUNT(*) FROM message_board WHERE attachment_url LIKE concat('%', #{fileName}, '%'))
+          + (SELECT COUNT(*) FROM notice WHERE content LIKE concat('%', #{fileName}, '%'))
+    </select>
+
+    <select id="findUserBusinessFiles" resultMap="StoredFileMap">
+        SELECT sf.*
+        FROM stored_file sf
+        WHERE sf.status = 1
+          AND (
+            (sf.ref_type = 'user_avatar' AND sf.ref_id IN
+              <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                  #{userId}
+              </foreach>)
+            OR
+            (sf.ref_type = 'msg_attachment' AND sf.ref_id IN (
+              SELECT mb.id FROM message_board mb WHERE mb.user_id IN
+              <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                  #{userId}
+              </foreach>
+            ))
+          )
+    </select>
+
+    <resultMap id="StoredFileMap" type="org.darkroomlibrary.domain.model.StoredFile">
+        <id column="file_name" property="fileName"/>
+        <result column="original_name" property="originalName"/>
+        <result column="extension" property="extension"/>
+        <result column="content_type" property="contentType"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="uploader_id" property="uploaderId"/>
+        <result column="status" property="status"/>
+        <result column="ref_type" property="refType"/>
+        <result column="ref_id" property="refId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="bind_time" property="bindTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="StoredFileViewMap" type="org.darkroomlibrary.web.view.StoredFileView">
+        <id column="file_name" property="fileName"/>
+        <result column="original_name" property="originalName"/>
+        <result column="extension" property="extension"/>
+        <result column="content_type" property="contentType"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="uploader_id" property="uploaderId"/>
+        <result column="uploader_name" property="uploaderName"/>
+        <result column="status" property="status"/>
+        <result column="ref_type" property="refType"/>
+        <result column="ref_id" property="refId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="bind_time" property="bindTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+</mapper>

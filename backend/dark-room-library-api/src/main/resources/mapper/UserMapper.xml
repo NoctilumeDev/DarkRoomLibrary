@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.UserMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <sql id="queryWhere">
+        <if test="userAccount != null and userAccount != ''">
+            AND u.user_account LIKE concat('%',#{userAccount},'%')
+        </if>
+        <if test="userName != null and userName != ''">
+            AND u.user_name LIKE concat('%',#{userName},'%')
+        </if>
+        <if test="userEmail != null and userEmail != ''">
+            AND u.user_email LIKE concat('%',#{userEmail},'%')
+        </if>
+        <if test="role != null">
+            AND u.user_role = #{role}
+        </if>
+        <if test="isLogin != null">
+            AND u.is_login = #{isLogin}
+        </if>
+        <if test="isWord != null">
+            AND u.is_word = #{isWord}
+        </if>
+        <if test="isCoordinatorAdmin != null">
+            AND u.is_coordinator_admin = #{isCoordinatorAdmin}
+        </if>
+        <if test="accountStatus != null">
+            AND u.account_status = #{accountStatus}
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND u.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <!-- ==================== 删除操作 ==================== -->
+    <delete id="batchDelete" parameterType="list">
+        DELETE FROM user WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <!-- 通用查询（按条件精确匹配） -->
+    <select id="getByActive" resultMap="BaseResultMap">
+        SELECT u.*
+        FROM user u
+        <where>
+            <if test="id != null">
+                AND u.id = #{id}
+            </if>
+            <if test="userName != null and userName != ''">
+                AND u.user_name = #{userName}
+            </if>
+            <if test="userAccount != null and userAccount != ''">
+                AND u.user_account = #{userAccount}
+            </if>
+        </where>
+    </select>
+
+    <select id="findByIdForUpdate" resultMap="BaseResultMap">
+        SELECT u.*
+        FROM user u
+        WHERE u.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <!-- 分页查询用户信息 -->
+    <select id="query" resultMap="BaseResultMap">
+        SELECT u.*
+        FROM user u
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY u.id DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <!-- 满足分页条件的数据总项 -->
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM user u
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.User">
+        <id column="id" property="id"/>
+        <result column="user_account" property="userAccount"/>
+        <result column="user_name" property="userName"/>
+        <result column="user_pwd" property="userPwd"/>
+        <result column="user_avatar" property="userAvatar"/>
+        <result column="user_email" property="userEmail"/>
+        <result column="user_role" property="userRole"/>
+        <result column="is_coordinator_admin" property="isCoordinatorAdmin"/>
+        <result column="account_status" property="accountStatus"/>
+        <result column="is_login" property="isLogin"/>
+        <result column="is_word" property="isWord"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+</mapper>

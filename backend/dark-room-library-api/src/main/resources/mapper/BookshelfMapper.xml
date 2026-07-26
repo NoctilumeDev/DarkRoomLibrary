@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.BookshelfMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <sql id="queryWhere">
+        <if test="name != null and name != ''">
+            AND bs.name LIKE concat('%',#{name},'%')
+        </if>
+        <if test="location != null and location != ''">
+            AND bs.location LIKE concat('%',#{location},'%')
+        </if>
+    </sql>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <select id="query" resultMap="BaseResultMap">
+        SELECT bs.*
+        FROM bookshelf bs
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY bs.id ASC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM bookshelf bs
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <select id="queryAll" resultMap="BaseResultMap">
+        SELECT bs.* FROM bookshelf bs ORDER BY bs.id ASC
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.Bookshelf">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="location" property="location"/>
+        <result column="capacity" property="capacity"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+</mapper>

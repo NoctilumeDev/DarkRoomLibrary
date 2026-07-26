@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.BookReservationMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <sql id="queryWhere">
+        <if test="userId != null">
+            AND br.user_id = #{userId}
+        </if>
+        <if test="bookId != null">
+            AND br.book_id = #{bookId}
+        </if>
+        <if test="status != null">
+            AND br.status = #{status}
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND br.reserve_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <update id="expireNotifiedBefore">
+        UPDATE book_reservation
+        SET status = 4
+        WHERE status = 3
+          AND notify_time IS NOT NULL
+          AND notify_time &lt; #{cutoff}
+    </update>
+
+    <insert id="insertIfNoActiveReservation"
+            parameterType="org.darkroomlibrary.domain.model.BookReservation"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO book_reservation (user_id, book_id, reserve_time, status, notify_time)
+        SELECT #{userId}, #{bookId}, #{reserveTime}, #{status}, #{notifyTime}
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM book_reservation
+            WHERE user_id = #{userId}
+              AND book_id = #{bookId}
+              AND status IN (0, 3)
+        )
+    </insert>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <!-- 分页查询（关联用户和图书） -->
+    <select id="query" resultMap="BookReservationViewMap">
+        SELECT br.*, u.user_name, b.name AS book_name
+        FROM book_reservation br
+        LEFT JOIN user u ON br.user_id = u.id
+        LEFT JOIN book b ON br.book_id = b.id
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY br.id DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <!-- 计数：无关联表过滤时无需 JOIN -->
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM book_reservation br
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <select id="findFirstWaitingByBookId" resultMap="BaseResultMap">
+        SELECT br.*
+        FROM book_reservation br
+        WHERE br.book_id = #{bookId}
+          AND br.status = 0
+        ORDER BY br.reserve_time ASC, br.id ASC
+        LIMIT 1
+    </select>
+
+    <select id="findFirstWaitingByBookIdForUpdate" resultMap="BaseResultMap">
+        SELECT br.*
+        FROM book_reservation br
+        WHERE br.book_id = #{bookId}
+          AND br.status = 0
+        ORDER BY br.reserve_time ASC, br.id ASC
+        LIMIT 1
+        FOR UPDATE
+    </select>
+
+    <select id="findExpiredNotifiedBookIds" resultType="integer">
+        SELECT book_id
+        FROM book_reservation
+        WHERE status = 3
+          AND notify_time IS NOT NULL
+          AND notify_time &lt; #{cutoff}
+        ORDER BY notify_time ASC, id ASC
+    </select>
+
+    <select id="findNotifiedByBookIdAndUserId" resultMap="BaseResultMap">
+        SELECT br.*
+        FROM book_reservation br
+        WHERE br.book_id = #{bookId}
+          AND br.user_id = #{userId}
+          AND br.status = 3
+        ORDER BY br.notify_time ASC, br.id ASC
+        LIMIT 1
+    </select>
+
+    <update id="markBorrowed">
+        UPDATE book_reservation
+        SET status = 1
+        WHERE id = #{id}
+          AND status = 3
+    </update>
+
+    <update id="cancelWaiting">
+        UPDATE book_reservation
+        SET status = 2
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 0
+    </update>
+
+    <update id="markNotified">
+        UPDATE book_reservation
+        SET status = 3,
+            notify_time = #{notifyTime}
+        WHERE id = #{id}
+          AND status = 0
+    </update>
+
+    <select id="countActiveByBookId" resultType="int">
+        SELECT COUNT(*)
+        FROM book_reservation br
+        WHERE br.book_id = #{bookId}
+          AND br.status IN (0, 3)
+    </select>
+
+    <select id="countActiveByUserId" resultType="int">
+        SELECT COUNT(*)
+        FROM book_reservation br
+        WHERE br.user_id = #{userId}
+          AND br.status IN (0, 3)
+    </select>
+
+    <select id="countActiveByBookIds" resultType="int">
+        SELECT COUNT(*)
+        FROM book_reservation br
+        WHERE br.status IN (0, 3)
+          AND br.book_id IN
+        <foreach collection="bookIds" item="bookId" open="(" separator="," close=")">
+            #{bookId}
+        </foreach>
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.BookReservation">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="reserve_time" property="reserveTime"/>
+        <result column="status" property="status"/>
+        <result column="notify_time" property="notifyTime"/>
+    </resultMap>
+
+    <resultMap id="BookReservationViewMap" type="org.darkroomlibrary.web.view.BookReservationView">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="reserve_time" property="reserveTime"/>
+        <result column="status" property="status"/>
+        <result column="notify_time" property="notifyTime"/>
+        <result column="user_name" property="userName"/>
+        <result column="book_name" property="bookName"/>
+    </resultMap>
+
+</mapper>

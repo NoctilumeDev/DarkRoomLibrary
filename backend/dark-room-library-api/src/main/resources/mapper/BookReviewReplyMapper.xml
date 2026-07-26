@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.BookReviewReplyMapper">
+
+    <select id="queryByReviewIds" resultMap="BookReviewReplyViewMap">
+        SELECT brr.*,
+               u.user_name AS user_name,
+               ru.user_name AS reply_to_user_name
+        FROM book_review_reply brr
+        LEFT JOIN user u ON brr.user_id = u.id
+        LEFT JOIN user ru ON brr.reply_to_user_id = ru.id
+        WHERE brr.review_id IN
+        <foreach collection="reviewIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY brr.id ASC
+    </select>
+
+    <delete id="deleteByReviewIds">
+        DELETE FROM book_review_reply
+        WHERE review_id IN
+        <foreach collection="reviewIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <resultMap id="BookReviewReplyViewMap" type="org.darkroomlibrary.web.view.BookReviewReplyView">
+        <id column="id" property="id"/>
+        <result column="review_id" property="reviewId"/>
+        <result column="user_id" property="userId"/>
+        <result column="reply_to_user_id" property="replyToUserId"/>
+        <result column="content" property="content"/>
+        <result column="create_time" property="createTime"/>
+        <result column="user_name" property="userName"/>
+        <result column="reply_to_user_name" property="replyToUserName"/>
+    </resultMap>
+
+</mapper>

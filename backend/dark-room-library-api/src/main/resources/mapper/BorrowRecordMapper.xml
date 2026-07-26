@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.BorrowRecordMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <!-- query 和 queryCount 共用的 WHERE 条件 -->
+    <sql id="queryWhere">
+        <if test="userId != null">
+            AND br.user_id = #{userId}
+        </if>
+        <if test="bookId != null">
+            AND br.book_id = #{bookId}
+        </if>
+        <if test="status != null">
+            AND br.status = #{status}
+        </if>
+        <if test="overdue != null and overdue == true">
+            AND br.status = 0 AND br.due_date &lt; NOW()
+        </if>
+        <if test="overdue != null and overdue == false">
+            AND (br.status = 1 OR br.due_date &gt;= NOW())
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND br.borrow_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <!-- 关联查询时额外需要的条件（关联表过滤） -->
+    <sql id="queryJoinWhere">
+        <include refid="queryWhere"/>
+        <if test="bookName != null and bookName != ''">
+            AND b.name LIKE concat('%',#{bookName},'%')
+        </if>
+        <if test="userName != null and userName != ''">
+            AND u.user_name LIKE concat('%',#{userName},'%')
+        </if>
+    </sql>
+
+    <!-- ==================== 写入操作 ==================== -->
+    <insert id="insertIfNoActiveBorrow" parameterType="org.darkroomlibrary.domain.model.BorrowRecord">
+        INSERT INTO borrow_record (user_id, book_id, borrow_time, due_date, status, fine_amount, renew_count)
+        SELECT #{userId}, #{bookId}, #{borrowTime}, #{dueDate}, #{status}, #{fineAmount}, COALESCE(#{renewCount}, 0)
+        FROM DUAL
+        WHERE NOT EXISTS (
+            SELECT 1 FROM borrow_record br
+            WHERE br.user_id = #{userId} AND br.book_id = #{bookId} AND br.status = 0
+        )
+    </insert>
+
+    <update id="updateReturnStatus">
+        UPDATE borrow_record
+        SET status = 1, return_time = #{returnTime}, fine_amount = #{fineAmount}
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <update id="updateRenewStatus">
+        UPDATE borrow_record
+        SET due_date = #{dueDate}, renew_count = #{renewCount}
+        WHERE id = #{id}
+          AND status = 0
+          AND due_date = #{expectedDueDate}
+          AND COALESCE(renew_count, 0) = #{expectedRenewCount}
+    </update>
+
+    <update id="markDueReminderSent">
+        UPDATE borrow_record
+        SET due_reminder_sent_time = #{reminderTime}
+        WHERE id = #{id}
+          AND status = 0
+          AND due_reminder_sent_time IS NULL
+    </update>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <!-- 查询用户当前未归还的借阅数量 -->
+    <select id="findByIdForUpdate" resultMap="BaseResultMap">
+        SELECT br.*
+        FROM borrow_record br
+        WHERE br.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="getActiveCountByUserId" resultType="int">
+        SELECT COUNT(*) FROM borrow_record br
+        WHERE br.user_id = #{userId} AND br.status = 0
+    </select>
+
+    <select id="countActiveByUserIdAndBookId" resultType="int">
+        SELECT COUNT(*) FROM borrow_record br
+        WHERE br.user_id = #{userId}
+          AND br.book_id = #{bookId}
+          AND br.status = 0
+    </select>
+
+    <select id="countActiveByBookId" resultType="int">
+        SELECT COUNT(*) FROM borrow_record br
+        WHERE br.book_id = #{bookId} AND br.status = 0
+    </select>
+
+    <select id="countActiveByBookIds" resultType="int">
+        SELECT COUNT(*) FROM borrow_record br
+        WHERE br.status = 0 AND br.book_id IN
+        <foreach collection="bookIds" item="bookId" open="(" separator="," close=")">
+            #{bookId}
+        </foreach>
+    </select>
+
+    <select id="countByUserIds" resultType="int">
+        SELECT COUNT(*)
+        FROM borrow_record br
+        WHERE br.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </select>
+
+    <!-- 查询用户历史罚款总额；当前项目没有独立支付表，因此 positive fine 视为未处理罚款 -->
+    <select id="sumFineAmountByUserId" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(br.fine_amount), 0)
+        FROM borrow_record br
+        WHERE br.user_id = #{userId}
+    </select>
+
+    <!-- 月度借阅统计 -->
+    <select id="monthlyBorrowStats" resultMap="BorrowRecordViewMap">
+        SELECT br.*, u.user_name, b.name AS book_name
+        FROM borrow_record br
+        LEFT JOIN user u ON br.user_id = u.id
+        LEFT JOIN book b ON br.book_id = b.id
+        WHERE YEAR(br.borrow_time) = #{year} AND MONTH(br.borrow_time) = #{month}
+        ORDER BY br.borrow_time
+    </select>
+
+    <!-- 分页查询借阅记录，关联用户和图书表 -->
+    <select id="query" resultMap="BorrowRecordViewMap">
+        SELECT br.id,
+               br.user_id,
+               br.book_id,
+               br.borrow_time,
+               br.due_date,
+               br.return_time,
+               br.status,
+               br.fine_amount,
+               br.renew_count,
+               br.due_reminder_sent_time,
+               u.user_name,
+               b.name AS book_name
+        FROM borrow_record br
+                 LEFT JOIN user u ON br.user_id = u.id
+                 LEFT JOIN book b ON br.book_id = b.id
+        <where>
+            <include refid="queryJoinWhere"/>
+        </where>
+        ORDER BY br.id DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <!-- 分页查询的计数：仅 JOIN 必要的表（bookName 过滤时需要 book，userName 过滤时需要 user） -->
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM borrow_record br
+        <if test="bookName != null and bookName != ''">
+            LEFT JOIN book b ON br.book_id = b.id
+        </if>
+        <if test="userName != null and userName != ''">
+            LEFT JOIN user u ON br.user_id = u.id
+        </if>
+        <where>
+            <include refid="queryJoinWhere"/>
+        </where>
+    </select>
+
+    <!-- 逾期用户聚合统计 -->
+    <select id="overdueUserStats" resultType="map">
+        SELECT u.id          AS userId,
+               u.user_name   AS userName,
+               COUNT(*)      AS overdueCount,
+               COALESCE(SUM(DATEDIFF(NOW(), br.due_date)), 0) AS totalOverdueDays
+        FROM borrow_record br
+                 LEFT JOIN user u ON br.user_id = u.id
+        WHERE br.status = 0
+          AND br.due_date &lt; NOW()
+        GROUP BY u.id, u.user_name
+        ORDER BY totalOverdueDays DESC
+    </select>
+
+    <!-- 热门图书统计 -->
+    <select id="hotBookStats" resultType="map">
+        SELECT b.id             AS bookId,
+               b.name           AS bookName,
+               COUNT(*)         AS borrowCount
+        FROM borrow_record br
+                 LEFT JOIN book b ON br.book_id = b.id
+        WHERE b.is_deleted = 0
+        GROUP BY b.id, b.name
+        ORDER BY borrowCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.BorrowRecord">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="borrow_time" property="borrowTime"/>
+        <result column="due_date" property="dueDate"/>
+        <result column="return_time" property="returnTime"/>
+        <result column="status" property="status"/>
+        <result column="fine_amount" property="fineAmount"/>
+        <result column="renew_count" property="renewCount"/>
+        <result column="due_reminder_sent_time" property="dueReminderSentTime"/>
+    </resultMap>
+
+    <resultMap id="BorrowRecordViewMap" type="org.darkroomlibrary.web.view.BorrowRecordView">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="borrow_time" property="borrowTime"/>
+        <result column="due_date" property="dueDate"/>
+        <result column="return_time" property="returnTime"/>
+        <result column="status" property="status"/>
+        <result column="fine_amount" property="fineAmount"/>
+        <result column="renew_count" property="renewCount"/>
+        <result column="due_reminder_sent_time" property="dueReminderSentTime"/>
+        <result column="user_name" property="userName"/>
+        <result column="book_name" property="bookName"/>
+    </resultMap>
+
+    <select id="findDueReminders" resultType="map">
+        SELECT br.id          AS recordId,
+               br.user_id     AS userId,
+               br.book_id     AS bookId,
+               br.due_date    AS dueDate,
+               u.user_email   AS userEmail,
+               u.user_name    AS userName,
+               b.name         AS bookName
+        FROM borrow_record br
+                 JOIN user u ON br.user_id = u.id
+                 JOIN book b ON br.book_id = b.id
+        WHERE br.status = 0
+          AND br.due_reminder_sent_time IS NULL
+          AND br.due_date &gt;= #{startTime}
+          AND br.due_date &lt; #{endTime}
+    </select>
+
+</mapper>

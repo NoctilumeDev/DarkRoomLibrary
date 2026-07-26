@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.BookReviewMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <sql id="queryWhere">
+        <if test="userId != null">
+            AND br.user_id = #{userId}
+        </if>
+        <if test="bookId != null">
+            AND br.book_id = #{bookId}
+        </if>
+        AND br.status = 0
+        <if test="startTime != null and endTime != null">
+            AND br.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <!-- 分页查询（关联用户和图书） -->
+    <select id="query" resultMap="BookReviewViewMap">
+        SELECT br.*, u.user_name, b.name AS book_name
+        FROM book_review br
+        LEFT JOIN user u ON br.user_id = u.id
+        LEFT JOIN book b ON br.book_id = b.id
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        <choose>
+            <when test="sortBy == 'hot'">
+                ORDER BY (
+                    SELECT COUNT(*)
+                    FROM book_review_like brl
+                    WHERE brl.review_id = br.id
+                ) DESC, br.id DESC
+            </when>
+            <otherwise>
+                ORDER BY br.id DESC
+            </otherwise>
+        </choose>
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <!-- 计数：无关联表过滤时无需 JOIN -->
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM book_review br
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.BookReview">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="rating" property="rating"/>
+        <result column="content" property="content"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <resultMap id="BookReviewViewMap" type="org.darkroomlibrary.web.view.BookReviewView">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="rating" property="rating"/>
+        <result column="content" property="content"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="user_name" property="userName"/>
+        <result column="book_name" property="bookName"/>
+    </resultMap>
+
+</mapper>

@@ -1,0 +1,70 @@
+// ===== SweetAlert2 暗室主题覆盖 =====
+// 把默认白底弹窗改成暗室暖暗风格，不跳戏
+
+.swal2-popup {
+  background: #1c1813 !important;
+  border: 1px solid rgba(231, 196, 137, 0.18) !important;
+  border-radius: 8px !important;
+  color: #eee4d2 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5) !important;
+}
+
+.swal2-title {
+  color: #fff6e5 !important;
+  font-weight: 600 !important;
+}
+
+.swal2-html-container {
+  color: rgba(238, 228, 210, 0.76) !important;
+}
+
+.swal2-icon.swal2-success {
+  border-color: #5f9a77 !important;
+  color: #5f9a77 !important;
+  .swal2-success-ring { border-color: rgba(95, 154, 119, 0.3) !important; }
+  .swal2-success-line-tip, .swal2-success-line-long {
+    background-color: #5f9a77 !important;
+  }
+}
+
+.swal2-icon.swal2-error {
+  border-color: #a8543a !important;
+  color: #a8543a !important;
+  .swal2-x-mark-line-left, .swal2-x-mark-line-right {
+    background-color: #a8543a !important;
+  }
+}
+
+.swal2-icon.swal2-warning {
+  border-color: #c58b3e !important;
+  color: #c58b3e !important;
+  .swal2-warning-body, .swal2-warning-dot {
+    background-color: #c58b3e !important;
+  }
+}
+
+.swal2-icon.swal2-info {
+  border-color: #5a9de0 !important;
+  color: #5a9de0 !important;
+}
+
+.swal2-confirm {
+  background: #d8a45f !important;
+  color: #1d140b !important;
+  border: none !important;
+  font-weight: 600 !important;
+  transition: background 0.2s !important;
+  &:hover { background: #e5b979 !important; }
+}
+
+.swal2-cancel {
+  background: rgba(238, 228, 210, 0.08) !important;
+  color: rgba(238, 228, 210, 0.64) !important;
+  border: 1px solid rgba(231, 196, 137, 0.16) !important;
+  transition: all 0.2s !important;
+  &:hover { background: rgba(238, 228, 210, 0.14) !important; color: #eee4d2 !important; }
+}
+
+.swal2-timer-progress-bar {
+  background: rgba(216, 164, 95, 0.5) !important;
+}

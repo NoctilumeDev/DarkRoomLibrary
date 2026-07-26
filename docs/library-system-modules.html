@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暗室藏书 - 功能模块图</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --root-bg: #1a2332;
+            --root-text: #ffffff;
+            --auth-color: #4A90D9;
+            --auth-light: #e8f1fb;
+            --auth-border: #b8d4f0;
+            --reader-color: #27AE60;
+            --reader-light: #eafaf1;
+            --reader-border: #a3e4bc;
+            --admin-color: #E67E22;
+            --admin-light: #fef5ec;
+            --admin-border: #f5cba7;
+            --procurement-color: #B7791F;
+            --procurement-light: #fff8e8;
+            --procurement-border: #f1d393;
+            --support-color: #8E44AD;
+            --support-light: #f7f0fa;
+            --support-border: #d7bde2;
+            --workflow-color: #C0392B;
+            --workflow-light: #fff0ee;
+            --workflow-border: #f0b7ad;
+            --data-color: #16A085;
+            --data-light: #e8f8f5;
+            --data-border: #a3e4d7;
+            --connector-line: #b0bec5;
+            --text-primary: #2c3e50;
+            --text-secondary: #4a5568;
+            --text-tertiary: #5a6c7d;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.05);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 30px 20px 60px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .diagram-wrapper {
+            width: 100%;
+            max-width: 1740px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .baseline-note {
+            width: min(100%, 1180px);
+            margin-top: 26px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(44, 62, 80, 0.16);
+            color: var(--text-tertiary);
+            font-size: 13px;
+            line-height: 1.7;
+            text-align: center;
+        }
+
+        /* ========== 标题 ========== */
+        .page-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a2332;
+            margin-bottom: 28px;
+            letter-spacing: 0.5px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .page-title::before,
+        .page-title::after {
+            content: '';
+            display: inline-block;
+            width: 32px;
+            height: 3px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #4A90D9, #27AE60, #E67E22, #8E44AD, #16A085);
+            background-size: 200% 100%;
+            animation: titleLine 3s ease-in-out infinite;
+        }
+        @keyframes titleLine {
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        /* ========== 根节点 ========== */
+        .root-node-container {
+            position: relative;
+            z-index: 2;
+            margin-bottom: 0;
+        }
+        .root-node {
+            display: inline-block;
+            background: var(--root-bg);
+            color: var(--root-text);
+            font-size: 19px;
+            font-weight: 700;
+            padding: 14px 36px;
+            border-radius: 30px;
+            letter-spacing: 1px;
+            box-shadow: var(--shadow-lg), 0 0 0 6px rgba(26, 35, 50, 0.08);
+            position: relative;
+            transition: var(--transition);
+            cursor: default;
+            white-space: nowrap;
+        }
+        .root-node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18), 0 0 0 10px rgba(26, 35, 50, 0.06);
+        }
+        .root-node::after {
+            content: '';
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 28px;
+            background: var(--connector-line);
+            border-radius: 2px;
+        }
+
+        /* ========== 连接线区域 ========== */
+        .connector-zone {
+            width: 100%;
+            max-width: 1680px;
+            height: 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .connector-zone .horizontal-line {
+            position: absolute;
+            top: 12px;
+            left: 5%;
+            right: 5%;
+            height: 3px;
+            background: var(--connector-line);
+            border-radius: 2px;
+        }
+        .connector-zone .vertical-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        /* ========== 模块行 ========== */
+        .modules-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 14px;
+            width: 100%;
+            max-width: 1680px;
+        }
+
+        /* ========== 模块列 ========== */
+        .module-column {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: visible;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border: 1px solid #e8ecf1;
+        }
+        .module-column:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-3px);
+        }
+
+        /* 列顶部连接线指示 */
+        .module-column::before {
+            content: '';
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 18px;
+            background: var(--connector-line);
+            border-radius: 2px;
+            z-index: 3;
+        }
+
+        /* ========== 模块列头部 ========== */
+        .module-header {
+            padding: 14px 16px 12px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #fff;
+            letter-spacing: 0.6px;
+            text-align: center;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .module-header .icon-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.7);
+            flex-shrink: 0;
+        }
+        .module-column.auth .module-header {
+            background: linear-gradient(135deg, #3d7ec7, #5a9de0);
+        }
+        .module-column.reader .module-header {
+            background: linear-gradient(135deg, #1e8c4e, #2ecc71);
+        }
+        .module-column.admin .module-header {
+            background: linear-gradient(135deg, #d4700f, #f0932b);
+        }
+        .module-column.procurement .module-header {
+            background: linear-gradient(135deg, #9a6517, #d69e2e);
+        }
+        .module-column.support .module-header {
+            background: linear-gradient(135deg, #7d3c98, #a569bd);
+        }
+        .module-column.workflow .module-header {
+            background: linear-gradient(135deg, #a93226, #d35400);
+        }
+        .module-column.data .module-header {
+            background: linear-gradient(135deg, #0e7c63, #1abc9c);
+        }
+
+        /* ========== 模块主体 ========== */
+        .module-body {
+            padding: 10px 6px 14px 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: visible;
+        }
+
+        /* ========== 二级节点 ========== */
+        .sub-item {
+            position: relative;
+            padding: 6px 10px 6px 18px;
+            margin: 2px 0;
+            border-left: 3px solid transparent;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            transition: var(--transition);
+            cursor: default;
+            background: transparent;
+        }
+        .sub-item:hover {
+            background: #f8fafb;
+        }
+        .sub-item .sub-item-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            line-height: 1.4;
+        }
+        .sub-item .sub-item-title::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: currentColor;
+            opacity: 0.5;
+        }
+        /* 各模块二级节点颜色 */
+        .module-column.auth .sub-item {
+            border-left-color: var(--auth-border);
+        }
+        .module-column.auth .sub-item:hover {
+            background: var(--auth-light);
+            border-left-color: var(--auth-color);
+        }
+        .module-column.auth .sub-item .sub-item-title::before {
+            background: var(--auth-color);
+            opacity: 0.6;
+        }
+
+        .module-column.reader .sub-item {
+            border-left-color: var(--reader-border);
+        }
+        .module-column.reader .sub-item:hover {
+            background: var(--reader-light);
+            border-left-color: var(--reader-color);
+        }
+        .module-column.reader .sub-item .sub-item-title::before {
+            background: var(--reader-color);
+            opacity: 0.6;
+        }
+
+        .module-column.admin .sub-item {
+            border-left-color: var(--admin-border);
+        }
+        .module-column.admin .sub-item:hover {
+            background: var(--admin-light);
+            border-left-color: var(--admin-color);
+        }
+        .module-column.admin .sub-item .sub-item-title::before {
+            background: var(--admin-color);
+            opacity: 0.6;
+        }
+
+        .module-column.procurement .sub-item {
+            border-left-color: var(--procurement-border);
+        }
+        .module-column.procurement .sub-item:hover {
+            background: var(--procurement-light);
+            border-left-color: var(--procurement-color);
+        }
+        .module-column.procurement .sub-item .sub-item-title::before {
+            background: var(--procurement-color);
+            opacity: 0.6;
+        }
+
+        .module-column.support .sub-item {
+            border-left-color: var(--support-border);
+        }
+        .module-column.support .sub-item:hover {
+            background: var(--support-light);
+            border-left-color: var(--support-color);
+        }
+        .module-column.support .sub-item .sub-item-title::before {
+            background: var(--support-color);
+            opacity: 0.6;
+        }
+        .module-column.workflow .sub-item {
+            border-left-color: var(--workflow-border);
+        }
+        .module-column.workflow .sub-item:hover {
+            background: var(--workflow-light);
+            border-left-color: var(--workflow-color);
+        }
+        .module-column.workflow .sub-item .sub-item-title::before {
+            background: var(--workflow-color);
+            opacity: 0.6;
+        }
+
+        .module-column.data .sub-item {
+            border-left-color: var(--data-border);
+        }
+        .module-column.data .sub-item:hover {
+            background: var(--data-light);
+            border-left-color: var(--data-color);
+        }
+        .module-column.data .sub-item .sub-item-title::before {
+            background: var(--data-color);
+            opacity: 0.6;
+        }
+
+        /* 有子节点的二级节点 */
+        .sub-item.has-children {
+            border-left-width: 3px;
+            border-left-style: solid;
+            padding-bottom: 3px;
+            margin-bottom: 0;
+        }
+        .sub-item.has-children .sub-item-title {
+            font-weight: 700;
+            font-size: 13.5px;
+            color: var(--text-primary);
+        }
+        .sub-item.has-children .sub-item-title::before {
+            width: 6px;
+            height: 6px;
+            opacity: 0.8;
+        }
+
+        /* 叶子节点样式 */
+        .sub-item.leaf {
+            border-left-width: 3px;
+            border-left-style: solid;
+        }
+
+        /* ========== 三级节点容器 ========== */
+        .sub-sub-items {
+            margin-left: 12px;
+            padding: 3px 0 3px 12px;
+            border-left: 2px dashed #dde4ea;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            position: relative;
+        }
+        .module-column.auth .sub-sub-items {
+            border-left-color: #c8daf0;
+        }
+        .module-column.reader .sub-sub-items {
+            border-left-color: #b8e6cc;
+        }
+        .module-column.admin .sub-sub-items {
+            border-left-color: #f0d4b5;
+        }
+        .module-column.procurement .sub-sub-items {
+            border-left-color: #ead6a2;
+        }
+        .module-column.support .sub-sub-items {
+            border-left-color: #dcc8e5;
+        }
+        .module-column.workflow .sub-sub-items {
+            border-left-color: #efc0b8;
+        }
+        .module-column.data .sub-sub-items {
+            border-left-color: #b8e8db;
+        }
+
+        /* ========== 三级节点 ========== */
+        .sub-sub-item {
+            font-size: 11.5px;
+            color: var(--text-tertiary);
+            padding: 4px 8px 4px 10px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            cursor: default;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            line-height: 1.4;
+            background: transparent;
+        }
+        .sub-sub-item::before {
+            content: '';
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: #c0c9d2;
+            transition: var(--transition);
+        }
+        .sub-sub-item:hover {
+            background: #f5f7f9;
+            color: var(--text-primary);
+        }
+        .sub-sub-item:hover::before {
+            background: #8899a6;
+            transform: scale(1.4);
+        }
+
+        /* 各模块三级节点颜色 */
+        .module-column.auth .sub-sub-item:hover {
+            background: #e4eff9;
+        }
+        .module-column.auth .sub-sub-item:hover::before {
+            background: var(--auth-color);
+        }
+        .module-column.reader .sub-sub-item:hover {
+            background: #e0f7e9;
+        }
+        .module-column.reader .sub-sub-item:hover::before {
+            background: var(--reader-color);
+        }
+        .module-column.admin .sub-sub-item:hover {
+            background: #fef0e2;
+        }
+        .module-column.admin .sub-sub-item:hover::before {
+            background: var(--admin-color);
+        }
+        .module-column.procurement .sub-sub-item:hover {
+            background: #fff4d8;
+        }
+        .module-column.procurement .sub-sub-item:hover::before {
+            background: var(--procurement-color);
+        }
+        .module-column.support .sub-sub-item:hover {
+            background: #f3ebf7;
+        }
+        .module-column.support .sub-sub-item:hover::before {
+            background: var(--support-color);
+        }
+        .module-column.workflow .sub-sub-item:hover {
+            background: #fff0ee;
+        }
+        .module-column.workflow .sub-sub-item:hover::before {
+            background: var(--workflow-color);
+        }
+        .module-column.data .sub-sub-item:hover {
+            background: #e2f6f1;
+        }
+        .module-column.data .sub-sub-item:hover::before {
+            background: var(--data-color);
+        }
+
+        /* ========== 响应式设计 ========== */
+        @media (max-width: 1280px) {
+            .modules-row {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 14px;
+            }
+            .connector-zone {
+                display: none;
+            }
+            .root-node::after {
+                display: none;
+            }
+            .module-column::before {
+                display: none;
+            }
+            .module-header {
+                font-size: 14px;
+                padding: 12px 10px 10px;
+            }
+            .sub-item .sub-item-title {
+                font-size: 12px;
+            }
+            .sub-sub-item {
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 860px) {
+            .modules-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .root-node {
+                font-size: 17px;
+                padding: 12px 28px;
+                border-radius: 24px;
+            }
+            .module-header {
+                font-size: 13px;
+                padding: 10px 8px 9px;
+            }
+            .sub-item .sub-item-title {
+                font-size: 11.5px;
+            }
+            .sub-sub-item {
+                font-size: 10.5px;
+            }
+            .page-title {
+                font-size: 22px;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .modules-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .root-node {
+                font-size: 16px;
+                padding: 10px 22px;
+                border-radius: 20px;
+            }
+            .module-header {
+                font-size: 13px;
+            }
+            .module-body {
+                padding: 8px 4px 10px 6px;
+            }
+            .sub-item {
+                padding: 5px 6px 5px 14px;
+            }
+            .sub-sub-items {
+                margin-left: 8px;
+                padding-left: 8px;
+            }
+            .page-title {
+                font-size: 19px;
+                gap: 6px;
+            }
+            .page-title::before,
+            .page-title::after {
+                width: 20px;
+                height: 2px;
+            }
+            body {
+                padding: 16px 8px 30px;
+            }
+        }
+
+        /* ========== 打印样式 ========== */
+        @media print {
+            body {
+                background: #fff;
+                padding: 10px;
+            }
+            .module-column {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                break-inside: avoid;
+            }
+            .module-column:hover {
+                transform: none;
+                box-shadow: none;
+            }
+            .modules-row {
+                gap: 8px;
+            }
+            .connector-zone {
+                display: block;
+            }
+        }
+
+        /* ========== 附加动画 ========== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .module-column {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        .module-column:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+        .module-column:nth-child(2) {
+            animation-delay: 0.12s;
+        }
+        .module-column:nth-child(3) {
+            animation-delay: 0.19s;
+        }
+        .module-column:nth-child(4) {
+            animation-delay: 0.26s;
+        }
+        .module-column:nth-child(5) {
+            animation-delay: 0.33s;
+        }
+        .module-column:nth-child(6) {
+            animation-delay: 0.40s;
+        }
+        .module-column:nth-child(7) {
+            animation-delay: 0.47s;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="diagram-wrapper">
+        <!-- 页面标题 -->
+        <div class="page-title">暗室藏书 · 功能模块图</div>
+
+        <!-- 根节点 -->
+        <div class="root-node-container">
+            <div class="root-node">📚 图书管理系统</div>
+        </div>
+
+        <!-- 连接线区域 -->
+        <div class="connector-zone">
+            <div class="horizontal-line"></div>
+        </div>
+
+        <!-- 七个一级模块列 -->
+        <div class="modules-row">
+
+            <!-- ========== 1. 认证与账号模块 ========== -->
+            <div class="module-column auth">
+                <div class="module-header">
+                    <span class="icon-dot"></span>认证与账号模块
+                </div>
+                <div class="module-body">
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">登录</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">注册</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">重置密码</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">验证码</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">登录数学验证码</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">验证码场景隔离</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">验证码每日上限</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">JWT 鉴权</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 2. 读者端功能 ========== -->
+            <div class="module-column reader">
+                <div class="module-header">
+                    <span class="icon-dot"></span>读者端功能
+                </div>
+                <div class="module-body">
+                    <!-- 图书借阅（有子节点） -->
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">图书借阅</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">图书查询</div>
+                            <div class="sub-sub-item">借书</div>
+                            <div class="sub-sub-item">收藏图书</div>
+                            <div class="sub-sub-item">预约图书</div>
+                        </div>
+                    </div>
+                    <!-- 我的借阅（有子节点） -->
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">我的借阅</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">归还图书</div>
+                            <div class="sub-sub-item">续借</div>
+                        </div>
+                    </div>
+                    <!-- 叶子节点 -->
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">我的收藏</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">我的预约</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">个人资料</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">留言板</div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">书评互动</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">最新 / 最热切换</div>
+                            <div class="sub-sub-item">点赞 / 取消点赞</div>
+                            <div class="sub-sub-item">一级回复</div>
+                            <div class="sub-sub-item">举报书评</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 3. 管理端功能 ========== -->
+            <div class="module-column admin">
+                <div class="module-header">
+                    <span class="icon-dot"></span>管理端功能
+                </div>
+                <div class="module-body">
+                    <!-- 叶子节点 -->
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">数据总览</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">统计看板</div>
+                    </div>
+                    <!-- 用户管理（有子节点） -->
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">用户管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">用户角色与状态管理</div>
+                            <div class="sub-sub-item">馆务协调员任免（仅超级管理员）</div>
+                            <div class="sub-sub-item">冻结 / 解冻用户</div>
+                            <div class="sub-sub-item">禁言 / 解禁用户</div>
+                        </div>
+                    </div>
+                    <!-- 图书管理（有子节点） -->
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">图书管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">图书增删改查</div>
+                        </div>
+                    </div>
+                    <!-- 分类管理（有子节点） -->
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">分类管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">分类增删改查</div>
+                        </div>
+                    </div>
+                    <!-- 书架管理（有子节点） -->
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">书架管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">书架增删改查</div>
+                        </div>
+                    </div>
+                    <!-- 借阅管理（有子节点） -->
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">借阅管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">管理员代还</div>
+                        </div>
+                    </div>
+                    <!-- 公告管理（有子节点） -->
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">公告管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">公告发布与维护</div>
+                        </div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">内容审核</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">书评举报审核</div>
+                            <div class="sub-sub-item">忽略举报</div>
+                            <div class="sub-sub-item">隐藏违规书评</div>
+                        </div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">留言管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">留言查看与回复</div>
+                            <div class="sub-sub-item">待回复 / 已回复状态</div>
+                        </div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">审核与状态跟踪</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">用户状态审核</div>
+                            <div class="sub-sub-item">预约状态流转</div>
+                            <div class="sub-sub-item">借阅 / 逾期状态</div>
+                            <div class="sub-sub-item">通知补偿状态</div>
+                            <div class="sub-sub-item">书评举报待审核</div>
+                        </div>
+                    </div>
+                    <!-- 叶子节点 -->
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">操作日志</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">数据导出</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">文件管理（仅超级管理员）</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">采购进度查看</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 4. 采购物流协作 ========== -->
+            <div class="module-column procurement">
+                <div class="module-header">
+                    <span class="icon-dot"></span>采购物流协作
+                </div>
+                <div class="module-body">
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">低库存采购入口</div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">采购单管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">管理员创建采购需求</div>
+                            <div class="sub-sub-item">指派 / 认领采购员</div>
+                            <div class="sub-sub-item">待采购 / 采购中 / 已下单</div>
+                            <div class="sub-sub-item">已发货 / 已到货 / 已入库 / 已完成 / 已取消</div>
+                        </div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">协作消息</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">管理员 / 采购员对话</div>
+                            <div class="sub-sub-item">采购员 / 物流员对话</div>
+                            <div class="sub-sub-item">已读 / 未读</div>
+                        </div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">超级管理员全局审计</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">采购单留痕</div>
+                            <div class="sub-sub-item">物流流转记录</div>
+                            <div class="sub-sub-item">跨岗位消息记录</div>
+                            <div class="sub-sub-item">已读 / 未读记录</div>
+                        </div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">物流进度同步</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">采购员分配物流员</div>
+                            <div class="sub-sub-item">待接收 / 运输中 / 已到馆 / 已入库</div>
+                            <div class="sub-sub-item">入库后自动补充库存</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 5. 通用支撑功能 ========== -->
+            <div class="module-column support">
+                <div class="module-header">
+                    <span class="icon-dot"></span>通用支撑功能
+                </div>
+                <div class="module-body">
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">文件生命周期管理</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">上传与元数据登记</div>
+                            <div class="sub-sub-item">业务引用绑定与释放</div>
+                            <div class="sub-sub-item">公开预览 / 鉴权下载</div>
+                            <div class="sub-sub-item">临时 / 孤立文件定时清理</div>
+                        </div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">操作审计</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">登录失败限流与账号锁定</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">逾期罚款计算</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">Excel 数据导出</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">访问量统计</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">查询缓存（Redis 可降级）</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">邮件通知（补偿机制）</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">到期提醒邮件</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">预约到货通知</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">续借管理</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">低库存告警</div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">可降级中间件</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">Redis 异常：内存 / MySQL 兜底</div>
+                            <div class="sub-sub-item">RabbitMQ 异常：同步写库 / 补偿表</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 6. 后台流程与状态 ========== -->
+            <div class="module-column workflow">
+                <div class="module-header">
+                    <span class="icon-dot"></span>后台流程与状态
+                </div>
+                <div class="module-body">
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">后台请求处理流程</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">Controller 参数校验 / 权限注解</div>
+                            <div class="sub-sub-item">Service 事务编排 / 业务规则</div>
+                            <div class="sub-sub-item">Mapper 条件更新 / 查询聚合</div>
+                            <div class="sub-sub-item">MySQL 核心一致性</div>
+                            <div class="sub-sub-item">缓存增强 / Redis 降级</div>
+                            <div class="sub-sub-item">领域事件 / 邮件通知</div>
+                            <div class="sub-sub-item">MQ 不可用时降级</div>
+                            <div class="sub-sub-item">notification_task 补偿重试</div>
+                            <div class="sub-sub-item">操作日志审计</div>
+                        </div>
+                    </div>
+                    <div class="sub-item has-children">
+                        <div class="sub-item-title">关键状态流转</div>
+                        <div class="sub-sub-items">
+                            <div class="sub-sub-item">用户：正常 / 禁用 / 禁言</div>
+                            <div class="sub-sub-item">借阅：借阅中 / 已归还 / 逾期</div>
+                            <div class="sub-sub-item">预约：等待 / 已通知 / 已借阅 / 已取消 / 已过期</div>
+                            <div class="sub-sub-item">留言：待回复 / 已回复</div>
+                            <div class="sub-sub-item">通知：待发送 / 已发送 / 失败重试</div>
+                            <div class="sub-sub-item">书评举报：待处理 / 已处理 / 忽略</div>
+                            <div class="sub-sub-item">书评：正常 / 隐藏</div>
+                            <div class="sub-sub-item">图书：在架 / 借出 / 软删除</div>
+                            <div class="sub-sub-item">采购：待采购 / 采购中 / 已下单 / 已发货 / 已到货 / 已入库 / 已完成 / 已取消</div>
+                            <div class="sub-sub-item">物流：待接收 / 运输中 / 已到馆 / 已入库</div>
+                            <div class="sub-sub-item">协作消息：未读 / 已读</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 7. 数据存储 ========== -->
+            <div class="module-column data">
+                <div class="module-header">
+                    <span class="icon-dot"></span>数据存储
+                </div>
+                <div class="module-body">
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">用户数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">图书数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">分类数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">书架数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">借阅记录</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">收藏记录</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">预约记录</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">评论数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">评论点赞数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">评论回复数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">评论举报数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">公告数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">操作日志</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">通知补偿任务</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">留言板数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">采购单数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">采购物流数据</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">采购协作消息</div>
+                    </div>
+                    <div class="sub-item leaf">
+                        <div class="sub-item-title">文件元数据与引用</div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /modules-row -->
+        <p class="baseline-note">
+            2026-07-26 公开基线：Spring Boot 3.5.16 / Vue 3.5.40 / Vite 8.1.5；
+            后端 20606，前端 5175；后端 165 项、前端 26 项、五角色 75 次真实 API、
+            19 个并发场景 / 392 次请求、86 个浏览器路由检查全部通过。
+        </p>
+    </div><!-- /diagram-wrapper -->
+
+</body>
+</html>

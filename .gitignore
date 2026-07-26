@@ -1,0 +1,56 @@
+# IDE and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Java / Maven build output
+target/
+
+# Frontend dependencies and build output
+node_modules/
+dist/
+test-results/
+
+# Generated delivery archives
+release/
+
+# Runtime uploads and temporary files
+backend/dark-room-library-api/upload/
+upload/
+tmp/
+
+# Logs
+*.log
+logs/
+
+# Local environment overrides
+.env
+.env.local
+.env.*.local
+
+# Local Spring Boot configuration and credentials
+application-local.yml
+application-local.yaml
+application-local.properties
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Local database and test artifacts
+*.db
+*.mv.db
+*.trace.db
+*.pid
+
+# Misplaced lock file; keep frontend/dark-room-library-web/package-lock.json
+/frontend/package-lock.json

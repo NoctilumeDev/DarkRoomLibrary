@@ -1,0 +1,20 @@
+@mixin title-input {
+  width: 100%;
+  padding: 5px 10px;
+  border: 0;
+  outline: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.input-title,
+.input-child {
+  @include title-input;
+}
+
+.top-bar {
+  display: inline-block;
+  margin: 0 10px;
+  color: #909399;
+  font-size: 14px;
+}

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.ProcurementMessageMapper">
+
+    <sql id="queryWhere">
+        <if test="orderId != null">
+            AND pm.order_id = #{orderId}
+        </if>
+        <if test="channelType != null">
+            AND pm.channel_type = #{channelType}
+        </if>
+        <if test="unreadOnly != null and unreadOnly">
+            AND pm.read_status = 0
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND pm.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <select id="query" resultMap="ProcurementMessageViewMap">
+        SELECT pm.*,
+               sender.user_name AS sender_name,
+               sender.user_role AS sender_role,
+               receiver.user_name AS receiver_name,
+               receiver.user_role AS receiver_role
+        FROM procurement_message pm
+        LEFT JOIN user sender ON pm.sender_id = sender.id
+        LEFT JOIN user receiver ON pm.receiver_id = receiver.id
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY pm.id ASC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM procurement_message pm
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <select id="countUnread" resultType="integer">
+        SELECT COUNT(*)
+        FROM procurement_message pm
+        WHERE pm.receiver_id = #{receiverId}
+          AND pm.read_status = 0
+        <if test="orderId != null">
+          AND pm.order_id = #{orderId}
+        </if>
+        <if test="channelType != null">
+          AND pm.channel_type = #{channelType}
+        </if>
+    </select>
+
+    <update id="markRead">
+        UPDATE procurement_message
+        SET read_status = 1,
+            read_time = #{readTime}
+        WHERE receiver_id = #{receiverId}
+          AND read_status = 0
+        <if test="orderId != null">
+          AND order_id = #{orderId}
+        </if>
+        <if test="channelType != null">
+          AND channel_type = #{channelType}
+        </if>
+    </update>
+
+    <resultMap id="ProcurementMessageViewMap" type="org.darkroomlibrary.web.view.ProcurementMessageView">
+        <id column="id" property="id"/>
+        <result column="order_id" property="orderId"/>
+        <result column="channel_type" property="channelType"/>
+        <result column="sender_id" property="senderId"/>
+        <result column="sender_name" property="senderName"/>
+        <result column="sender_role" property="senderRole"/>
+        <result column="receiver_id" property="receiverId"/>
+        <result column="receiver_name" property="receiverName"/>
+        <result column="receiver_role" property="receiverRole"/>
+        <result column="content" property="content"/>
+        <result column="read_status" property="readStatus"/>
+        <result column="read_time" property="readTime"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+</mapper>

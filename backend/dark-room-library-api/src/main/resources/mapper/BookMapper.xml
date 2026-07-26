@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.BookMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <sql id="queryWhere">
+        <choose>
+            <when test="deleted != null">
+                AND b.is_deleted = #{deleted}
+            </when>
+            <otherwise>
+                AND b.is_deleted = 0
+            </otherwise>
+        </choose>
+        <if test="name != null and name != ''">
+            AND b.name LIKE concat('%',#{name},'%')
+        </if>
+        <if test="author != null and author != ''">
+            AND b.author LIKE concat('%',#{author},'%')
+        </if>
+        <if test="category != null and category != ''">
+            AND b.category LIKE concat('%',#{category},'%')
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND b.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <!-- ==================== 更新操作 ==================== -->
+    <update id="decreaseAvailableCount">
+        UPDATE book
+        SET available_count = available_count - 1
+        WHERE id = #{id}
+          AND is_deleted = 0
+          AND available_count &gt; 0
+    </update>
+
+    <update id="increaseAvailableCount">
+        UPDATE book
+        SET available_count = available_count + 1
+        WHERE id = #{id}
+          AND is_deleted = 0
+          AND available_count &lt; total_count
+    </update>
+
+    <update id="increaseStock">
+        UPDATE book
+        SET total_count = total_count + #{count},
+            available_count = available_count + #{count}
+        WHERE id = #{id}
+          AND is_deleted = 0
+          AND #{count} &gt; 0
+    </update>
+
+    <update id="updateCategoryName">
+        UPDATE book
+        SET category = #{newName}
+        WHERE category = #{oldName}
+    </update>
+
+    <update id="softDelete" parameterType="list">
+        UPDATE book SET is_deleted = 1 WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="restore" parameterType="list">
+        UPDATE book SET is_deleted = 0 WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <select id="findByIdForUpdate" resultMap="BaseResultMap">
+        SELECT b.*
+        FROM book b
+        WHERE b.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="findByIdsForUpdate" resultMap="BaseResultMap">
+        SELECT b.*
+        FROM book b
+        WHERE b.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY b.id
+        FOR UPDATE
+    </select>
+
+    <select id="countByCategories" resultType="int">
+        SELECT COUNT(*)
+        FROM book
+        WHERE category IN
+        <foreach collection="categories" item="category" open="(" separator="," close=")">
+            #{category}
+        </foreach>
+    </select>
+
+    <!-- 分页查询图书信息 -->
+    <select id="query" resultMap="BaseResultMap">
+        SELECT b.*
+        FROM book b
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY b.id DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <!-- 满足分页条件的数据总项 -->
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM book b
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <!-- 低库存图书：可借数量 <= 阈值 -->
+    <select id="queryLowStock" resultMap="BaseResultMap">
+        SELECT b.* FROM book b
+        WHERE b.is_deleted = 0 AND b.available_count &lt;= #{threshold}
+        ORDER BY b.available_count ASC
+    </select>
+
+    <!-- 按分类聚合：每种分类的馆藏统计 -->
+    <select id="categoryStats" resultType="map">
+        SELECT COALESCE(b.category, '未分类')   AS category,
+               SUM(b.total_count)               AS totalCount,
+               SUM(b.available_count)           AS availableCount,
+               COUNT(*)                         AS bookCount
+        FROM book b
+        WHERE b.is_deleted = 0
+        GROUP BY b.category
+        ORDER BY bookCount DESC
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.Book">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="author" property="author"/>
+        <result column="isbn" property="isbn"/>
+        <result column="publisher" property="publisher"/>
+        <result column="category" property="category"/>
+        <result column="total_count" property="totalCount"/>
+        <result column="available_count" property="availableCount"/>
+        <result column="cover" property="cover"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="bookshelf_id" property="bookshelfId"/>
+    </resultMap>
+
+</mapper>

@@ -1,0 +1,39 @@
+$dialog-muted: rgb(107, 106, 106);
+
+.theme-tag {
+  margin-right: 5px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  color: #1c1c1c;
+  background-color: rgb(237, 235, 235);
+  font-size: 12px;
+}
+
+.dialog-title {
+  padding: 15px 20px;
+  color: $dialog-muted;
+  font-size: 16px;
+  user-select: none;
+}
+
+.dialog-avatar {
+  width: 98px;
+  height: 98px;
+}
+
+.dialog-input {
+  width: 100%;
+  padding: 4px 5px;
+  border: 0;
+  outline: 0;
+  font-size: 30px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.dialog-hover {
+  display: inline-block;
+  padding: 10px 6px;
+  color: $dialog-muted;
+  font-size: 12px;
+}

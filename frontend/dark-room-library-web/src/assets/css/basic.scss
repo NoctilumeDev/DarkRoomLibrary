@@ -1,0 +1,82 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  color: #eee4d2;
+  background: #12100e;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+}
+
+// ===== Element Plus 暗室主题变量 =====
+:root {
+  --el-bg-color: #1c1813;
+  --el-bg-color-overlay: #1c1813;
+  --el-text-color-primary: #eee4d2;
+  --el-text-color-regular: rgba(238, 228, 210, 0.76);
+  --el-border-color: rgba(231, 196, 137, 0.12);
+  --el-border-color-light: rgba(231, 196, 137, 0.08);
+  --el-fill-color: rgba(238, 228, 210, 0.04);
+  --el-fill-color-light: rgba(238, 228, 210, 0.06);
+  --el-color-primary: #d8a45f;
+  --el-color-primary-light-3: #e5b979;
+  --el-color-primary-light-5: #f0cf9a;
+  --el-color-primary-dark-2: #c58b3e;
+}
+
+.el-table {
+  --el-table-header-bg-color: rgba(28, 24, 19, 0.9);
+  --el-table-header-text-color: #c8b58a;
+  --el-table-row-hover-bg-color: rgba(216, 164, 95, 0.06);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-text-color: rgba(238, 228, 210, 0.82);
+  --el-table-border-color: rgba(231, 196, 137, 0.1);
+}
+
+.el-dialog {
+  --el-dialog-bg-color: #1c1813;
+  border-radius: 8px;
+  border: 1px solid rgba(231, 196, 137, 0.12);
+}
+
+.el-input__wrapper {
+  background: rgba(238, 228, 210, 0.04);
+  box-shadow: 0 0 0 1px rgba(231, 196, 137, 0.12) inset;
+}
+
+.el-input__inner {
+  color: #eee4d2;
+}
+
+.el-button--default {
+  --el-button-bg-color: rgba(238, 228, 210, 0.06);
+  --el-button-border-color: rgba(231, 196, 137, 0.14);
+  --el-button-text-color: rgba(238, 228, 210, 0.76);
+}
+
+.icon-r-edit:before,
+.icon-r-no:before,
+.icon-r-yes:before,
+.icon-r-delete:before,
+.icon-r-add:before {
+  content: "" !important;
+}

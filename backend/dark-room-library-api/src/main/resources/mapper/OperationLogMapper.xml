@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.OperationLogMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <sql id="queryWhere">
+        <if test="userId != null">
+            AND ol.user_id = #{userId}
+        </if>
+        <if test="operation != null and operation != ''">
+            AND ol.operation = #{operation}
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND ol.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <select id="query" resultMap="BaseResultMap">
+        SELECT ol.*
+        FROM operation_log ol
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY ol.id DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM operation_log ol
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.OperationLog">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="user_name" property="userName"/>
+        <result column="operation" property="operation"/>
+        <result column="target" property="target"/>
+        <result column="detail" property="detail"/>
+        <result column="ip" property="ip"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+</mapper>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.AdminWorkflowMapper">
+
+    <select id="countWorkflowStatuses" resultType="map">
+        SELECT
+          (SELECT COUNT(*) FROM message_board WHERE reply IS NULL OR TRIM(reply) = '') AS messagePending,
+          (SELECT COUNT(*) FROM message_board WHERE reply IS NOT NULL AND TRIM(reply) &lt;&gt; '') AS messageReplied,
+          (SELECT COUNT(*) FROM borrow_record WHERE status = 0) AS activeBorrow,
+          (SELECT COUNT(*) FROM borrow_record WHERE status = 1) AS returnedBorrow,
+          (SELECT COUNT(*) FROM borrow_record WHERE status = 0 AND due_date IS NOT NULL AND due_date &lt; NOW()) AS overdueBorrow,
+          (SELECT COUNT(*) FROM book_reservation WHERE status = 0) AS waitingReservation,
+          (SELECT COUNT(*) FROM book_reservation WHERE status = 1) AS borrowedReservation,
+          (SELECT COUNT(*) FROM book_reservation WHERE status = 2) AS canceledReservation,
+          (SELECT COUNT(*) FROM book_reservation WHERE status = 3) AS notifiedReservation,
+          (SELECT COUNT(*) FROM book_reservation WHERE status = 4) AS expiredReservation,
+          (SELECT COUNT(*) FROM notification_task WHERE status IN (0, 3)) AS pendingNotification,
+          (SELECT COUNT(*) FROM notification_task WHERE status = 1) AS sentNotification,
+          (SELECT COUNT(*) FROM notification_task WHERE status = 2) AS failedNotification,
+          (SELECT COUNT(*) FROM book_review_report WHERE status = 0) AS pendingReviewReport,
+          (SELECT COUNT(*) FROM procurement_order WHERE status = 0) AS pendingProcurement,
+          (SELECT COUNT(*) FROM procurement_order WHERE status IN (1, 2, 3, 4)) AS activeProcurement,
+          (SELECT COUNT(*) FROM procurement_order WHERE status = 5) AS warehousedProcurement,
+          (SELECT COUNT(*) FROM procurement_order WHERE status = 6) AS completedProcurement,
+          (SELECT COUNT(*) FROM procurement_logistics WHERE status = 1) AS inTransitLogistics,
+          (SELECT COUNT(*) FROM user WHERE is_login = 0) AS activeUsers,
+          (SELECT COUNT(*) FROM user WHERE is_login = 1) AS disabledUsers,
+          (SELECT COUNT(*) FROM user WHERE is_word = 1) AS mutedUsers,
+          (SELECT COUNT(*) FROM book_review) AS reviewCount,
+          (SELECT COUNT(*) FROM book_review_like) AS reviewLikeCount,
+          (SELECT COUNT(*) FROM book_review_reply) AS reviewReplyCount
+    </select>
+
+</mapper>

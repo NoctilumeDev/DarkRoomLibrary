@@ -1,0 +1,56 @@
+# 测试环境配置
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;NON_KEYWORDS=USER;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+  h2:
+    console:
+      enabled: true
+  # 禁用邮件发送
+  mail:
+    host: localhost
+    port: 25
+    username: test
+    password: test
+  # 禁用文件上传
+  servlet:
+    multipart:
+      enabled: false
+
+# MyBatis-Plus
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+
+# JWT
+jwt:
+  secret: test-secret-key-for-unit-tests-only
+  expiration: 3600000
+
+# 安全配置
+security:
+  login:
+    max-fail-attempts: 5
+    lock-duration-minutes: 30
+
+# 借阅配置
+borrow:
+  max-count: 5
+  fine-per-day: 0.5
+
+# CORS
+cors:
+  allowed-origins: http://localhost:5175
+
+# 文件上传
+file:
+  upload-dir: ./test-upload
+
+# API
+app:
+  api-prefix: /api/test

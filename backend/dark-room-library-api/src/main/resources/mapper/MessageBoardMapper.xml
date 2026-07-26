@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.MessageBoardMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <sql id="queryWhere">
+        <if test="userId != null">
+            AND mb.user_id = #{userId}
+        </if>
+        <if test="content != null and content != ''">
+            AND mb.content LIKE concat('%',#{content},'%')
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND mb.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <!-- 分页查询（关联用户） -->
+    <select id="query" resultMap="MessageBoardViewMap">
+        SELECT mb.*, u.user_name, u.user_avatar
+        FROM message_board mb
+        LEFT JOIN user u ON mb.user_id = u.id
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY mb.id DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <!-- 计数：无需 JOIN -->
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM message_board mb
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.MessageBoard">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="content" property="content"/>
+        <result column="attachment_url" property="attachmentUrl"/>
+        <result column="attachment_name" property="attachmentName"/>
+        <result column="attachment_type" property="attachmentType"/>
+        <result column="create_time" property="createTime"/>
+        <result column="reply" property="reply"/>
+    </resultMap>
+
+    <resultMap id="MessageBoardViewMap" type="org.darkroomlibrary.web.view.MessageBoardView">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="content" property="content"/>
+        <result column="attachment_url" property="attachmentUrl"/>
+        <result column="attachment_name" property="attachmentName"/>
+        <result column="attachment_type" property="attachmentType"/>
+        <result column="create_time" property="createTime"/>
+        <result column="user_name" property="userName"/>
+        <result column="user_avatar" property="userAvatar"/>
+        <result column="reply" property="reply"/>
+    </resultMap>
+
+</mapper>

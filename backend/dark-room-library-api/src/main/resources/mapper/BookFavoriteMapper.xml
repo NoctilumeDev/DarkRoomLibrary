@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.BookFavoriteMapper">
+
+    <!-- ==================== 公共 SQL 片段 ==================== -->
+    <sql id="queryWhere">
+        <if test="userId != null">
+            AND bf.user_id = #{userId}
+        </if>
+        <if test="bookId != null">
+            AND bf.book_id = #{bookId}
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND bf.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <!-- ==================== 删除操作 ==================== -->
+    <delete id="removeByUserAndBook">
+        DELETE FROM book_favorite WHERE user_id = #{userId} AND book_id = #{bookId}
+    </delete>
+
+    <!-- ==================== 查询操作 ==================== -->
+    <!-- 分页查询（关联图书） -->
+    <select id="query" resultMap="BookFavoriteViewMap">
+        SELECT bf.*, b.name AS book_name, b.author AS book_author, b.cover AS book_cover, b.available_count
+        FROM book_favorite bf
+        LEFT JOIN book b ON bf.book_id = b.id
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY bf.id DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <!-- 计数：无关联表过滤时无需 JOIN -->
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM book_favorite bf
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <select id="isFavorited" resultType="integer">
+        SELECT COUNT(*) FROM book_favorite WHERE user_id = #{userId} AND book_id = #{bookId}
+    </select>
+
+    <!-- ==================== 结果映射 ==================== -->
+    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.BookFavorite">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <resultMap id="BookFavoriteViewMap" type="org.darkroomlibrary.web.view.BookFavoriteView">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="book_name" property="bookName"/>
+        <result column="book_author" property="bookAuthor"/>
+        <result column="book_cover" property="bookCover"/>
+        <result column="available_count" property="availableCount"/>
+    </resultMap>
+
+</mapper>

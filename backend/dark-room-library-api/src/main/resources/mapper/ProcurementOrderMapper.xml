@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.ProcurementOrderMapper">
+
+    <select id="findByIdForUpdate" resultType="org.darkroomlibrary.domain.model.ProcurementOrder">
+        SELECT po.*
+        FROM procurement_order po
+        WHERE po.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <sql id="queryWhere">
+        <if test="bookId != null">
+            AND po.book_id = #{bookId}
+        </if>
+        <if test="bookName != null and bookName != ''">
+            AND po.book_name LIKE concat('%', #{bookName}, '%')
+        </if>
+        <if test="status != null">
+            AND po.status = #{status}
+        </if>
+        <if test="requesterId != null">
+            AND po.requester_id = #{requesterId}
+        </if>
+        <if test="purchaserId != null and (includeUnassignedForPurchaser == null or !includeUnassignedForPurchaser)">
+            AND po.purchaser_id = #{purchaserId}
+        </if>
+        <if test="purchaserId != null and includeUnassignedForPurchaser != null and includeUnassignedForPurchaser">
+            AND (po.purchaser_id = #{purchaserId} OR po.purchaser_id IS NULL)
+        </if>
+        <if test="logisticsId != null">
+            AND po.logistics_id = #{logisticsId}
+        </if>
+        <if test="startTime != null and endTime != null">
+            AND po.create_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+    </sql>
+
+    <select id="query" resultMap="ProcurementOrderViewMap">
+        SELECT po.*,
+               requester.user_name AS requester_name,
+               purchaser.user_name AS purchaser_name,
+               logistics_user.user_name AS logistics_name,
+               pl.status AS logistics_status,
+               pl.tracking_no,
+               pl.carrier,
+               pl.remark AS logistics_remark,
+               pl.update_time AS logistics_update_time
+        FROM procurement_order po
+        LEFT JOIN user requester ON po.requester_id = requester.id
+        LEFT JOIN user purchaser ON po.purchaser_id = purchaser.id
+        LEFT JOIN user logistics_user ON po.logistics_id = logistics_user.id
+        LEFT JOIN procurement_logistics pl ON po.id = pl.order_id
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+        ORDER BY po.id DESC
+        <if test="current != null and size != null">
+            LIMIT #{size} OFFSET #{current}
+        </if>
+    </select>
+
+    <select id="queryCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM procurement_order po
+        <where>
+            <include refid="queryWhere"/>
+        </where>
+    </select>
+
+    <update id="markStockApplied">
+        UPDATE procurement_order
+        SET stock_applied = 1,
+            update_time = NOW()
+        WHERE id = #{id}
+          AND stock_applied = 0
+    </update>
+
+    <resultMap id="ProcurementOrderViewMap" type="org.darkroomlibrary.web.view.ProcurementOrderView">
+        <id column="id" property="id"/>
+        <result column="book_id" property="bookId"/>
+        <result column="book_name" property="bookName"/>
+        <result column="isbn" property="isbn"/>
+        <result column="category" property="category"/>
+        <result column="request_count" property="requestCount"/>
+        <result column="status" property="status"/>
+        <result column="requester_id" property="requesterId"/>
+        <result column="requester_name" property="requesterName"/>
+        <result column="purchaser_id" property="purchaserId"/>
+        <result column="purchaser_name" property="purchaserName"/>
+        <result column="logistics_id" property="logisticsId"/>
+        <result column="logistics_name" property="logisticsName"/>
+        <result column="request_note" property="requestNote"/>
+        <result column="purchase_note" property="purchaseNote"/>
+        <result column="stock_applied" property="stockApplied"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="order_time" property="orderTime"/>
+        <result column="shipped_time" property="shippedTime"/>
+        <result column="arrival_time" property="arrivalTime"/>
+        <result column="completed_time" property="completedTime"/>
+        <result column="logistics_status" property="logisticsStatus"/>
+        <result column="tracking_no" property="trackingNo"/>
+        <result column="carrier" property="carrier"/>
+        <result column="logistics_remark" property="logisticsRemark"/>
+        <result column="logistics_update_time" property="logisticsUpdateTime"/>
+    </resultMap>
+</mapper>
