@@ -4,15 +4,30 @@ param(
     [string]$ArchiveName
 )
 
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
+
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-    $OutputDirectory = Join-Path $scriptRoot "..\release"
-}
-if ([string]::IsNullOrWhiteSpace($ArchiveName)) {
-    $ArchiveName = "DarkRoomLibrary-source-{0}.zip" -f (Get-Date -Format "yyyyMMdd")
+    $OutputDirectory = Join-Path $projectRoot "release"
+} elseif (-not [System.IO.Path]::IsPathRooted($OutputDirectory)) {
+    $OutputDirectory = Join-Path $projectRoot $OutputDirectory
 }
 
-$projectRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
+if ([string]::IsNullOrWhiteSpace($ArchiveName)) {
+    $ArchiveName = "release.zip"
+}
+
+if ([System.IO.Path]::GetFileName($ArchiveName) -ne $ArchiveName) {
+    throw "ArchiveName must be a file name without directory components."
+}
+
+if (-not $ArchiveName.EndsWith(".zip", [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "ArchiveName must use the .zip extension."
+}
+
 $outputRoot = [System.IO.Path]::GetFullPath($OutputDirectory)
 $projectPrefix = $projectRoot.TrimEnd('\') + '\'
 
@@ -20,75 +35,56 @@ if ($outputRoot -eq $projectRoot -or -not $outputRoot.StartsWith($projectPrefix,
     throw "OutputDirectory must be a child of the project root: $projectRoot"
 }
 
-$stagingRoot = Join-Path $outputRoot "staging"
-$stagingProject = Join-Path $stagingRoot "DarkRoomLibrary"
-$archivePath = Join-Path $outputRoot $ArchiveName
-
-if (Test-Path -LiteralPath $stagingRoot) {
-    $resolvedStaging = [System.IO.Path]::GetFullPath($stagingRoot)
-    $outputPrefix = $outputRoot.TrimEnd('\') + '\'
-    if (-not $resolvedStaging.StartsWith($outputPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Unsafe staging path: $resolvedStaging"
-    }
-    Remove-Item -LiteralPath $resolvedStaging -Recurse -Force
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    throw "Git is required to build the release archive."
 }
 
-New-Item -ItemType Directory -Path $stagingProject -Force | Out-Null
+$gitRoot = (& git -C $projectRoot rev-parse --show-toplevel).Trim()
+if ($LASTEXITCODE -ne 0) {
+    throw "Unable to locate the Git repository."
+}
 
-$deliveryItems = @(
-    ".gitattributes",
-    ".gitignore",
-    "CONTRIBUTING.md",
-    "LICENSE",
-    "NOTICE.md",
-    "SECURITY.md",
-    "README.md",
-    "backend\dark-room-library-api\pom.xml",
-    "backend\dark-room-library-api\src",
-    "docs",
-    "frontend\dark-room-library-web\.env.development",
-    "frontend\dark-room-library-web\.env.production.example",
-    "frontend\dark-room-library-web\eslint.config.mjs",
-    "frontend\dark-room-library-web\index.html",
-    "frontend\dark-room-library-web\package-lock.json",
-    "frontend\dark-room-library-web\package.json",
-    "frontend\dark-room-library-web\public",
-    "frontend\dark-room-library-web\src",
-    "frontend\dark-room-library-web\tests",
-    "frontend\dark-room-library-web\vite.config.mjs",
-    "scripts",
-    "sql"
-)
+$normalizedGitRoot = [System.IO.Path]::GetFullPath($gitRoot).TrimEnd('\')
+if (-not $normalizedGitRoot.Equals($projectRoot.TrimEnd('\'), [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "The script must run from the DarkRoomLibrary repository root."
+}
 
-foreach ($relativePath in $deliveryItems) {
-    $source = Join-Path $projectRoot $relativePath
-    if (-not (Test-Path -LiteralPath $source)) {
-        throw "Required delivery item is missing: $relativePath"
-    }
-
-    $destination = Join-Path $stagingProject $relativePath
-    $destinationParent = Split-Path -Parent $destination
-    New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
-    Copy-Item -LiteralPath $source -Destination $destination -Recurse -Force
+$workingTreeState = @(& git -C $projectRoot status --porcelain=v1 --untracked-files=all) -join [Environment]::NewLine
+if ($LASTEXITCODE -ne 0) {
+    throw "Unable to inspect the Git worktree."
+}
+if (-not [string]::IsNullOrWhiteSpace($workingTreeState)) {
+    throw "The Git worktree is not clean. Commit or remove pending files before packaging.`n$workingTreeState"
 }
 
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+$archivePath = Join-Path $outputRoot $ArchiveName
+$hashPath = "$archivePath.sha256"
+
 if (Test-Path -LiteralPath $archivePath) {
     Remove-Item -LiteralPath $archivePath -Force
 }
+if (Test-Path -LiteralPath $hashPath) {
+    Remove-Item -LiteralPath $hashPath -Force
+}
 
-Compress-Archive -LiteralPath $stagingProject -DestinationPath $archivePath -CompressionLevel Optimal
-Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+& git -C $projectRoot archive --format=zip --prefix=DarkRoomLibrary/ "--output=$archivePath" HEAD
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $archivePath)) {
+    throw "Git failed to create the release archive."
+}
 
 $archive = Get-Item -LiteralPath $archivePath
 $hash = Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
-$hashPath = "$archivePath.sha256"
 Set-Content -LiteralPath $hashPath -Value ("{0}  {1}" -f $hash.Hash.ToLowerInvariant(), $archive.Name) -Encoding ascii
+$sourceCommit = (& git -C $projectRoot rev-parse HEAD).Trim()
+$trackedFileCount = @(& git -C $projectRoot ls-tree -r --name-only HEAD).Count
 
 [PSCustomObject]@{
     Archive = $archive.FullName
     SizeMB = [math]::Round($archive.Length / 1MB, 2)
     Sha256 = $hash.Hash.ToLowerInvariant()
     ChecksumFile = $hashPath
-    Excluded = "node_modules, target, dist, test-results, upload, logs, IDE files"
+    SourceCommit = $sourceCommit
+    TrackedFiles = $trackedFileCount
+    Contents = "Committed Git files from HEAD only"
 }

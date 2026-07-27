@@ -257,13 +257,20 @@ $env:CORS_ORIGINS="https://your-frontend.example.com"
 
 ## 交付
 
-停止前后端服务后，在项目根目录执行：
+提交全部修改并确认 `git status` 工作区干净后，在项目根目录执行：
 
 ```powershell
 pwsh -File .\scripts\package-release.ps1
 ```
 
-生成的 ZIP 不包含 `.git`、`node_modules`、`target`、`dist`、测试截图、上传文件、日志和本地密钥。
+脚本只归档当前 `HEAD` 已提交的 Git 跟踪文件，并生成：
+
+```text
+release/release.zip
+release/release.zip.sha256
+```
+
+压缩包内统一使用 `DarkRoomLibrary/` 根目录。未跟踪文件、Git 忽略文件以及 `.git` 元数据不会进入交付包；工作区存在未提交内容时，脚本会直接拒绝打包，避免源码与交付物版本不一致。
 
 ## 项目边界
 
