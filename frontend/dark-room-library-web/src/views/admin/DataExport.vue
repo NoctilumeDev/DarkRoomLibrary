@@ -29,7 +29,7 @@
           <strong>可选筛选</strong>
           <span>不填写条件时导出全部借阅记录。</span>
         </aside>
-        <el-button type="primary" @click="exportBorrowRecords">
+        <el-button type="primary" :disabled="demoMode" @click="exportBorrowRecords">
           <el-icon><Download /></el-icon>
           导出
         </el-button>
@@ -51,7 +51,7 @@
           <strong>馆藏范围</strong>
           <span>可按书名或分类缩小导出范围。</span>
         </aside>
-        <el-button type="primary" @click="exportBooks">
+        <el-button type="primary" :disabled="demoMode" @click="exportBooks">
           <el-icon><Download /></el-icon>
           导出
         </el-button>
@@ -72,7 +72,7 @@
           <strong>权限保护</strong>
           <span>普通管理员不会获得超级管理员的敏感字段。</span>
         </aside>
-        <el-button type="primary" @click="exportUsers">
+        <el-button type="primary" :disabled="demoMode" @click="exportUsers">
           <el-icon><Download /></el-icon>
           导出
         </el-button>
@@ -93,7 +93,7 @@
           <strong>风险数据</strong>
           <span>包含逾期天数和当前应计罚款。</span>
         </aside>
-        <el-button type="danger" @click="exportOverdueRecords">
+        <el-button type="danger" :disabled="demoMode" @click="exportOverdueRecords">
           <el-icon><Download /></el-icon>
           导出
         </el-button>
@@ -103,6 +103,7 @@
 </template>
 
 <script>
+import { DEMO_MODE } from "@/demo/runtime.js";
 import {
   DocumentCopy,
   Download,
@@ -120,8 +121,17 @@ export default {
       bookFilter: { name: "", category: "" },
     };
   },
+  computed: {
+    demoMode() {
+      return DEMO_MODE;
+    },
+  },
   methods: {
     async downloadFile(url, params) {
+      if (this.demoMode) {
+        this.$message.info("在线演示不生成真实导出文件。");
+        return;
+      }
       const query = Object.entries(params)
         .filter(([, value]) => value !== "" && value !== null && value !== undefined)
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)

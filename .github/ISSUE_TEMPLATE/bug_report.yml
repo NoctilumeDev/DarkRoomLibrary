@@ -1,0 +1,54 @@
+name: Bug report
+description: 报告可稳定复现的功能、界面或部署问题
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先确认问题可在最新 `main` 或最新 Release 中复现，并避免提交账号、密码、令牌等敏感信息。
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 运行环境
+      options:
+        - GitHub Pages 在线演示
+        - Docker Compose
+        - 本机前后端分离运行
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 使用某身份进入某页面
+        2. 执行某操作
+        3. 观察到问题
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器或运行时版本
+      placeholder: Edge 版本 / JDK / Node.js / Docker Desktop
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Console、Network 或日志
+      description: 请先删除令牌、密码、邮箱和本机绝对路径。
+      render: shell

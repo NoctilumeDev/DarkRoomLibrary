@@ -4,7 +4,8 @@ import vue from "@vitejs/plugin-vue";
 import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  base: mode === "demo" ? "/DarkRoomLibrary/" : "/",
   plugins: [
     vue(),
     Components({
@@ -60,4 +61,4 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
   },
-});
+}));

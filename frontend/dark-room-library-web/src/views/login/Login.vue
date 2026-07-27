@@ -91,12 +91,35 @@
           <button type="button" @click="toDoRegister">注册读者</button>
           <button type="button" @click="toResetPwd">忘记密码</button>
         </div>
+
+        <section v-if="demoMode" class="demo-entry" aria-label="在线演示身份">
+          <div>
+            <strong>在线演示</strong>
+            <small>数据仅保存在当前浏览器会话</small>
+          </div>
+          <div class="demo-entry-controls">
+            <el-select v-model="selectedDemoIdentity" size="small" aria-label="选择演示身份">
+              <el-option
+                v-for="identity in demoIdentities"
+                :key="identity.key"
+                :label="`${identity.label} · ${identity.name}`"
+                :value="identity.key"
+              />
+            </el-select>
+            <button type="button" @click="enterDemo">直接体验</button>
+          </div>
+        </section>
       </section>
     </section>
   </main>
 </template>
 
 <script>
+import {
+  activateDemoIdentity,
+  DEMO_IDENTITIES,
+  DEMO_MODE,
+} from "@/demo/runtime.js";
 import request from "@/utils/request.js";
 import { resolveRoleHome } from "@/utils/roleHome.js";
 import { clearAuthSession, getToken, setToken } from "@/utils/storage.js";
@@ -123,6 +146,9 @@ export default {
       captchaRetryCount: 0,
       captchaRetryTimer: null,
       loading: false,
+      demoMode: DEMO_MODE,
+      demoIdentities: DEMO_IDENTITIES,
+      selectedDemoIdentity: "reader",
       lightFrame: null,
       lightMotion: {
         currentX: 21.87,
@@ -243,6 +269,12 @@ export default {
     },
     toResetPwd() {
       this.$router.push("/resetPwd");
+    },
+    enterDemo() {
+      const identity = activateDemoIdentity(this.selectedDemoIdentity);
+      if (!identity) return;
+      this.paperLeaving = true;
+      setTimeout(() => this.navigateToRole(identity.role), 320);
     },
     retryCaptcha() {
       this.captchaRetryCount = 0;
@@ -708,10 +740,55 @@ export default {
 .auth-links button { padding: 0; border: 0; color: var(--paper-ink-soft); background: transparent; font-size: 12px; cursor: pointer; }
 .auth-links button:hover { color: var(--seal); }
 
+.demo-entry {
+  display: grid;
+  gap: 9px;
+  margin-top: 19px;
+  padding-top: 15px;
+  border-top: 1px solid var(--paper-line);
+}
+
+.demo-entry > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.demo-entry strong {
+  color: var(--seal);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.demo-entry small {
+  color: var(--paper-ink-faint);
+  font-size: 10px;
+}
+
+.demo-entry-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.demo-entry-controls > button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--paper-ink-soft);
+  border-radius: 2px;
+  color: var(--paper-ink);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .entry-button,
 .captcha-question,
 .back-to-door,
-.auth-links button {
+.auth-links button,
+.demo-entry-controls > button {
   transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.24s ease, transform 0.18s ease;
 }
 
@@ -726,12 +803,14 @@ export default {
   }
 
   .auth-links button:hover,
+  .demo-entry-controls > button:hover,
   .back-to-door:hover { transform: translateY(-1px); }
 }
 
 .entry-button:not(.is-disabled):active,
 .captcha-question:not(:disabled):active,
 .auth-links button:active,
+.demo-entry-controls > button:active,
 .back-to-door:active {
   transform: translateY(0) scale(0.985);
 }
@@ -768,6 +847,7 @@ export default {
   .paper-copy blockquote { margin: 14px 0 0; font-size: 13px; }
   .paper-copy > span { display: none; }
   .auth-card { padding: 26px 34px 34px; }
+  .demo-entry > div:first-child { align-items: flex-start; flex-direction: column; gap: 3px; }
   .door-reveal {
     -webkit-mask-image: radial-gradient(circle 15rem at var(--reader-light-x) var(--reader-light-y), #000 0, rgba(0, 0, 0, 0.72) 48%, transparent 82%);
     mask-image: radial-gradient(circle 15rem at var(--reader-light-x) var(--reader-light-y), #000 0, rgba(0, 0, 0, 0.72) 48%, transparent 82%);

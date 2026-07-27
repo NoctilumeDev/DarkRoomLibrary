@@ -9,8 +9,17 @@
 | 本机直接运行 | 开发、调试、课程验收 | 最容易观察 Java、Node.js 和数据库日志 |
 | Docker Compose | 本地演示、独立测试环境 | 一条命令启动完整依赖，不强制日常开发使用 |
 | 独立进程 + 反向代理 | 小型服务器部署 | 前后端可同域，便于 HTTPS、日志和进程治理 |
+| GitHub Pages 浏览器演示 | 零成本公开预览 | 仅运行 Vue 和会话数据，不替代后端、数据库与中间件 |
 
 `compose.yaml` 是可选的完整演示环境，不是生产集群模板。项目不会因为增加 Compose 就要求开发者安装 Docker。
+
+### 1.1 GitHub Pages 浏览器演示
+
+公开地址为 <https://noctilumedev.github.io/DarkRoomLibrary/>。`main` 分支更新后，`.github/workflows/pages.yml` 使用 `npm run build:demo` 自动部署；该构建启用 Hash 路由和 `/DarkRoomLibrary/` 资源基路径。
+
+浏览器演示通过 Axios adapter 提供会话级数据，只用于低门槛查看界面、六个固定身份和关键业务状态变化。状态保存在 `sessionStorage`，不会上传到 GitHub，也不会持久化到服务器。上传下载、邮件、注册、注销和导出均明确禁用。
+
+这一路径不运行 Spring Boot、MySQL、Redis 或 RabbitMQ，不能用于证明真实事务、并发一致性、文件治理、健康检查或中间件降级。此类能力必须使用 Compose 或本机完整环境验证。
 
 ## 2. Docker Compose
 

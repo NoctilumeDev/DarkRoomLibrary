@@ -65,6 +65,7 @@
 </template>
 
 <script>
+import { DEMO_MODE } from "@/demo/runtime.js";
 import { toApiRequestPath } from "@/utils/fileUrl.js";
 
 export default {
@@ -87,6 +88,10 @@ export default {
   },
   methods: {
     async downloadAttachment(row) {
+      if (DEMO_MODE) {
+        this.$message.info("在线演示不下载真实附件。");
+        return;
+      }
       try {
         const response = await this.$axios.get(
           toApiRequestPath(row.attachmentUrl),
