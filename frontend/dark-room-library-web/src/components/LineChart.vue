@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import echarts from "@/utils/echarts.js";
+import { loadEcharts } from "@/utils/echarts.js";
 import {
   ADMIN_THEME_EVENT,
   getAdminChartTheme,
@@ -91,10 +91,13 @@ export default {
     this.chart?.dispose();
   },
   methods: {
-    renderChart() {
-      if (!this.$refs.chart) return;
+    async renderChart() {
+      const chartElement = this.$refs.chart;
+      if (!chartElement) return;
+      const echarts = await loadEcharts();
+      if (this.$refs.chart !== chartElement) return;
       const theme = getAdminChartTheme(this.$el);
-      if (!this.chart) this.chart = echarts.init(this.$refs.chart);
+      if (!this.chart) this.chart = echarts.init(chartElement);
 
       this.chart.setOption(
         {

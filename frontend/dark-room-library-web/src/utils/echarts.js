@@ -1,18 +1,13 @@
-import * as echarts from "echarts/core";
-import { BarChart, LineChart, PieChart } from "echarts/charts";
-import {
-  GridComponent,
-  TooltipComponent,
-} from "echarts/components";
-import { CanvasRenderer } from "echarts/renderers";
+let runtimePromise;
 
-echarts.use([
-  BarChart,
-  LineChart,
-  PieChart,
-  GridComponent,
-  TooltipComponent,
-  CanvasRenderer,
-]);
-
-export default echarts;
+export function loadEcharts() {
+  if (!runtimePromise) {
+    runtimePromise = import("@/utils/echartsRuntime.js").then(
+      (module) => module.default
+    ).catch((error) => {
+      runtimePromise = undefined;
+      throw error;
+    });
+  }
+  return runtimePromise;
+}

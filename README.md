@@ -1,5 +1,7 @@
 # 暗室藏书（DarkRoomLibrary）
 
+[![CI](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/ci.yml/badge.svg)](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/ci.yml)
+
 一个基于 Spring Boot、MyBatis-Plus、Vue 3 与 MySQL 的前后端分离图书管理系统。它不只完成图书增删改查，而是把读者借阅、预约续借、书评互动、内容审核、采购物流、文件治理、操作审计和中间件降级连接成完整业务闭环。
 
 ## 项目一览
@@ -13,6 +15,22 @@
 | 中间件 | Redis、RabbitMQ 可选启用，故障时自动降级，不阻断核心业务 |
 | 自动测试 | 后端 226 项、前端 31 项；6 个固定权限身份全链路 78 次真实 API 响应；三实例并发按 96 / 128 / 160 分批验证，共 1,986 次场景请求 |
 | 前端体验 | 读者端“暗室藏书”叙事界面；管理端宣纸/竹简主题；桌面与移动端适配 |
+
+## 项目实景
+
+以下截图来自真实前后端与测试数据库，不是静态设计稿：
+
+| 登录与昼夜氛围 | 读者阅览室 |
+| --- | --- |
+| ![暗室藏书登录页](docs/images/login-night.jpg) | ![读者阅览室](docs/images/reader-room.jpg) |
+
+| 图书检索与借阅 | 管理端统计看板 |
+| --- | --- |
+| ![图书检索与借阅](docs/images/book-borrow.jpg) | ![管理端统计看板](docs/images/admin-dashboard.jpg) |
+
+| 采购物流协作 |
+| --- |
+| ![采购物流协作工作台](docs/images/procurement-workbench.jpg) |
 
 ## 系统解决什么问题
 
@@ -81,21 +99,42 @@ flowchart TB
 - 数据：MySQL 8、Redis 5（可选增强）、RabbitMQ 4（可选增强）
 - 安全：JWT、BCrypt、登录数学验证码、邮箱验证码场景隔离、登录失败锁定、AOP 权限控制
 - 前端：Vue 3.5.40、Vue Router 4、Element Plus 2.14.3、ECharts 6.1、Vite 8.1.5
-- 工程：Maven、npm、JUnit 5、H2、Vitest、ESLint、Playwright E2E 脚本
+- 工程：Maven、npm、JUnit 5、H2、Vitest、ESLint、Playwright E2E 脚本、GitHub Actions
+- 部署：本机直接运行；可选 Docker Compose 一键启动 MySQL、Redis、RabbitMQ、后端和前端
 
 ## 目录结构
 
 ```text
 DarkRoomLibrary/
+├─ .github/workflows/ci.yml             GitHub Actions 持续集成
 ├─ backend/dark-room-library-api/       Spring Boot 后端与自动测试
-├─ frontend/dark-room-library-web/  Vue 前端、单元测试和 E2E 脚本
-├─ sql/init-dark-room-library.sql   建库、表结构与演示数据的唯一入口
-├─ docs/                            架构、模块图、验收清单和项目介绍
-├─ scripts/package-release.ps1      生成干净源码交付包
-└─ release/                         本地生成的交付产物，不进入 Git
+├─ frontend/dark-room-library-web/      Vue 前端、单元测试和 E2E 脚本
+├─ sql/init-dark-room-library.sql       建库、表结构与演示数据的唯一入口
+├─ docs/                                架构、部署、验收和项目介绍
+├─ scripts/package-release.ps1          生成干净源码交付包
+├─ compose.yaml                         可选完整容器环境
+└─ release/                             本地生成的交付产物，不进入 Git
 ```
 
 ## 快速启动
+
+### 方案 A：Docker Compose
+
+安装 Docker Desktop 后，在项目根目录执行：
+
+```powershell
+Copy-Item .env.compose.example .env
+docker compose up --build -d
+docker compose ps
+```
+
+浏览器访问 `http://localhost:5175`。后端仍使用 `20606`，MySQL、Redis、RabbitMQ 的宿主机默认端口分别为 `3307`、`6380`、`5673`，RabbitMQ 管理页为 `15673`。
+
+`.env.compose.example` 中的值仅用于本地演示，公开部署前必须替换密码和 JWT 密钥。数据库初始化 SQL 只会在 MySQL 数据卷首次创建时执行；需要清空演示数据重新初始化时，应先明确确认数据不再需要，再执行 `docker compose down -v`。
+
+更完整的容器、反向代理、健康检查和多实例边界见 [部署指南](docs/deployment.md)。
+
+### 方案 B：本机直接运行
 
 ### 1. 环境要求
 
@@ -178,6 +217,18 @@ $env:RABBITMQ_ENABLED="true"
 
 可通过 `FILE_UPLOAD_DIR`、`FILE_TEMP_RETENTION_HOURS`、`FILE_CLEANUP_CRON` 覆盖默认策略。HTML 附件只允许下载，不允许内联执行。
 
+本地文件目录只适合单后端实例或所有实例挂载同一可靠共享盘的部署。数据库共享只会共享文件元数据，不会自动共享图片和附件字节；横向扩容前必须统一 `FILE_UPLOAD_DIR`，或实现对象存储适配层。
+
+## 健康检查
+
+| 地址 | 权限 | 用途 |
+| --- | --- | --- |
+| `/health/live` | 公开、仅返回最小状态 | 进程存活探针 |
+| `/health/ready` | 公开、仅返回总体状态 | 数据库与文件目录就绪探针 |
+| `/health/details` | 仅超级管理员 | 查看数据库、文件目录和已启用中间件状态 |
+
+完整地址需要加后端前缀 `/api/dark-room-library/v1`。Redis 或 RabbitMQ 已启用但暂时不可用时返回 `DEGRADED`，核心数据库或文件目录不可用时返回 `DOWN`；公开探针不暴露连接地址、账号或异常堆栈。
+
 ## 测试与构建
 
 ```powershell
@@ -194,13 +245,15 @@ npm run build
 
 需连接真实服务和测试账号时，再执行 `tests/e2e` 中的读者、管理员、采购物流、全流程、并发一致性与浏览器诊断脚本。完整命令和证据见 [最终验证报告](docs/verification-report.md)，人工复核步骤见 [验收清单](docs/manual-acceptance-checklist.md)。
 
+推送到 `main` 或创建 Pull Request 时，GitHub Actions 会自动执行后端 Maven 测试、前端 ESLint/单元测试/生产构建/依赖审计，并校验 `compose.yaml`。
+
 2026-07-27 最终回归结果：
 
 - 后端 `226/226` 通过，前端单元测试 `31/31` 通过。
 - ESLint、Vite 生产构建和 npm 官方 registry 安全审计通过，审计结果为 `0 vulnerabilities`。
 - 6 个固定权限身份全部真实登录，完整流程记录 78 次 API 响应，覆盖借还、权限切换、采购、物流、入库和库存幂等。
 - 三个后端实例共享 MySQL，按突发量 96、128、160 分三批执行；每批 8 个一致性场景，三批共 1,986 次场景请求，最大场景 P95 为 461 ms，未出现违反业务不变量的结果。
-- 浏览器诊断完成 116 个路由检查、396 次 API 响应和 5,362 次总网络响应；Console 错误/警告、页面异常、失败请求、网络错误和页面横向溢出均为 0。另完成 116 个页面和 21 个关键弹层的布局审查。
+- 浏览器诊断完成 116 个路由检查、414 次 API 响应和 5,678 次总网络响应；Console 错误/警告、页面异常、失败请求、网络错误和页面横向溢出均为 0。另完成 116 个页面和 21 个关键弹层的布局审查。
 - 数据库完成 27 条外键关系检查，孤儿记录与领域不变量违规均为 0。
 - Redis 使用真实缓存键和 TTL 验证；RabbitMQ 故障恢复与队列消费通过。最终并发套件保留 2 条发送到虚构 `.local` 地址的可补偿通知任务，用于验证邮件失败后的租约、重试和恢复路径，不属于业务一致性违规。
 
@@ -222,6 +275,8 @@ $env:DB_URL="jdbc:mysql://127.0.0.1:3306/dark_room_library_e2e?characterEncoding
 $env:DRL_DEMO_PASSWORD="DarkRoom@20606"
 pwsh -File .\scripts\seed-demo-media.ps1
 ```
+
+媒体脚本要求 PowerShell 7 和 `curl.exe`。Windows 10/11 已内置 `curl.exe`；脚本对每次 API 请求设置硬超时，连续上传时不依赖 PowerShell HttpClient 的连接池状态。
 
 ## 生产配置
 
@@ -245,6 +300,7 @@ $env:CORS_ORIGINS="https://your-frontend.example.com"
 - [文档总览与阅读路线](docs/README.md)
 - [系统设计与关键业务规则](docs/system-design.md)
 - [架构审查：事务、竞态与演进边界](docs/architecture-review.md)
+- [部署指南：本机、Compose、健康检查与多实例边界](docs/deployment.md)
 - [功能模块图（Mermaid）](docs/function-module-diagram.md)
 - [功能模块图（独立 HTML）](docs/library-system-modules.html)
 - [人工验收清单](docs/manual-acceptance-checklist.md)

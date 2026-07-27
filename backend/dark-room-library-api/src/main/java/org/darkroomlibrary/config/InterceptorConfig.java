@@ -58,6 +58,8 @@ public class InterceptorConfig implements WebMvcConfigurer {
                         apiPrefix + "/file/public",
                         apiPrefix + "/captcha/generate",
                         apiPrefix + "/captcha/verify",
+                        apiPrefix + "/health/live",
+                        apiPrefix + "/health/ready",
                         apiPrefix + "/error"
                 );
 
@@ -70,7 +72,9 @@ public class InterceptorConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         apiPrefix + "/file/getFile",
-                        apiPrefix + "/file/public"
+                        apiPrefix + "/file/public",
+                        apiPrefix + "/health/live",
+                        apiPrefix + "/health/ready"
                 );
     }
 }

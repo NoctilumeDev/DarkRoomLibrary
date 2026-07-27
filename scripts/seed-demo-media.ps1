@@ -12,6 +12,8 @@ param(
     [string]$ReaderAccount = "drl_reader_yandeng",
     [string]$CoordinatorAccount = "drl_keeper_qingwu",
     [string]$BookName = "暗室藏书",
+    [ValidateRange(5, 300)]
+    [int]$RequestTimeoutSec = 30,
     [string]$ReaderAvatarPath,
     [string]$CoordinatorAvatarPath,
     [string]$BookCoverPath
@@ -60,18 +62,49 @@ function Invoke-JsonApi {
         $Body,
         [string]$Token
     )
-    $parameters = @{
-        Uri = Get-ApiUri $Path
-        Method = $Method
-    }
+    $requestArgs = @(
+        "--fail-with-body",
+        "--silent",
+        "--show-error",
+        "--connect-timeout", "10",
+        "--max-time", [string]$RequestTimeoutSec,
+        "--request", $Method,
+        "--header", "Accept: application/json"
+    )
     if (-not [string]::IsNullOrWhiteSpace($Token)) {
-        $parameters.Headers = @{ Authorization = "Bearer $Token" }
+        $requestArgs += @("--header", "Authorization: Bearer $Token")
     }
-    if ($null -ne $Body) {
-        $parameters.ContentType = "application/json; charset=utf-8"
-        $parameters.Body = $Body | ConvertTo-Json -Depth 12 -Compress
+
+    $bodyFile = $null
+    try {
+        if ($null -ne $Body) {
+            $bodyFile = New-TemporaryFile
+            $json = $Body | ConvertTo-Json -Depth 12 -Compress
+            [System.IO.File]::WriteAllText(
+                $bodyFile.FullName,
+                $json,
+                [System.Text.UTF8Encoding]::new($false)
+            )
+            $requestArgs += @(
+                "--header", "Content-Type: application/json; charset=utf-8",
+                "--data-binary", "@$($bodyFile.FullName)"
+            )
+        }
+        $requestArgs += Get-ApiUri $Path
+        $responseJson = & curl.exe @requestArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "$Method $Path failed with curl exit code $LASTEXITCODE."
+        }
+        try {
+            return $responseJson | ConvertFrom-Json
+        } catch {
+            throw "$Method $Path returned invalid JSON."
+        }
+    } finally {
+        if ($null -ne $bodyFile) {
+            Remove-Item -LiteralPath $bodyFile.FullName -Force -ErrorAction SilentlyContinue
+        }
     }
-    return Invoke-RestMethod @parameters
 }
 
 function Get-CaptchaAnswer {
@@ -132,11 +165,25 @@ function Send-MediaFile {
         [Parameter(Mandatory)][string]$Token
     )
     $resolvedPath = (Resolve-Path -LiteralPath $Path).Path
-    $response = Invoke-RestMethod `
-        -Uri (Get-ApiUri "/file/upload") `
-        -Method POST `
-        -Headers @{ Authorization = "Bearer $Token" } `
-        -Form @{ file = Get-Item -LiteralPath $resolvedPath }
+    $uploadUri = Get-ApiUri "/file/upload"
+    $responseJson = & curl.exe `
+        --fail-with-body `
+        --silent `
+        --show-error `
+        --connect-timeout 10 `
+        --max-time $RequestTimeoutSec `
+        --request POST `
+        --header "Authorization: Bearer $Token" `
+        --form "file=@$resolvedPath" `
+        $uploadUri
+    if ($LASTEXITCODE -ne 0) {
+        throw "Upload $(Split-Path -Leaf $resolvedPath) failed with curl exit code $LASTEXITCODE."
+    }
+    try {
+        $response = $responseJson | ConvertFrom-Json
+    } catch {
+        throw "Upload $(Split-Path -Leaf $resolvedPath) returned invalid JSON."
+    }
     $result = Assert-ApiSuccess $response "Upload $(Split-Path -Leaf $resolvedPath)"
     return [string]$result.data
 }
@@ -185,7 +232,9 @@ foreach ($mediaPath in @($ReaderAvatarPath, $CoordinatorAvatarPath, $BookCoverPa
     }
 }
 
+Write-Host "Logging in as $AdminAccount..."
 $token = Get-LoginToken
+Write-Host "Resolving demo users and book..."
 $reader = Get-SingleEntity `
     -Path "/user/query" `
     -Query @{ current = 1; size = 10; userAccount = $ReaderAccount } `
@@ -202,6 +251,7 @@ $book = Get-SingleEntity `
     -Description "book $BookName" `
     -Token $token
 
+Write-Host "Uploading and binding reader avatar..."
 $readerAvatarUrl = Send-MediaFile -Path $ReaderAvatarPath -Token $token
 Assert-ApiSuccess `
     (Invoke-JsonApi -Method PUT -Path "/user/backUpdate" -Body @{
@@ -215,6 +265,7 @@ $readerFile = Assert-BoundFile `
     -ExpectedRefId ([int]$reader.id) `
     -Token $token
 
+Write-Host "Uploading and binding coordinator avatar..."
 $coordinatorAvatarUrl = Send-MediaFile -Path $CoordinatorAvatarPath -Token $token
 Assert-ApiSuccess `
     (Invoke-JsonApi -Method PUT -Path "/user/backUpdate" -Body @{
@@ -228,6 +279,7 @@ $coordinatorFile = Assert-BoundFile `
     -ExpectedRefId ([int]$coordinator.id) `
     -Token $token
 
+Write-Host "Uploading and binding book cover..."
 $bookCoverUrl = Send-MediaFile -Path $BookCoverPath -Token $token
 Assert-ApiSuccess `
     (Invoke-JsonApi -Method PUT -Path "/book/update" -Body @{

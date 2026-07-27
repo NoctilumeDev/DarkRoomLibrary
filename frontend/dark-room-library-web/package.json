@@ -16,7 +16,8 @@
     "test:e2e:concurrency": "node tests/e2e/concurrency-consistency.mjs",
     "test:e2e:multi-instance": "node tests/e2e/multi-instance-consistency.mjs",
     "test:e2e:diagnostics": "node tests/e2e/browser-diagnostics.mjs",
-    "test:e2e:full": "node tests/e2e/full-workflow.mjs"
+    "test:e2e:full": "node tests/e2e/full-workflow.mjs",
+    "docs:screenshots": "node tests/e2e/capture-readme-screenshots.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

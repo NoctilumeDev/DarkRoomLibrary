@@ -1,0 +1,11 @@
+target
+upload
+tmp
+*.log
+.env
+.env.*
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties
+.idea
+.vscode

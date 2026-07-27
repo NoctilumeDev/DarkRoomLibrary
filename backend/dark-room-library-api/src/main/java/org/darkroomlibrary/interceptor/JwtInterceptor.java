@@ -50,6 +50,8 @@ public class JwtInterceptor implements HandlerInterceptor {
                 || matchesPath(requestURI, apiPrefix + "/file/public")
                 || matchesPath(requestURI, apiPrefix + "/captcha/generate")
                 || matchesPath(requestURI, apiPrefix + "/captcha/verify")
+                || matchesPath(requestURI, apiPrefix + "/health/live")
+                || matchesPath(requestURI, apiPrefix + "/health/ready")
                 || matchesPath(requestURI, apiPrefix + "/error")) {
             return true;
         }

@@ -193,7 +193,7 @@
 </template>
 
 <script>
-import echarts from "@/utils/echarts.js";
+import { loadEcharts } from "@/utils/echarts.js";
 import {
   ADMIN_THEME_EVENT,
   getAdminChartTheme,
@@ -329,10 +329,13 @@ export default {
         console.error("loadMonthlyBorrow:", error);
       }
     },
-    renderMonthlyChart() {
-      if (!this.$refs.monthlyChart) return;
+    async renderMonthlyChart() {
+      const chartElement = this.$refs.monthlyChart;
+      if (!chartElement) return;
+      const echarts = await loadEcharts();
+      if (this.$refs.monthlyChart !== chartElement) return;
       const theme = getAdminChartTheme(this.$el);
-      if (!this.monthlyChart) this.monthlyChart = echarts.init(this.$refs.monthlyChart);
+      if (!this.monthlyChart) this.monthlyChart = echarts.init(chartElement);
       this.monthlyChart.setOption(
         {
           animationDuration: 420,
@@ -368,10 +371,13 @@ export default {
         console.error("loadHotBooks:", error);
       }
     },
-    renderHotBooksChart() {
-      if (!this.$refs.hotBooksChart) return;
+    async renderHotBooksChart() {
+      const chartElement = this.$refs.hotBooksChart;
+      if (!chartElement) return;
+      const echarts = await loadEcharts();
+      if (this.$refs.hotBooksChart !== chartElement) return;
       const theme = getAdminChartTheme(this.$el);
-      if (!this.hotBooksChart) this.hotBooksChart = echarts.init(this.$refs.hotBooksChart);
+      if (!this.hotBooksChart) this.hotBooksChart = echarts.init(chartElement);
       const rows = this.hotBookNames.map((name, index) => ({
         name: name.length > 12 ? `${name.slice(0, 12)}…` : name,
         count: this.hotBookCounts[index],
@@ -434,11 +440,14 @@ export default {
         console.error("loadCollectionAnalysis:", error);
       }
     },
-    renderCollectionChart() {
-      if (!this.$refs.collectionChart) return;
+    async renderCollectionChart() {
+      const chartElement = this.$refs.collectionChart;
+      if (!chartElement) return;
+      const echarts = await loadEcharts();
+      if (this.$refs.collectionChart !== chartElement) return;
       const theme = getAdminChartTheme(this.$el);
       if (!this.collectionChart) {
-        this.collectionChart = echarts.init(this.$refs.collectionChart);
+        this.collectionChart = echarts.init(chartElement);
       }
       this.collectionChart.setOption(
         {

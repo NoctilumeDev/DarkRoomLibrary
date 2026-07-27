@@ -1,0 +1,130 @@
+name: dark-room-library
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DRL_MYSQL_ROOT_PASSWORD:-DarkRoomMySQL@20606}
+      MYSQL_ROOT_HOST: "%"
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "127.0.0.1:${DRL_MYSQL_PORT:-3307}:3306"
+    volumes:
+      - drl_mysql_data:/var/lib/mysql
+      - ./sql/init-dark-room-library.sql:/docker-entrypoint-initdb.d/01-init-dark-room-library.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${DRL_REDIS_PORT:-6380}:6379"
+    volumes:
+      - drl_redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.2.3-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${DRL_RABBITMQ_USERNAME:-drl}
+      RABBITMQ_DEFAULT_PASS: ${DRL_RABBITMQ_PASSWORD:-DarkRoomRabbit@20606}
+      TZ: Asia/Shanghai
+    ports:
+      - "127.0.0.1:${DRL_RABBITMQ_PORT:-5673}:5672"
+      - "127.0.0.1:${DRL_RABBITMQ_MANAGEMENT_PORT:-15673}:15672"
+    volumes:
+      - drl_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend/dark-room-library-api
+    restart: unless-stopped
+    init: true
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/dark_room_library?characterEncoding=UTF-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: ${DRL_MYSQL_ROOT_PASSWORD:-DarkRoomMySQL@20606}
+      JWT_SECRET: ${DRL_JWT_SECRET:-dark-room-library-compose-jwt-secret-change-before-public-deployment}
+      CORS_ORIGINS: ${DRL_CORS_ORIGINS:-http://localhost:5175}
+      FILE_UPLOAD_DIR: /app/upload/pic
+      REDIS_ENABLED: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RABBITMQ_ENABLED: "true"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: ${DRL_RABBITMQ_USERNAME:-drl}
+      RABBITMQ_PASSWORD: ${DRL_RABBITMQ_PASSWORD:-DarkRoomRabbit@20606}
+      MAIL_USERNAME: ${DRL_MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${DRL_MAIL_PASSWORD:-}
+      TZ: Asia/Shanghai
+      JAVA_TOOL_OPTIONS: ${DRL_JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75.0}
+    ports:
+      - "127.0.0.1:20606:20606"
+    volumes:
+      - drl_uploads:/app/upload
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:20606/api/dark-room-library/v1/health/ready >/dev/null",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+
+  frontend:
+    build:
+      context: ./frontend/dark-room-library-web
+      args:
+        VITE_API_BASE_URL: /api/dark-room-library/v1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5175:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  drl_mysql_data:
+  drl_redis_data:
+  drl_rabbitmq_data:
+  drl_uploads:

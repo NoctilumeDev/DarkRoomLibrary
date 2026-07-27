@@ -16,8 +16,9 @@
 1. 阅读 [系统设计与关键业务规则](system-design.md)。
 2. 对照 [功能模块图 Mermaid 版](function-module-diagram.md)。
 3. 查看 [架构审查](architecture-review.md)，理解事务、竞态、降级和未来拆分边界。
-4. 查看 [最终验证报告](verification-report.md)。
-5. 查看唯一的 [数据库初始化脚本](../sql/init-dark-room-library.sql)。
+4. 查看 [部署指南](deployment.md)，理解 Compose、健康检查和多实例文件边界。
+5. 查看 [最终验证报告](verification-report.md)。
+6. 查看唯一的 [数据库初始化脚本](../sql/init-dark-room-library.sql)。
 
 ### 按角色验收系统
 
@@ -31,6 +32,7 @@
 | --- | --- | --- |
 | `system-design.md` | 解释架构分层、角色边界、业务状态、一致性与降级策略 | 开发者、答辩评委 |
 | `architecture-review.md` | 记录事务边界、时序、多实例竞态、最终一致性和吞吐取舍 | 开发者、维护者、答辩评委 |
+| `deployment.md` | 说明本机、Compose、健康检查、反向代理和文件存储扩容边界 | 部署者、维护者 |
 | `function-module-diagram.md` | 可维护的 Mermaid 功能图、后台流程图和状态图 | 开发者、代码托管平台 |
 | `library-system-modules.html` | 独立打开即可展示的可视化功能模块图 | 演示、汇报、截图 |
 | `manual-acceptance-checklist.md` | 按角色逐项人工验证功能 | 测试人员、交付人员 |
