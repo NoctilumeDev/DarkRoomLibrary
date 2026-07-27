@@ -1,6 +1,6 @@
 {
   "name": "dark-room-library-web",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5175",
@@ -20,6 +20,7 @@
     "test:e2e:multi-instance": "node tests/e2e/multi-instance-consistency.mjs",
     "test:e2e:registration-email": "node tests/e2e/registration-email-privacy.mjs",
     "test:e2e:email-quota": "node tests/e2e/email-quota-consistency.mjs",
+    "test:e2e:recommendation": "node tests/e2e/recommendation-loop.mjs",
     "test:e2e:diagnostics": "node tests/e2e/browser-diagnostics.mjs",
     "test:e2e:full": "node tests/e2e/full-workflow.mjs",
     "docs:screenshots": "node tests/e2e/capture-readme-screenshots.mjs"

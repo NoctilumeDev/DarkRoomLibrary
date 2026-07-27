@@ -29,6 +29,7 @@ flowchart TB
     Reader --> MyBorrows["我的借阅"]
     Reader --> MyFavorites["我的收藏"]
     Reader --> MyReservations["我的预约"]
+    Reader --> Recommendation["沿着书签"]
     Reader --> MessageBoard["留言板"]
     Reader --> Profile["个人资料"]
     Reader --> Review["书评 / 点赞 / 回复 / 举报"]
@@ -43,6 +44,9 @@ flowchart TB
     BookBorrow --> ReserveBook["预约图书"]
     MyBorrows --> ReturnBook["归还图书"]
     MyBorrows --> RenewBook["续借"]
+    Recommendation --> ExplainableFeed["可解释内容荐书"]
+    Recommendation --> PublicFallback["公共荐书降级"]
+    Recommendation --> RecommendationPrivacy["个性化开关 / 清除记录"]
 
     Admin --> Dashboard["数据总览"]
     Admin --> Statistics["统计看板"]
@@ -145,6 +149,9 @@ flowchart TB
     Data --> BookshelfTable["书架数据"]
     Data --> BorrowTable["借阅记录"]
     Data --> FavoriteTable["收藏记录"]
+    Data --> RecommendationSettingTable["推荐隐私设置"]
+    Data --> RecommendationBatchTable["推荐批次与条目"]
+    Data --> RecommendationEventTable["曝光 / 点击 / 收藏归因"]
     Data --> ReservationTable["预约记录"]
     Data --> ReviewTable["评论数据"]
     Data --> ReviewLikeTable["评论点赞数据"]
@@ -200,13 +207,13 @@ stateDiagram-v2
 | 一级模块 | 主要功能 |
 | --- | --- |
 | 认证与账号模块 | 登录、注册、重置密码、邮箱验证码、登录数学验证码、验证码场景隔离与每日上限、邮箱三账号上限、新邮箱换绑验证、JWT 鉴权 |
-| 读者端功能 | 图书查询、借阅、归还、续借、收藏、预约、留言、个人资料、书评、最新/最热切换、点赞、回复与举报 |
+| 读者端功能 | 图书查询、借阅、归还、续借、收藏、预约、可解释荐书、公共降级、隐私开关、推荐记录清除、留言、个人资料与书评互动 |
 | 管理端功能 | 用户（含冻结/解冻/禁言与馆务协调员任免）、图书（含软删除恢复）、分类、书架、借阅、公告、内容审核、留言回复、书评举报状态跟踪、日志、统计、导出和超级管理员文件管理 |
 | 采购物流协作 | 普通管理员只处理自己创建的采购需求并和采购员沟通；采购员认领/推进采购、分配物流员；物流员同步自己的物流进度；入库后自动补充图书库存；协作消息支持已读/未读；超级管理员拥有全局审计视角 |
 | 通用支撑功能 | 文件上传、元数据登记、引用绑定与释放、公开预览、鉴权下载、临时/孤立文件定时清理、操作审计、登录失败限流与账号锁定、逾期罚款、查询缓存、邮件通知（补偿）、到期提醒邮件、预约到货通知、续借管理、低库存告警、访问统计、数据导出、Redis/RabbitMQ 可降级增强 |
 | 后台流程与状态 | Controller 校验、Service 事务、Mapper 条件更新、缓存降级、领域事件、通知补偿、操作审计、借阅/预约/留言/通知/举报/采购/物流状态流转 |
-| 数据存储 | 19 张业务表保存用户、馆藏、流通、互动、采购物流、通知和文件数据；邮箱配额技术表负责跨实例三账号上限 |
+| 数据存储 | 23 张业务与派生表保存用户、馆藏、流通、推荐、互动、采购物流、通知和文件数据；邮箱配额技术表负责跨实例三账号上限 |
 
 ## 当前验证基线
 
-本模块图对应 2026-07-27 公开基线：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。最终验证为后端 229 项、前端 36 项、6 个固定权限身份完成 78 次真实 API；三个后端实例按 96 / 128 / 160 三批执行 1,986 次场景请求，最大场景 P95 为 461 ms；浏览器完成 116 个路由检查、414 次 API 响应和 5,678 次总网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。
+本模块图对应 2026-07-27 公开基线与 v1.2.0 增量：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。最终验证为后端 237 项、前端 37 项、6 个固定权限身份全链路通过；既有三个后端实例强并发基线为 1,986 次场景请求，新增推荐在三个实例同时首次生成时只产生一个批次；最新浏览器诊断完成 116 个路由检查、352 次 API 响应和 6,060 次总网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。

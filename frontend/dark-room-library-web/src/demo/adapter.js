@@ -130,6 +130,128 @@ function queryBooks(state, payload) {
   return paginateResponse(books, payload);
 }
 
+function recommendationItemId(userId, bookId) {
+  return 800000 + Number(userId) * 100 + Number(bookId);
+}
+
+function recordRecommendationEvent(state, userId, itemId, eventType) {
+  state.recommendationEvents ||= [];
+  const exists = state.recommendationEvents.some(
+    (event) =>
+      event.userId === Number(userId) &&
+      event.itemId === Number(itemId) &&
+      event.eventType === eventType
+  );
+  if (!exists) {
+    state.recommendationEvents.push({
+      id: nextId(state),
+      userId: Number(userId),
+      itemId: Number(itemId),
+      eventType,
+      createdAt: "2026-08-01 12:00:00",
+    });
+  }
+}
+
+function recommendationFeed(state, user, requestedSize) {
+  const size = Math.max(1, Math.min(Number(requestedSize || 6), 8));
+  const favorites = state.favorites.filter((item) => item.userId === user.id);
+  const favoriteBooks = favorites
+    .map((item) => findBook(state, item.bookId))
+    .filter(Boolean);
+  const favoriteIds = new Set(favoriteBooks.map((book) => book.id));
+  const activeBorrowIds = new Set(
+    state.borrowRecords
+      .filter((item) => item.userId === user.id && !item.status)
+      .map((item) => item.bookId)
+  );
+  const personalized = state.recommendationEnabled !== false && favoriteBooks.length >= 3;
+  const categoryCounts = favoriteBooks.reduce((counts, book) => {
+    counts[book.category] = Number(counts[book.category] || 0) + 1;
+    return counts;
+  }, {});
+  const authorSet = new Set(favoriteBooks.map((book) => book.author));
+  const scored = state.books
+    .filter(
+      (book) =>
+        !book.deleted &&
+        !favoriteIds.has(book.id) &&
+        !activeBorrowIds.has(book.id)
+    )
+    .map((book) => {
+      const content = personalized
+        ? Number(categoryCounts[book.category] || 0) * 3 +
+          (authorSet.has(book.author) ? 2 : 0)
+        : 0;
+      const popularity = state.favorites.filter(
+        (favorite) => favorite.bookId === book.id
+      ).length;
+      const availability = book.totalCount
+        ? book.availableCount / book.totalCount
+        : 0;
+      const exploration = ((user.id * 31 + book.id * 17) % 100) / 100;
+      const total = personalized
+        ? content * 0.7 + popularity * 0.2 + exploration * 0.1
+        : popularity * 0.55 + availability * 0.25 + exploration * 0.2;
+      const sourceType = personalized && content > 0 ? "CONTENT" : "PUBLIC";
+      const reason =
+        sourceType === "CONTENT"
+          ? `沿着你收藏的「${book.category}」书签，灯下又出现了它。`
+          : popularity > 0
+            ? "最近有人收藏或谈起这本书。"
+            : "它与已有书签稍远，留作一次偶然相遇。";
+      return { book, total, sourceType, reason };
+    })
+    .sort((left, right) => right.total - left.total || left.book.id - right.book.id);
+
+  const selected = [];
+  const selectedIds = new Set();
+  const categoryLimits = {};
+  const authorLimits = {};
+  for (const candidate of scored) {
+    if (
+      Number(categoryLimits[candidate.book.category] || 0) >= 2 ||
+      Number(authorLimits[candidate.book.author] || 0) >= 1
+    ) continue;
+    selected.push(candidate);
+    selectedIds.add(candidate.book.id);
+    categoryLimits[candidate.book.category] =
+      Number(categoryLimits[candidate.book.category] || 0) + 1;
+    authorLimits[candidate.book.author] = 1;
+    if (selected.length === size) break;
+  }
+  for (const candidate of scored) {
+    if (selected.length === size) break;
+    if (!selectedIds.has(candidate.book.id)) selected.push(candidate);
+  }
+
+  const items = selected.map(({ book, sourceType, reason }) => ({
+    itemId: recommendationItemId(user.id, book.id),
+    bookId: book.id,
+    name: book.name,
+    author: book.author,
+    category: book.category,
+    cover: book.cover,
+    description: book.description,
+    availableCount: book.availableCount,
+    sourceType,
+    reason,
+  }));
+  items.forEach((item) =>
+    recordRecommendationEvent(state, user.id, item.itemId, "EXPOSE")
+  );
+  writeState(state);
+  return ok({
+    mode: personalized ? "CONTENT" : "PUBLIC",
+    personalized,
+    enabled: state.recommendationEnabled !== false,
+    signalCount: favoriteBooks.length,
+    generatedAt: "2026-08-01 12:00:00",
+    privacyNotice: "只使用你主动留下的收藏、借阅与评分，不记录无关浏览行为。",
+    items,
+  });
+}
+
 function queryBorrowRecords(state, payload, user) {
   let records = state.borrowRecords;
   if (user?.userRole === 2) {
@@ -437,6 +559,36 @@ export async function demoAdapter(config) {
     result = paginateResponse(state.bookshelves, payload);
   } else if (path === "/book/query") {
     result = queryBooks(state, payload);
+  } else if (path === "/recommendation/feed") {
+    result = user?.userRole === 2
+      ? recommendationFeed(state, user, params.get("size"))
+      : rejected("当前身份不能读取读者推荐。");
+  } else if (path === "/recommendation/setting" && method === "get") {
+    result = ok({
+      enabled: state.recommendationEnabled !== false,
+      dataScope: "只使用你主动留下的收藏、借阅与评分，不记录无关浏览行为。",
+      clearEffect: "清除曝光、点击与计算结果，不删除收藏、借阅或书评。",
+    });
+  } else if (path === "/recommendation/setting" && method === "put") {
+    state.recommendationEnabled = Boolean(payload.enabled);
+    writeState(state);
+    result = ok({
+      enabled: state.recommendationEnabled,
+      dataScope: "只使用你主动留下的收藏、借阅与评分，不记录无关浏览行为。",
+      clearEffect: "清除曝光、点击与计算结果，不删除收藏、借阅或书评。",
+    }, state.recommendationEnabled ? "个性化推荐已开启" : "已改为公共荐书");
+  } else if (path === "/recommendation/history" && method === "delete") {
+    state.recommendationEvents = [];
+    writeState(state);
+    result = ok(null, "推荐记录已清除，收藏、借阅和书评保持不变");
+  } else if (/^\/recommendation\/items\/\d+\/events$/.test(path)) {
+    const itemId = Number(path.split("/")[3]);
+    if (!user || user.userRole !== 2) result = rejected("当前身份不能记录读者推荐事件。");
+    else {
+      recordRecommendationEvent(state, user.id, itemId, payload.eventType);
+      writeState(state);
+      result = ok();
+    }
   } else if (path.startsWith("/book/queryByDays/")) {
     result = ok([
       { name: "07-20", count: 1 },
@@ -539,6 +691,11 @@ export async function demoAdapter(config) {
     );
     if (path.includes("/add/") && index < 0) {
       state.favorites.push({ id: nextId(state), userId: user.id, bookId });
+      const itemId = recommendationItemId(user.id, bookId);
+      const exposed = (state.recommendationEvents || []).some(
+        (event) => event.itemId === itemId && event.eventType === "EXPOSE"
+      );
+      if (exposed) recordRecommendationEvent(state, user.id, itemId, "FAVORITE");
     }
     if (path.includes("/remove/") && index >= 0) {
       state.favorites.splice(index, 1);

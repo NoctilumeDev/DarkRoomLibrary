@@ -282,7 +282,83 @@ CREATE TABLE IF NOT EXISTS `book_favorite` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='book favorite';
 
 -- ============================================================
--- 12. book_reservation
+-- 12. explainable recommendation loop
+-- Recommendation tables store derived output and attribution only.
+-- Favorites, borrows and reviews remain the source of truth.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `recommendation_user_setting` (
+  `user_id` int unsigned NOT NULL COMMENT 'reader id',
+  `enabled` tinyint NOT NULL DEFAULT 1 COMMENT 'personalization enabled',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'updated time',
+  PRIMARY KEY (`user_id`),
+  CONSTRAINT `fk_recommendation_setting_user`
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='recommendation privacy setting';
+
+CREATE TABLE IF NOT EXISTS `recommendation_batch` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'generation batch id',
+  `user_id` int unsigned NOT NULL COMMENT 'reader id',
+  `mode` varchar(20) NOT NULL COMMENT 'PUBLIC/CONTENT/HYBRID',
+  `algorithm_version` varchar(30) NOT NULL COMMENT 'ranking algorithm version',
+  `signal_count` int NOT NULL DEFAULT 0 COMMENT 'active favorite signal count',
+  `source_fingerprint` char(64) NOT NULL COMMENT 'source data fingerprint',
+  `generated_at` datetime NOT NULL COMMENT 'generated time',
+  `expires_at` datetime NOT NULL COMMENT 'reuse expiration time',
+  PRIMARY KEY (`id`),
+  KEY `idx_recommendation_batch_user_time` (`user_id`, `generated_at`),
+  KEY `idx_recommendation_batch_reuse` (`user_id`, `source_fingerprint`, `expires_at`),
+  CONSTRAINT `fk_recommendation_batch_user`
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='recommendation generation batch';
+
+CREATE TABLE IF NOT EXISTS `recommendation_item` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'recommendation item id',
+  `batch_id` bigint unsigned NOT NULL COMMENT 'generation batch id',
+  `user_id` int unsigned NOT NULL COMMENT 'reader id',
+  `book_id` int unsigned NOT NULL COMMENT 'recommended book id',
+  `rank_no` int NOT NULL COMMENT 'rank in batch',
+  `total_score` decimal(10,6) NOT NULL COMMENT 'final score',
+  `content_score` decimal(10,6) NOT NULL DEFAULT 0 COMMENT 'content score',
+  `collaborative_score` decimal(10,6) NOT NULL DEFAULT 0 COMMENT 'collaborative score',
+  `quality_score` decimal(10,6) NOT NULL DEFAULT 0 COMMENT 'quality score',
+  `exploration_score` decimal(10,6) NOT NULL DEFAULT 0 COMMENT 'exploration score',
+  `source_type` varchar(20) NOT NULL COMMENT 'primary recommendation source',
+  `reason` varchar(255) NOT NULL COMMENT 'traceable user-facing reason',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_recommendation_item_batch_book` (`batch_id`, `book_id`),
+  KEY `idx_recommendation_item_user_book` (`user_id`, `book_id`),
+  CONSTRAINT `fk_recommendation_item_batch`
+    FOREIGN KEY (`batch_id`) REFERENCES `recommendation_batch` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_recommendation_item_user`
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_recommendation_item_book`
+    FOREIGN KEY (`book_id`) REFERENCES `book` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='ranked recommendation item';
+
+CREATE TABLE IF NOT EXISTS `recommendation_event` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'immutable event id',
+  `user_id` int unsigned NOT NULL COMMENT 'reader id',
+  `item_id` bigint unsigned NOT NULL COMMENT 'recommendation item id',
+  `event_type` varchar(16) NOT NULL COMMENT 'EXPOSE/CLICK/FAVORITE/DISMISS',
+  `created_at` datetime NOT NULL COMMENT 'event time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_recommendation_event_once` (`user_id`, `item_id`, `event_type`),
+  KEY `idx_recommendation_event_type_time` (`event_type`, `created_at`),
+  CONSTRAINT `fk_recommendation_event_user`
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_recommendation_event_item`
+    FOREIGN KEY (`item_id`) REFERENCES `recommendation_item` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='immutable recommendation attribution event';
+
+-- ============================================================
+-- 13. book_reservation
 -- status: 0=waiting, 1=borrowed, 2=canceled, 3=notified, 4=expired
 -- active_flag keeps one active reservation per user/book for status 0/3.
 -- ============================================================
@@ -310,7 +386,7 @@ CREATE TABLE IF NOT EXISTS `book_reservation` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='book reservation';
 
 -- ============================================================
--- 13. message_board
+-- 14. message_board
 -- Attachments are stored as uploaded file metadata.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `message_board` (
@@ -331,7 +407,7 @@ CREATE TABLE IF NOT EXISTS `message_board` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='message board';
 
 -- ============================================================
--- 14. operation_log
+-- 15. operation_log
 -- No foreign key here, so audit history survives user deletion.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `operation_log` (
@@ -352,7 +428,7 @@ CREATE TABLE IF NOT EXISTS `operation_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='operation log';
 
 -- ============================================================
--- 15. notification_task
+-- 16. notification_task
 -- status: 0=pending, 1=sent, 2=retry pending, 3=processing, 4=dead
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `notification_task` (
@@ -372,7 +448,7 @@ CREATE TABLE IF NOT EXISTS `notification_task` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='notification task';
 
 -- ============================================================
--- 16. procurement_order
+-- 17. procurement_order
 -- status: 0=pending, 1=purchasing, 2=ordered, 3=shipped, 4=arrived, 5=warehoused, 6=completed, 7=canceled
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `procurement_order` (
@@ -416,7 +492,7 @@ CREATE TABLE IF NOT EXISTS `procurement_order` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='procurement order';
 
 -- ============================================================
--- 17. procurement_logistics
+-- 18. procurement_logistics
 -- status: 0=pending, 1=in transit, 2=arrived, 3=warehoused
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `procurement_logistics` (
@@ -442,7 +518,7 @@ CREATE TABLE IF NOT EXISTS `procurement_logistics` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='procurement logistics';
 
 -- ============================================================
--- 18. procurement_message
+-- 19. procurement_message
 -- channel_type: 0=admin-purchaser, 1=purchaser-logistics
 -- read_status: 0=unread, 1=read
 -- ============================================================
@@ -472,7 +548,7 @@ CREATE TABLE IF NOT EXISTS `procurement_message` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='procurement message';
 
 -- ============================================================
--- 19. stored_file
+-- 20. stored_file
 -- status: 0=temporary, 1=bound, 2=delete pending, 3=deleting lease
 -- ref_type: book_cover/user_avatar/msg_attachment/notice_asset
 -- ============================================================
@@ -502,7 +578,7 @@ CREATE TABLE IF NOT EXISTS `stored_file` (
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
--- 20. seed data
+-- 21. seed data
 -- ============================================================
 
 INSERT IGNORE INTO `user`
@@ -527,7 +603,7 @@ INSERT IGNORE INTO `bookshelf` (`name`, `location`, `capacity`, `description`, `
   ('暗室总架', '总馆·雾灯厅', 100, '系统初始化主书架', NOW());
 
 -- ============================================================
--- 21. fictional demo data
+-- 22. fictional demo data
 -- All demo identities use the local-only password DarkRoom@20606.
 -- ============================================================
 
@@ -630,6 +706,72 @@ WHERE shelf.name = '暗室总架'
   AND NOT EXISTS (SELECT 1 FROM `book` WHERE `name` = '砚灯拾页集')
 LIMIT 1;
 
+INSERT INTO `book`
+  (`name`, `author`, `isbn`, `publisher`, `category`, `total_count`, `available_count`, `cover`, `description`, `create_time`, `is_deleted`, `bookshelf_id`)
+SELECT
+  '灯下山河', '闻归舟', '9900000000007', '归架书坊', '文学', 4, 3, NULL,
+  '沿着夜行与归途，记录人在山河之间重新认出自己的短篇集。',
+  '2026-07-20 10:30:00', 0, shelf.id
+FROM `bookshelf` shelf
+WHERE shelf.name = '暗室总架'
+  AND NOT EXISTS (SELECT 1 FROM `book` WHERE `name` = '灯下山河')
+LIMIT 1;
+
+INSERT INTO `book`
+  (`name`, `author`, `isbn`, `publisher`, `category`, `total_count`, `available_count`, `cover`, `description`, `create_time`, `is_deleted`, `bookshelf_id`)
+SELECT
+  '魏晋微光', '江雾衡', '9900000000008', '雾桥文库', '历史', 3, 2, NULL,
+  '从人物、书信与山水中辨认魏晋时代关于自由与归隐的微光。',
+  '2026-07-20 10:35:00', 0, shelf.id
+FROM `bookshelf` shelf
+WHERE shelf.name = '暗室总架'
+  AND NOT EXISTS (SELECT 1 FROM `book` WHERE `name` = '魏晋微光')
+LIMIT 1;
+
+INSERT INTO `book`
+  (`name`, `author`, `isbn`, `publisher`, `category`, `total_count`, `available_count`, `cover`, `description`, `create_time`, `is_deleted`, `bookshelf_id`)
+SELECT
+  '山水有声', '砚灯读书会', '9900000000009', '砚灯小筑', '艺术', 3, 3, NULL,
+  '谈古画、诗句与园林如何共同构成中国山水中的观看和聆听。',
+  '2026-07-20 10:40:00', 0, shelf.id
+FROM `bookshelf` shelf
+WHERE shelf.name = '暗室总架'
+  AND NOT EXISTS (SELECT 1 FROM `book` WHERE `name` = '山水有声')
+LIMIT 1;
+
+INSERT INTO `book`
+  (`name`, `author`, `isbn`, `publisher`, `category`, `total_count`, `available_count`, `cover`, `description`, `create_time`, `is_deleted`, `bookshelf_id`)
+SELECT
+  '自由的边界', '青梧馆记', '9900000000010', '青梧文献馆', '哲学', 5, 4, NULL,
+  '从规则、责任与公共生活出发，讨论自由并非孤立无边的选择。',
+  '2026-07-20 10:45:00', 0, shelf.id
+FROM `bookshelf` shelf
+WHERE shelf.name = '暗室总架'
+  AND NOT EXISTS (SELECT 1 FROM `book` WHERE `name` = '自由的边界')
+LIMIT 1;
+
+INSERT INTO `book`
+  (`name`, `author`, `isbn`, `publisher`, `category`, `total_count`, `available_count`, `cover`, `description`, `create_time`, `is_deleted`, `bookshelf_id`)
+SELECT
+  '星图之外', '栖星社编', '9900000000011', '星阑书社', '科学', 4, 4, NULL,
+  '以观测札记解释星图、尺度与人类如何在未知面前保持好奇。',
+  '2026-07-20 10:50:00', 0, shelf.id
+FROM `bookshelf` shelf
+WHERE shelf.name = '暗室总架'
+  AND NOT EXISTS (SELECT 1 FROM `book` WHERE `name` = '星图之外')
+LIMIT 1;
+
+INSERT INTO `book`
+  (`name`, `author`, `isbn`, `publisher`, `category`, `total_count`, `available_count`, `cover`, `description`, `create_time`, `is_deleted`, `bookshelf_id`)
+SELECT
+  '纸页与城', '岑夜录', '9900000000012', '暗室藏书局', '历史', 4, 2, NULL,
+  '从书店、图书馆与私人书架的迁移，阅读一座城市留下的纸上地层。',
+  '2026-07-20 10:55:00', 0, shelf.id
+FROM `bookshelf` shelf
+WHERE shelf.name = '暗室总架'
+  AND NOT EXISTS (SELECT 1 FROM `book` WHERE `name` = '纸页与城')
+LIMIT 1;
+
 INSERT INTO `notice` (`name`, `content`, `create_time`)
 SELECT '雾灯厅开放时间', '<p>雾灯厅本周六延长开放至 21:30，请在闭馆前完成借阅登记。</p>', '2026-07-21 08:30:00'
 WHERE NOT EXISTS (SELECT 1 FROM `notice` WHERE `name` = '雾灯厅开放时间');
@@ -726,6 +868,20 @@ INSERT IGNORE INTO `book_favorite` (`user_id`, `book_id`, `create_time`)
 SELECT reader_user.id, target_book.id, '2026-07-23 19:00:00'
 FROM `user` reader_user
 JOIN `book` target_book ON target_book.name = '青梧守卷录'
+WHERE reader_user.user_account = 'drl_reader_yandeng'
+LIMIT 1;
+
+INSERT IGNORE INTO `book_favorite` (`user_id`, `book_id`, `create_time`)
+SELECT reader_user.id, target_book.id, '2026-07-24 19:20:00'
+FROM `user` reader_user
+JOIN `book` target_book ON target_book.name = '暗室藏书'
+WHERE reader_user.user_account = 'drl_reader_yandeng'
+LIMIT 1;
+
+INSERT IGNORE INTO `book_favorite` (`user_id`, `book_id`, `create_time`)
+SELECT reader_user.id, target_book.id, '2026-07-25 20:10:00'
+FROM `user` reader_user
+JOIN `book` target_book ON target_book.name = '砚灯拾页集'
 WHERE reader_user.user_account = 'drl_reader_yandeng'
 LIMIT 1;
 

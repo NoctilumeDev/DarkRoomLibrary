@@ -22,13 +22,23 @@
       </button>
     </aside>
 
-    <section v-if="featuredBooks.length" class="desk-selection">
+    <section v-if="recommendationItems.length" class="desk-selection">
       <header>
-        <span>案上新书</span>
-        <button type="button" @click="$router.push('/bookSearch')">全部藏书</button>
+        <span>{{ recommendationTitle }}</span>
+        <span class="selection-actions">
+          <button type="button" title="推荐说明与设置" @click="openRecommendationSettings">
+            <InfoFilled />
+          </button>
+          <button type="button" @click="$router.push('/bookSearch')">全部藏书</button>
+        </span>
       </header>
       <div class="desk-books">
-        <button v-for="book in featuredBooks" :key="book.id" type="button" @click="openBook(book)">
+        <button
+          v-for="book in recommendationItems"
+          :key="book.itemId"
+          type="button"
+          @click="openBook(book)"
+        >
           <span class="book-cover">
             <el-image v-if="book.cover" :src="fileUrl(book.cover)" fit="cover" lazy>
               <template #error><i>{{ shortTitle(book.name) }}</i></template>
@@ -38,6 +48,7 @@
           <span class="book-copy">
             <strong>{{ book.name }}</strong>
             <em>{{ book.author || "佚名" }}</em>
+            <small>{{ book.reason }}</small>
           </span>
         </button>
       </div>
@@ -48,22 +59,68 @@
         {{ category.name }}
       </button>
     </nav>
+
+    <el-dialog
+      v-model="recommendationSettingsVisible"
+      title="沿着书签"
+      class="reader-recommendation-dialog"
+      width="min(500px, calc(100vw - 24px))"
+      append-to-body
+    >
+      <div class="recommendation-setting-copy">
+        <p>{{ recommendationSetting.dataScope }}</p>
+        <div class="recommendation-setting-row">
+          <span>
+            <strong>个性化荐书</strong>
+            <small>关闭后只展示新近入藏与公共荐书。</small>
+          </span>
+          <el-switch
+            v-model="recommendationSetting.enabled"
+            :loading="recommendationSettingSaving"
+            @change="updateRecommendationSetting"
+          />
+        </div>
+        <div class="recommendation-setting-row recommendation-history-row">
+          <span>
+            <strong>推荐记录</strong>
+            <small>{{ recommendationSetting.clearEffect }}</small>
+          </span>
+          <el-button :loading="recommendationHistoryClearing" @click="clearRecommendationHistory">
+            清除记录
+          </el-button>
+        </div>
+      </div>
+    </el-dialog>
   </section>
 </template>
 
 <script>
-import { Search as SearchIcon } from "@element-plus/icons-vue";
+import { InfoFilled, Search as SearchIcon } from "@element-plus/icons-vue";
 import { resolveFileUrl } from "@/utils/fileUrl.js";
 
 export default {
   name: "ReaderRoom",
-  components: { SearchIcon },
+  components: { InfoFilled, SearchIcon },
   data() {
     return {
       loading: false,
       userId: null,
       userName: "",
-      books: [],
+      recommendation: {
+        mode: "PUBLIC",
+        personalized: false,
+        enabled: true,
+        signalCount: 0,
+        items: [],
+      },
+      recommendationSettingsVisible: false,
+      recommendationSettingSaving: false,
+      recommendationHistoryClearing: false,
+      recommendationSetting: {
+        enabled: true,
+        dataScope: "只使用你主动留下的收藏、借阅与评分，不记录无关浏览行为。",
+        clearEffect: "清除曝光、点击与计算结果，不删除收藏、借阅或书评。",
+      },
       categories: [],
       borrows: [],
       reservations: [],
@@ -80,8 +137,11 @@ export default {
     themeLine() {
       return new Date().getHours() < 18 ? "山气未散，窗下宜读" : "夜色入室，灯火可亲";
     },
-    featuredBooks() {
-      return this.books.slice(0, 3);
+    recommendationItems() {
+      return (this.recommendation.items || []).slice(0, 3);
+    },
+    recommendationTitle() {
+      return this.recommendation.personalized ? "沿着书签" : "案上新书";
     },
     activeBorrowCount() {
       return this.borrows.filter((item) => !item.status).length;
@@ -116,13 +176,13 @@ export default {
         if (auth.data.code !== 200) return;
         this.userId = auth.data.data.id;
         this.userName = auth.data.data.userName;
-        const [books, categories, borrows, reservations] = await Promise.all([
-          this.$axios.post("/book/query", { current: 1, size: 6 }),
+        const [recommendation, categories, borrows, reservations] = await Promise.all([
+          this.loadRecommendation(),
           this.$axios.get("/category/queryAll"),
           this.$axios.post("/borrowRecord/query", { current: 1, size: 20, userId: this.userId }),
           this.$axios.post("/bookReservation/query", { current: 1, size: 20, userId: this.userId }),
         ]);
-        if (books.data.code === 200) this.books = books.data.data || [];
+        this.recommendation = recommendation;
         if (categories.data.code === 200) this.categories = (categories.data.data || []).slice(0, 8);
         if (borrows.data.code === 200) this.borrows = borrows.data.data || [];
         if (reservations.data.code === 200) this.reservations = reservations.data.data || [];
@@ -133,11 +193,95 @@ export default {
         this.loading = false;
       }
     },
-    openBook(book) {
-      this.$router.push({ path: "/bookSearch", query: { name: book.name, open: String(book.id) } });
+    async loadRecommendation() {
+      try {
+        const response = await this.$axios.get("/recommendation/feed", { params: { size: 6 } });
+        if (response.data.code === 200 && response.data.data) return response.data.data;
+      } catch (error) {
+        console.warn("个性化荐书暂时不可用，改用公共馆藏:", error);
+      }
+      const fallback = await this.$axios.post("/book/query", { current: 1, size: 6 });
+      const books = fallback.data.code === 200 ? fallback.data.data || [] : [];
+      return {
+        mode: "PUBLIC",
+        personalized: false,
+        enabled: false,
+        signalCount: 0,
+        items: books.map((book) => ({
+          itemId: `fallback-${book.id}`,
+          bookId: book.id,
+          name: book.name,
+          author: book.author,
+          category: book.category,
+          cover: book.cover,
+          availableCount: book.availableCount,
+          reason: "馆内仍有一册书在等人翻开。",
+        })),
+      };
+    },
+    async openBook(book) {
+      if (typeof book.itemId === "number") {
+        try {
+          await this.$axios.post(`/recommendation/items/${book.itemId}/events`, {
+            eventType: "CLICK",
+          });
+        } catch (error) {
+          console.warn("推荐点击归因失败，不影响打开图书:", error);
+        }
+      }
+      this.$router.push({
+        path: "/bookSearch",
+        query: { name: book.name, open: String(book.bookId) },
+      });
     },
     openCategory(category) {
       this.$router.push({ path: "/bookSearch", query: { category } });
+    },
+    async openRecommendationSettings() {
+      this.recommendationSettingsVisible = true;
+      try {
+        const response = await this.$axios.get("/recommendation/setting");
+        if (response.data.code === 200) {
+          this.recommendationSetting = response.data.data;
+        }
+      } catch (error) {
+        console.error("推荐设置加载失败:", error);
+        this.$message.error("推荐设置暂时无法读取。");
+      }
+    },
+    async updateRecommendationSetting(enabled) {
+      this.recommendationSettingSaving = true;
+      try {
+        const response = await this.$axios.put("/recommendation/setting", { enabled });
+        if (response.data.code !== 200) throw new Error(response.data.msg || "设置保存失败");
+        this.recommendationSetting = response.data.data;
+        this.recommendation = await this.loadRecommendation();
+        this.$message.success(response.data.msg);
+      } catch (error) {
+        this.recommendationSetting.enabled = !enabled;
+        this.$message.error(error.response?.data?.msg || error.message || "设置保存失败");
+      } finally {
+        this.recommendationSettingSaving = false;
+      }
+    },
+    async clearRecommendationHistory() {
+      const confirmed = await this.$swalConfirm({
+        title: "清除推荐记录？",
+        text: "曝光、点击与计算结果会被删除，收藏、借阅和书评不受影响。",
+        icon: "warning",
+      });
+      if (!confirmed) return;
+      this.recommendationHistoryClearing = true;
+      try {
+        const response = await this.$axios.delete("/recommendation/history");
+        if (response.data.code !== 200) throw new Error(response.data.msg || "清除失败");
+        this.recommendation = await this.loadRecommendation();
+        this.$message.success(response.data.msg);
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || error.message || "清除失败");
+      } finally {
+        this.recommendationHistoryClearing = false;
+      }
     },
   },
 };
@@ -230,7 +374,7 @@ export default {
   position: absolute;
   right: 76px;
   bottom: 38px;
-  width: min(510px, calc(100vw - 150px));
+  width: min(680px, calc(100vw - 150px));
   color: var(--scene-text);
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.95);
 }
@@ -254,6 +398,10 @@ export default {
   opacity: 0.6;
   cursor: pointer;
 }
+
+.selection-actions { display: flex; align-items: center; gap: 14px; }
+.selection-actions button { display: inline-grid; place-items: center; }
+.selection-actions svg { width: 14px; height: 14px; }
 
 .desk-books { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 
@@ -287,9 +435,24 @@ export default {
 .book-cover i { font-family: var(--reader-serif); font-size: 10px; font-style: normal; }
 .book-copy { min-width: 0; }
 .book-copy strong,
-.book-copy em { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-copy em,
+.book-copy small { display: block; overflow: hidden; text-overflow: ellipsis; }
+.book-copy strong,
+.book-copy em { white-space: nowrap; }
 .book-copy strong { font-family: var(--reader-serif); font-size: 13px; font-weight: 500; }
 .book-copy em { margin-top: 7px; font-size: 10px; font-style: normal; opacity: 0.58; }
+.book-copy small {
+  display: -webkit-box;
+  min-height: 30px;
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.5;
+  opacity: 0.68;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 
 .category-whisper {
   position: absolute;
@@ -314,7 +477,7 @@ export default {
 
 .category-whisper button:hover { opacity: 1; }
 
-@media (max-width: 1100px) {
+@media (max-width: 1720px) {
   .category-whisper { display: none; }
   .desk-selection { right: 36px; }
 }
@@ -336,18 +499,26 @@ export default {
     backdrop-filter: blur(8px);
   }
 
-  .desk-books { gap: 12px; }
-  .desk-books > button { align-items: flex-start; }
-  .book-copy em { display: none; }
+  .desk-books {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .desk-books::-webkit-scrollbar { display: none; }
+  .desk-books > button {
+    width: min(248px, 76vw);
+    flex: 0 0 min(248px, 76vw);
+    align-items: flex-start;
+    scroll-snap-align: start;
+  }
 }
 
 @media (max-width: 500px) {
   .room-intro { top: 18vh; }
   .room-intro > p { font-size: 11px; }
   .room-intro > span { font-size: 12px; }
-  .desk-books { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .desk-books > button { display: grid; justify-items: center; text-align: center; }
-  .book-copy { width: 100%; }
   .book-cover { width: 34px; height: 48px; flex-basis: 34px; }
 }
 </style>

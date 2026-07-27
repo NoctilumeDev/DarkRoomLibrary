@@ -120,6 +120,35 @@ describe("browser demo adapter", () => {
     );
   });
 
+  it("keeps the explainable recommendation loop private and attributable", async () => {
+    activateDemoIdentity("reader");
+
+    const feed = await call("get", "/recommendation/feed", undefined, { size: 6 });
+    expect(feed.code).toBe(200);
+    expect(feed.data.mode).toBe("CONTENT");
+    expect(feed.data.personalized).toBe(true);
+    expect(feed.data.signalCount).toBe(3);
+    expect(feed.data.items).toHaveLength(6);
+    expect(feed.data.items.every((item) => item.reason)).toBe(true);
+    expect(feed.data.items.every((item) => ![1, 5, 6].includes(item.bookId))).toBe(true);
+
+    const item = feed.data.items[0];
+    expect((await call("post", `/recommendation/items/${item.itemId}/events`, {
+      eventType: "CLICK",
+    })).code).toBe(200);
+    expect((await call("post", `/bookFavorite/add/${item.bookId}`)).code).toBe(200);
+
+    const disabled = await call("put", "/recommendation/setting", { enabled: false });
+    expect(disabled.data.enabled).toBe(false);
+    const publicFeed = await call("get", "/recommendation/feed");
+    expect(publicFeed.data.mode).toBe("PUBLIC");
+
+    const cleared = await call("delete", "/recommendation/history");
+    expect(cleared.code).toBe(200);
+    const favorites = await call("post", "/bookFavorite/query", { current: 1, size: 20 });
+    expect(favorites.data.some((favorite) => favorite.bookId === item.bookId)).toBe(true);
+  });
+
   it("rejects unsupported file operations instead of faking success", async () => {
     activateDemoIdentity("root");
     const result = await call("post", "/file/cleanup");

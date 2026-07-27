@@ -135,6 +135,48 @@ CREATE TABLE IF NOT EXISTS `book_favorite` (
     UNIQUE KEY `uk_user_book` (`user_id`, `book_id`)
 );
 
+CREATE TABLE IF NOT EXISTS `recommendation_user_setting` (
+    `user_id` INT PRIMARY KEY,
+    `enabled` TINYINT NOT NULL DEFAULT 1,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `recommendation_batch` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `mode` VARCHAR(20) NOT NULL,
+    `algorithm_version` VARCHAR(30) NOT NULL,
+    `signal_count` INT NOT NULL DEFAULT 0,
+    `source_fingerprint` CHAR(64) NOT NULL,
+    `generated_at` DATETIME NOT NULL,
+    `expires_at` DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `recommendation_item` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `batch_id` BIGINT NOT NULL,
+    `user_id` INT NOT NULL,
+    `book_id` INT NOT NULL,
+    `rank_no` INT NOT NULL,
+    `total_score` DECIMAL(10,6) NOT NULL,
+    `content_score` DECIMAL(10,6) NOT NULL DEFAULT 0,
+    `collaborative_score` DECIMAL(10,6) NOT NULL DEFAULT 0,
+    `quality_score` DECIMAL(10,6) NOT NULL DEFAULT 0,
+    `exploration_score` DECIMAL(10,6) NOT NULL DEFAULT 0,
+    `source_type` VARCHAR(20) NOT NULL,
+    `reason` VARCHAR(255) NOT NULL,
+    UNIQUE KEY `uk_recommendation_item_batch_book` (`batch_id`, `book_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `recommendation_event` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `item_id` BIGINT NOT NULL,
+    `event_type` VARCHAR(16) NOT NULL,
+    `created_at` DATETIME NOT NULL,
+    UNIQUE KEY `uk_recommendation_event_once` (`user_id`, `item_id`, `event_type`)
+);
+
 CREATE TABLE IF NOT EXISTS `notification_task` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `receiver_email` VARCHAR(255) NOT NULL,

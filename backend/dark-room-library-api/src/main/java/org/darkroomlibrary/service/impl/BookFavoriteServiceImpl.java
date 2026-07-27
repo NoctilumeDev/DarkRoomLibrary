@@ -14,6 +14,8 @@ import org.darkroomlibrary.domain.model.BookFavorite;
 import org.darkroomlibrary.domain.model.User;
 import org.darkroomlibrary.web.view.BookFavoriteView;
 import org.darkroomlibrary.service.BookFavoriteService;
+import org.darkroomlibrary.service.RecommendationService;
+import org.darkroomlibrary.utils.TransactionCallbacks;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,9 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private RecommendationService recommendationService;
 
     @Override
     @Transactional
@@ -73,6 +78,7 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
         } catch (DuplicateKeyException e) {
             return ApiResponse.error("已收藏该图书");
         }
+        TransactionCallbacks.afterCommit(() -> recommendationService.attributeFavorite(userId, bookId));
         return ApiResponse.success("收藏成功");
     }
 

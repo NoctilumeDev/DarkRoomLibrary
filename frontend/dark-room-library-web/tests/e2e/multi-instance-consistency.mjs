@@ -52,7 +52,7 @@ const report = {
     readerCount,
     distributionMode,
     randomSeed,
-    database: "dark_room_library_e2e",
+    database: process.env.E2E_DATABASE_NAME || "dark_room_library",
   },
   scenarios: [],
 };

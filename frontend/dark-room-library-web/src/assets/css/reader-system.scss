@@ -480,6 +480,110 @@ body[data-reader-theme] .el-select-dropdown__item.is-selected {
   color: var(--seal) !important;
 }
 
+body[data-reader-theme] .reader-recommendation-dialog {
+  --el-dialog-bg-color: var(--paper);
+  max-height: min(82dvh, 620px);
+  overflow: hidden;
+  color: var(--paper-ink);
+  border: 1px solid var(--paper-line);
+  border-radius: 4px;
+  background: var(--paper);
+}
+
+body[data-reader-theme] .reader-recommendation-dialog .el-dialog__header,
+body[data-reader-theme] .reader-recommendation-dialog .el-dialog__body {
+  background: var(--paper) !important;
+}
+
+body[data-reader-theme] .reader-recommendation-dialog .el-dialog__header {
+  margin: 0;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid var(--paper-line);
+}
+
+body[data-reader-theme] .reader-recommendation-dialog .el-dialog__body {
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+}
+
+body[data-reader-theme] .reader-recommendation-dialog .el-dialog__title,
+body[data-reader-theme] .reader-recommendation-dialog .el-dialog__close {
+  color: var(--paper-ink) !important;
+}
+
+body[data-reader-theme] .recommendation-setting-copy > p {
+  margin: 0 0 18px;
+  color: var(--paper-ink-soft);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+body[data-reader-theme] .recommendation-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--paper-line);
+}
+
+body[data-reader-theme] .recommendation-setting-row > span {
+  min-width: 0;
+}
+
+body[data-reader-theme] .recommendation-setting-row strong,
+body[data-reader-theme] .recommendation-setting-row small {
+  display: block;
+}
+
+body[data-reader-theme] .recommendation-setting-row strong {
+  color: var(--paper-ink);
+  font-size: 14px;
+}
+
+body[data-reader-theme] .recommendation-setting-row small {
+  margin-top: 6px;
+  color: var(--paper-ink-faint);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+body[data-reader-theme] .reader-recommendation-dialog .el-switch {
+  --el-switch-on-color: var(--seal);
+  --el-switch-off-color: color-mix(in srgb, var(--paper-ink-faint) 48%, transparent);
+  flex: 0 0 auto;
+}
+
+body[data-reader-theme] .reader-recommendation-dialog .el-button {
+  --el-button-text-color: var(--paper-ink-soft);
+  --el-button-border-color: var(--paper-line);
+  --el-button-bg-color: color-mix(in srgb, var(--paper-raised) 70%, transparent);
+  --el-button-hover-text-color: var(--seal);
+  --el-button-hover-border-color: var(--seal);
+  --el-button-hover-bg-color: var(--paper-raised);
+  flex: 0 0 auto;
+  border-radius: 3px;
+}
+
+@media (max-width: 520px) {
+  body[data-reader-theme] .reader-recommendation-dialog .el-dialog__header {
+    padding: 17px 18px 12px;
+  }
+
+  body[data-reader-theme] .reader-recommendation-dialog .el-dialog__body {
+    padding: 16px 18px 20px;
+  }
+
+  body[data-reader-theme] .recommendation-setting-row {
+    gap: 14px;
+  }
+
+  body[data-reader-theme] .recommendation-history-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .auth-world {
   color: var(--paper-ink);
   background: var(--scene-base);

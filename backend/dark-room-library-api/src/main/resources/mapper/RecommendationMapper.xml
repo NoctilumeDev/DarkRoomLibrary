@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.darkroomlibrary.mapper.RecommendationMapper">
+
+    <select id="findSetting" resultType="org.darkroomlibrary.domain.model.RecommendationSetting">
+        SELECT user_id, enabled, updated_at
+        FROM recommendation_user_setting
+        WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insertSetting">
+        INSERT INTO recommendation_user_setting (user_id, enabled, updated_at)
+        VALUES (#{userId}, #{enabled}, #{updatedAt})
+    </insert>
+
+    <update id="updateSetting">
+        UPDATE recommendation_user_setting
+        SET enabled = #{enabled}, updated_at = #{updatedAt}
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="findReusableBatch" resultType="org.darkroomlibrary.domain.model.RecommendationBatch">
+        SELECT id, user_id, mode, algorithm_version, signal_count,
+               source_fingerprint, generated_at, expires_at
+        FROM recommendation_batch
+        WHERE user_id = #{userId}
+          AND source_fingerprint = #{sourceFingerprint}
+          AND expires_at &gt; #{now}
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO recommendation_batch
+            (user_id, mode, algorithm_version, signal_count, source_fingerprint, generated_at, expires_at)
+        VALUES
+            (#{userId}, #{mode}, #{algorithmVersion}, #{signalCount}, #{sourceFingerprint}, #{generatedAt}, #{expiresAt})
+    </insert>
+
+    <insert id="insertItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO recommendation_item
+            (batch_id, user_id, book_id, rank_no, total_score, content_score,
+             collaborative_score, quality_score, exploration_score, source_type, reason)
+        VALUES
+            (#{batchId}, #{userId}, #{bookId}, #{rankNo}, #{totalScore}, #{contentScore},
+             #{collaborativeScore}, #{qualityScore}, #{explorationScore}, #{sourceType}, #{reason})
+    </insert>
+
+    <select id="findItems" resultType="org.darkroomlibrary.web.view.RecommendationItemView">
+        SELECT ri.id AS item_id,
+               b.id AS book_id,
+               b.name,
+               b.author,
+               b.category,
+               b.cover,
+               b.description,
+               b.available_count,
+               ri.source_type,
+               ri.reason
+        FROM recommendation_item ri
+        JOIN book b ON b.id = ri.book_id AND b.is_deleted = 0
+        WHERE ri.batch_id = #{batchId}
+        ORDER BY ri.rank_no ASC
+    </select>
+
+    <select id="findOwnedItem" resultType="org.darkroomlibrary.domain.model.RecommendationItem">
+        SELECT id, batch_id, user_id, book_id, rank_no, total_score, content_score,
+               collaborative_score, quality_score, exploration_score, source_type, reason
+        FROM recommendation_item
+        WHERE id = #{itemId} AND user_id = #{userId}
+    </select>
+
+    <select id="findLatestExposedItem" resultType="org.darkroomlibrary.domain.model.RecommendationItem">
+        SELECT ri.id, ri.batch_id, ri.user_id, ri.book_id, ri.rank_no, ri.total_score,
+               ri.content_score, ri.collaborative_score, ri.quality_score,
+               ri.exploration_score, ri.source_type, ri.reason
+        FROM recommendation_item ri
+        JOIN recommendation_batch rb ON rb.id = ri.batch_id
+        WHERE ri.user_id = #{userId}
+          AND ri.book_id = #{bookId}
+          AND rb.generated_at &gt;= #{since}
+          AND EXISTS (
+              SELECT 1
+              FROM recommendation_event re
+              WHERE re.item_id = ri.id AND re.event_type = 'EXPOSE'
+          )
+        ORDER BY ri.id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertEvent" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO recommendation_event (user_id, item_id, event_type, created_at)
+        VALUES (#{userId}, #{itemId}, #{eventType}, #{createdAt})
+    </insert>
+
+    <delete id="deleteBatchesByUser">
+        DELETE FROM recommendation_batch WHERE user_id = #{userId}
+    </delete>
+
+    <delete id="deleteItemsByUser">
+        DELETE FROM recommendation_item WHERE user_id = #{userId}
+    </delete>
+
+    <delete id="deleteEventsByUser">
+        DELETE FROM recommendation_event WHERE user_id = #{userId}
+    </delete>
+
+    <delete id="pruneExpiredBatches">
+        DELETE FROM recommendation_batch
+        WHERE user_id = #{userId} AND generated_at &lt; #{cutoff}
+    </delete>
+
+    <select id="findActiveBookProfiles" resultType="org.darkroomlibrary.domain.recommendation.RecommendationBookProfile">
+        SELECT b.id,
+               b.version,
+               b.name,
+               b.author,
+               b.publisher,
+               b.category,
+               b.cover,
+               b.description,
+               b.total_count,
+               b.available_count,
+               b.create_time,
+               COALESCE(f.favorite_count, 0) AS favorite_count,
+               COALESCE(br.borrow_count, 0) AS borrow_count,
+               COALESCE(rv.review_count, 0) AS review_count,
+               COALESCE(rv.average_rating, 0) AS average_rating
+        FROM book b
+        LEFT JOIN (
+            SELECT book_id, COUNT(*) AS favorite_count
+            FROM book_favorite
+            GROUP BY book_id
+        ) f ON f.book_id = b.id
+        LEFT JOIN (
+            SELECT book_id, COUNT(*) AS borrow_count
+            FROM borrow_record
+            GROUP BY book_id
+        ) br ON br.book_id = b.id
+        LEFT JOIN (
+            SELECT book_id, COUNT(*) AS review_count, AVG(rating) AS average_rating
+            FROM book_review
+            WHERE status = 0
+            GROUP BY book_id
+        ) rv ON rv.book_id = b.id
+        WHERE b.is_deleted = 0
+        ORDER BY b.id
+    </select>
+
+    <select id="findUserSignals" resultType="org.darkroomlibrary.domain.recommendation.RecommendationUserSignal">
+        SELECT b.id AS book_id,
+               CASE WHEN f.book_id IS NULL THEN 0 ELSE 1 END AS favorite_count,
+               COALESCE(br.borrow_count, 0) AS borrow_count,
+               COALESCE(br.active_borrow_count, 0) AS active_borrow_count,
+               COALESCE(rv.review_count, 0) AS review_count,
+               COALESCE(rv.average_rating, 0) AS average_rating,
+               GREATEST(
+                   COALESCE(f.latest_time, '1970-01-01 00:00:00'),
+                   COALESCE(br.latest_time, '1970-01-01 00:00:00'),
+                   COALESCE(rv.latest_time, '1970-01-01 00:00:00')
+               ) AS latest_interaction_time
+        FROM book b
+        LEFT JOIN (
+            SELECT book_id, MAX(create_time) AS latest_time
+            FROM book_favorite
+            WHERE user_id = #{userId}
+            GROUP BY book_id
+        ) f ON f.book_id = b.id
+        LEFT JOIN (
+            SELECT book_id,
+                   COUNT(*) AS borrow_count,
+                   SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) AS active_borrow_count,
+                   MAX(borrow_time) AS latest_time
+            FROM borrow_record
+            WHERE user_id = #{userId}
+            GROUP BY book_id
+        ) br ON br.book_id = b.id
+        LEFT JOIN (
+            SELECT book_id,
+                   COUNT(*) AS review_count,
+                   AVG(rating) AS average_rating,
+                   MAX(create_time) AS latest_time
+            FROM book_review
+            WHERE user_id = #{userId} AND status = 0
+            GROUP BY book_id
+        ) rv ON rv.book_id = b.id
+        WHERE b.is_deleted = 0
+          AND (f.book_id IS NOT NULL OR br.book_id IS NOT NULL OR rv.book_id IS NOT NULL)
+        ORDER BY b.id
+    </select>
+
+    <select id="findFavoriteLinks" resultType="org.darkroomlibrary.domain.recommendation.RecommendationFavoriteLink">
+        SELECT bf.user_id, bf.book_id
+        FROM book_favorite bf
+        JOIN user u ON u.id = bf.user_id
+        JOIN book b ON b.id = bf.book_id AND b.is_deleted = 0
+        WHERE u.user_role = 2
+          AND u.account_status = 0
+          AND u.is_login = 0
+          AND bf.user_id IN (
+              SELECT DISTINCT peer.user_id
+              FROM book_favorite own
+              JOIN book_favorite peer ON peer.book_id = own.book_id
+              WHERE own.user_id = #{userId}
+          )
+        ORDER BY bf.user_id, bf.book_id
+    </select>
+
+</mapper>
