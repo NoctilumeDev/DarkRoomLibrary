@@ -10,12 +10,13 @@ const apiPathPrefix = new URL(apiBaseUrl).pathname.replace(/\/$/, "");
 const edgePath =
   process.env.EDGE_PATH ||
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const validationDate = "2026-07-26";
+const validationDate = "2026-07-27";
 const outputDir = "test-results/browser-diagnostics";
 
 const accounts = Object.freeze({
   root: getAccount("root"),
   coordinator: getAccount("coordinator"),
+  admin: getAccount("admin"),
   reader: getAccount("reader"),
   purchaser: getAccount("purchaser"),
   logistics: getAccount("logistics"),
@@ -42,6 +43,7 @@ const adminRoutes = [
 const roleRoutes = Object.freeze({
   root: [...adminRoutes, "/fileManage"],
   coordinator: adminRoutes,
+  admin: adminRoutes,
   reader: [
     "/readerRoom",
     "/bookSearch",
@@ -66,6 +68,7 @@ const report = {
   apiBaseUrl,
   browser: "Microsoft Edge",
   startedAt: new Date().toISOString(),
+  setupApiResponses: [],
   roles: [],
   guestRoutes: [],
 };
@@ -98,6 +101,12 @@ async function apiRequest(token, path, { method = "GET", body } = {}) {
   });
   const text = await response.text();
   const payload = text ? JSON.parse(text) : null;
+  report.setupApiResponses.push({
+    method,
+    path,
+    httpStatus: response.status,
+    businessCode: payload?.code ?? null,
+  });
   return { response, payload };
 }
 
@@ -128,10 +137,21 @@ async function login(identity) {
     Number(result.payload.data.role) === identity.role,
     `${identity.account} returned role ${result.payload.data.role}`
   );
-  return result.payload.data.token;
+  const token = result.payload.data.token;
+  const profile = await apiRequest(token, "/user/auth");
+  assert(
+    profile.response.ok &&
+      profile.payload?.code === 200 &&
+      Number(profile.payload.data.userRole) === identity.role &&
+      Boolean(profile.payload.data.isCoordinatorAdmin) === identity.isCoordinatorAdmin,
+    `${identity.account} returned unexpected permission profile: ` +
+      `${JSON.stringify(profile.payload?.data)}`
+  );
+  return token;
 }
 
 function attachDiagnostics(page, routeEntry) {
+  const responseChecks = [];
   page.on("console", (message) => {
     if (["error", "warning", "warn"].includes(message.type())) {
       routeEntry.console.push({
@@ -154,6 +174,30 @@ function attachDiagnostics(page, routeEntry) {
     routeEntry.network.responses += 1;
     if (matchesApiPath(response)) {
       routeEntry.network.apiResponses += 1;
+      const contentType = response.headers()["content-type"] || "";
+      if (response.status() < 400 && contentType.includes("application/json")) {
+        responseChecks.push(
+          response
+            .json()
+            .then((payload) => {
+              if (payload?.code !== undefined && Number(payload.code) !== 200) {
+                routeEntry.network.businessErrors.push({
+                  code: payload.code,
+                  message: payload.msg,
+                  method: response.request().method(),
+                  url: response.url(),
+                });
+              }
+            })
+            .catch((error) => {
+              routeEntry.network.responseInspectionErrors.push({
+                message: error.message,
+                method: response.request().method(),
+                url: response.url(),
+              });
+            })
+        );
+      }
     }
     if (response.status() >= 400) {
       routeEntry.network.errors.push({
@@ -163,6 +207,9 @@ function attachDiagnostics(page, routeEntry) {
       });
     }
   });
+  return async () => {
+    await Promise.all(responseChecks);
+  };
 }
 
 async function inspectRoute(context, label, route, viewport) {
@@ -179,13 +226,15 @@ async function inspectRoute(context, label, route, viewport) {
       responses: 0,
       apiResponses: 0,
       errors: [],
+      businessErrors: [],
+      responseInspectionErrors: [],
     },
     horizontalOverflowPx: null,
     finalUrl: null,
     durationMs: null,
   };
   const page = await context.newPage();
-  attachDiagnostics(page, routeEntry);
+  const flushResponseChecks = attachDiagnostics(page, routeEntry);
   const startedAt = Date.now();
   try {
     await page.setViewportSize({
@@ -197,6 +246,7 @@ async function inspectRoute(context, label, route, viewport) {
       timeout: 20_000,
     });
     await page.waitForTimeout(250);
+    await flushResponseChecks();
     routeEntry.finalUrl = page.url();
     routeEntry.horizontalOverflowPx = await page.evaluate(
       () =>
@@ -231,6 +281,16 @@ async function inspectRoute(context, label, route, viewport) {
       routeEntry.network.errors.length === 0,
       `${label} ${route} network errors: ${JSON.stringify(routeEntry.network.errors)}`
     );
+    assert(
+      routeEntry.network.businessErrors.length === 0,
+      `${label} ${route} API business errors: ` +
+        `${JSON.stringify(routeEntry.network.businessErrors)}`
+    );
+    assert(
+      routeEntry.network.responseInspectionErrors.length === 0,
+      `${label} ${route} API response inspection errors: ` +
+        `${JSON.stringify(routeEntry.network.responseInspectionErrors)}`
+    );
     return routeEntry;
   } catch (error) {
     routeEntry.durationMs = Date.now() - startedAt;
@@ -251,6 +311,7 @@ async function inspectAuthenticatedRole(browser, name, identity, token) {
   const roleEntry = {
     name,
     role: identity.role,
+    isCoordinatorAdmin: identity.isCoordinatorAdmin,
     account: identity.account,
     routes: [],
   };
@@ -299,6 +360,30 @@ async function inspectGuestRoutes(browser) {
   }
 }
 
+function summarizeReport() {
+  const routes = [
+    ...report.guestRoutes,
+    ...report.roles.flatMap((role) => role.routes),
+  ];
+  const pageApiResponses = routes.reduce(
+    (sum, route) => sum + route.network.apiResponses,
+    0
+  );
+  const pageNetworkResponses = routes.reduce(
+    (sum, route) => sum + route.network.responses,
+    0
+  );
+  return {
+    routeChecks: routes.length,
+    setupApiResponses: report.setupApiResponses.length,
+    pageApiResponses,
+    totalApiResponses: pageApiResponses + report.setupApiResponses.length,
+    pageNetworkResponses,
+    totalNetworkResponses:
+      pageNetworkResponses + report.setupApiResponses.length,
+  };
+}
+
 let browser;
 try {
   const tokens = {};
@@ -318,21 +403,24 @@ try {
   }
   report.completedAt = new Date().toISOString();
   report.status = "passed";
+  report.summary = summarizeReport();
   await fs.writeFile(
     `${outputDir}/report.json`,
     `${JSON.stringify(report, null, 2)}\n`,
     "utf8"
   );
-  const routeChecks =
-    report.guestRoutes.length +
-    report.roles.reduce((sum, role) => sum + role.routes.length, 0);
-  console.log(`BROWSER_DIAGNOSTICS_OK routeChecks=${routeChecks}`);
+  console.log(
+    `BROWSER_DIAGNOSTICS_OK routeChecks=${report.summary.routeChecks} ` +
+      `apiResponses=${report.summary.totalApiResponses} ` +
+      `networkResponses=${report.summary.totalNetworkResponses}`
+  );
 } catch (error) {
   if (error?.routeEntry) {
     report.failedRoute = error.routeEntry;
   }
   report.completedAt = new Date().toISOString();
   report.status = "failed";
+  report.summary = summarizeReport();
   report.error = error instanceof Error ? error.stack : String(error);
   await fs.writeFile(
     `${outputDir}/report.json`,

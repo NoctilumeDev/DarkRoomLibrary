@@ -3,14 +3,16 @@
     class="profile-dialog"
     :model-value="modelValue"
     :teleported="false"
-    width="420px"
+    width="min(420px, calc(100vw - 24px))"
     :show-close="false"
     @close="close"
   >
     <template #header>
       <div class="dialog-title">
         <span>个人资料</span>
-        <button type="button" @click="close">关闭</button>
+        <button type="button" title="关闭" aria-label="关闭" @click="close">
+          <el-icon><Close /></el-icon>
+        </button>
       </div>
     </template>
 
@@ -72,9 +74,11 @@
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
 import { clearAuthSession, getToken } from "@/utils/storage";
 import { USER_ROLE } from "@/utils/userRoles.js";
+import { Close } from "@element-plus/icons-vue";
 
 export default {
   name: "ProfileDialog",
+  components: { Close },
   props: {
     modelValue: {
       type: Boolean,
@@ -196,11 +200,19 @@ export default {
   color: #2f281f;
 
   button {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
     border: 0;
     padding: 0;
     color: #8b745a;
     background: transparent;
     cursor: pointer;
+  }
+
+  .el-icon {
+    font-size: 16px;
   }
 }
 
@@ -292,5 +304,17 @@ export default {
   color: rgba(255, 253, 247, 0.72);
   border-color: var(--paper-ink-faint, #777970);
   background: var(--paper-ink-faint, #777970);
+}
+
+@media (max-width: 480px) {
+  .danger-zone {
+    align-items: stretch;
+    flex-direction: column;
+
+    :deep(.el-button) {
+      align-self: flex-start;
+      margin-left: 0;
+    }
+  }
 }
 </style>

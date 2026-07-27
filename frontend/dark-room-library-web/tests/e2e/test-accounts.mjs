@@ -5,30 +5,43 @@ const accountSpecs = Object.freeze({
     passwordEnv: "E2E_ROOT_PASSWORD",
     fallbackPasswordEnv: "DRL_DEMO_ADMIN_PASSWORD",
     role: 0,
+    isCoordinatorAdmin: false,
   },
   coordinator: {
     accountEnv: "E2E_COORDINATOR_ACCOUNT",
     defaultAccount: "drl_keeper_qingwu",
     passwordEnv: "E2E_COORDINATOR_PASSWORD",
     role: 1,
+    isCoordinatorAdmin: true,
+  },
+  admin: {
+    accountEnv: "E2E_ADMIN_ACCOUNT",
+    defaultAccount: "drl_admin_mozhou",
+    passwordEnv: "E2E_ADMIN_PASSWORD",
+    fallbackPasswordEnv: "DRL_DEMO_ADMIN_PASSWORD",
+    role: 1,
+    isCoordinatorAdmin: false,
   },
   reader: {
     accountEnv: "E2E_READER_ACCOUNT",
     defaultAccount: "drl_reader_yandeng",
     passwordEnv: "E2E_READER_PASSWORD",
     role: 2,
+    isCoordinatorAdmin: false,
   },
   purchaser: {
     accountEnv: "E2E_PURCHASER_ACCOUNT",
     defaultAccount: "drl_buyer_xinglan",
     passwordEnv: "E2E_PURCHASER_PASSWORD",
     role: 3,
+    isCoordinatorAdmin: false,
   },
   logistics: {
     accountEnv: "E2E_LOGISTICS_ACCOUNT",
     defaultAccount: "drl_logistics_chenxiang",
     passwordEnv: "E2E_LOGISTICS_PASSWORD",
     role: 4,
+    isCoordinatorAdmin: false,
   },
 });
 
@@ -52,6 +65,7 @@ export function getAccount(name) {
     account: process.env[spec.accountEnv] || spec.defaultAccount,
     password: requiredSecret(spec.passwordEnv, spec.fallbackPasswordEnv),
     role: spec.role,
+    isCoordinatorAdmin: spec.isCoordinatorAdmin,
   };
 }
 

@@ -1,5 +1,8 @@
 <template>
-  <section class="reader-page">
+  <section
+    class="reader-page"
+    :class="{ 'review-dialog-open': reviewDialog }"
+  >
     <div class="page-hero">
       <div>
         <p class="eyebrow">THE CATALOGUE DESK</p>
@@ -1039,6 +1042,29 @@ export default {
   justify-content: flex-end;
 }
 
+:global(.reader-shell:has(.review-dialog-open) .reader-stage) {
+  z-index: 50;
+}
+
+:global(.review-dialog) {
+  max-height: min(86vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:global(.review-dialog .el-dialog__header) {
+  flex: 0 0 auto;
+  padding: 18px 22px !important;
+}
+
+:global(.review-dialog .el-dialog__body) {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 22px !important;
+  overflow-y: auto;
+}
+
 .book-detail-sheet {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
@@ -1169,6 +1195,20 @@ export default {
 .hero-stats em { color: var(--ink-soft); }
 
 @media (max-width: 620px) {
+  :global(.review-dialog) {
+    max-height: calc(100vh - 24px);
+    margin-top: 12px !important;
+    margin-bottom: 12px;
+  }
+
+  :global(.review-dialog .el-dialog__header) {
+    padding: 16px !important;
+  }
+
+  :global(.review-dialog .el-dialog__body) {
+    padding: 16px !important;
+  }
+
   .book-detail-sheet { grid-template-columns: 1fr; }
   .detail-cover { width: 132px; }
   .composer-actions { align-items: stretch; flex-direction: column; }

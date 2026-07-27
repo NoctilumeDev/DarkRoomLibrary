@@ -294,4 +294,15 @@ export default {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+@media (max-width: 560px) {
+  .toolbar > :nth-child(-n + 3) {
+    grid-column: 1 / -1;
+  }
+
+  .toolbar :deep(.el-button) {
+    width: 100%;
+    margin-left: 0;
+  }
+}
 </style>

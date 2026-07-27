@@ -7,7 +7,7 @@
     </div>
 
     <div class="table-card">
-      <el-table :data="tableData" v-loading="loading">
+      <el-table class="desktop-table" :data="tableData" v-loading="loading">
         <el-table-column label="封面" width="100">
           <template #default="scope">
             <el-image
@@ -62,6 +62,71 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-loading="loading" class="mobile-favorite-list">
+        <article
+          v-for="row in tableData"
+          :key="row.id"
+          class="mobile-favorite"
+        >
+          <div class="mobile-cover">
+            <el-image
+              v-if="row.bookCover"
+              class="cover"
+              :src="getImageUrl(row.bookCover)"
+              fit="cover"
+            />
+            <span v-else>无封面</span>
+          </div>
+          <div class="mobile-favorite__copy">
+            <header>
+              <strong>{{ row.bookName }}</strong>
+              <span :class="row.availableCount > 0 ? 'ok' : 'wait'">
+                {{ row.availableCount > 0 ? `可借 ${row.availableCount}` : "需预约" }}
+              </span>
+            </header>
+            <p>{{ row.bookAuthor || "未知作者" }}</p>
+            <small>收藏于 {{ row.createTime || "--" }}</small>
+          </div>
+          <footer>
+            <el-button
+              v-if="row.availableCount > 0"
+              size="small"
+              class="reader-action reader-action--primary"
+              @click="handleBorrow(row)"
+            >
+              借阅
+            </el-button>
+            <el-button
+              v-else
+              size="small"
+              class="reader-action reader-action--reserve"
+              @click="handleReserve(row)"
+            >
+              预约
+            </el-button>
+            <el-button
+              text
+              class="reader-action reader-action--quiet"
+              @click="openBook(row)"
+            >
+              详情
+            </el-button>
+            <el-button
+              text
+              class="reader-action reader-action--danger"
+              @click="handleRemoveFavorite(row)"
+            >
+              取消收藏
+            </el-button>
+          </footer>
+        </article>
+        <el-empty
+          v-if="!loading && !tableData.length"
+          description="还没有收藏记录"
+        />
+      </div>
+
       <el-pagination
         class="pager"
         @size-change="handleSizeChange"
@@ -230,6 +295,10 @@ export default {
   border-radius: 6px;
 }
 
+.mobile-favorite-list {
+  display: none;
+}
+
 .pager {
   margin-top: 18px;
   justify-content: flex-end;
@@ -245,5 +314,105 @@ export default {
 
 .muted {
   color: rgba(239, 229, 213, 0.5);
+}
+
+@media (max-width: 760px) {
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-favorite-list {
+    display: grid;
+  }
+
+  .mobile-favorite {
+    display: grid;
+    grid-template-columns: 66px minmax(0, 1fr);
+    gap: 14px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--paper-line);
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    footer {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  }
+
+  .mobile-cover {
+    width: 66px;
+    height: 88px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    color: var(--paper-ink-faint);
+    background: var(--paper-soft);
+    font-size: 11px;
+
+    .cover {
+      width: 100%;
+      height: 100%;
+      border-radius: 1px;
+    }
+  }
+
+  .mobile-favorite__copy {
+    min-width: 0;
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    strong {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      color: var(--paper-ink);
+      font-family: var(--reader-serif);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    header span {
+      flex: none;
+      font-size: 12px;
+    }
+
+    p,
+    small {
+      display: block;
+      color: var(--paper-ink-soft);
+    }
+
+    p {
+      margin: 8px 0 0;
+      font-size: 13px;
+    }
+
+    small {
+      margin-top: 8px;
+      color: var(--paper-ink-faint);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+  }
+
+  .pager {
+    justify-content: flex-start;
+    max-width: 100%;
+    overflow-x: auto;
+
+    :deep(.el-pagination__total),
+    :deep(.el-pagination__sizes) {
+      display: none;
+    }
+  }
 }
 </style>

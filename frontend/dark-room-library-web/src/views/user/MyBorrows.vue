@@ -35,7 +35,7 @@
     </div>
 
     <div class="table-card">
-      <el-table :data="tableData" v-loading="loading">
+      <el-table class="desktop-table" :data="tableData" v-loading="loading">
         <el-table-column prop="bookName" label="书名" min-width="190" />
         <el-table-column prop="borrowTime" label="借阅时间" width="168" />
         <el-table-column prop="dueDate" label="应还日期" width="168">
@@ -56,14 +56,13 @@
         <el-table-column prop="status" label="状态" width="112">
           <template #default="scope">
             <el-tag
-              v-if="scope.row.status"
-              class="reader-status reader-status--complete"
-            >已归还</el-tag>
-            <el-tag
-              v-else-if="isOverdue(scope.row)"
-              class="reader-status reader-status--danger"
-            >已逾期</el-tag>
-            <el-tag v-else class="reader-status reader-status--waiting">借阅中</el-tag>
+              :class="[
+                'reader-status',
+                `reader-status--${statusMeta(scope.row).tone}`,
+              ]"
+            >
+              {{ statusMeta(scope.row).label }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="170">
@@ -88,6 +87,63 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-loading="loading" class="mobile-record-list">
+        <article v-for="row in tableData" :key="row.id" class="mobile-record">
+          <header>
+            <strong>{{ row.bookName }}</strong>
+            <el-tag
+              :class="[
+                'reader-status',
+                `reader-status--${statusMeta(row).tone}`,
+              ]"
+            >
+              {{ statusMeta(row).label }}
+            </el-tag>
+          </header>
+          <dl>
+            <div>
+              <dt>借阅时间</dt>
+              <dd>{{ row.borrowTime || "--" }}</dd>
+            </div>
+            <div>
+              <dt>应还日期</dt>
+              <dd :class="{ overdue: isOverdue(row) }">
+                {{ row.dueDate || "--" }}
+              </dd>
+            </div>
+            <div>
+              <dt>归还时间</dt>
+              <dd>{{ row.returnTime || "--" }}</dd>
+            </div>
+            <div>
+              <dt>续借次数</dt>
+              <dd>{{ row.renewCount || 0 }}/1</dd>
+            </div>
+          </dl>
+          <footer v-if="!row.status">
+            <el-button
+              text
+              class="reader-action reader-action--return"
+              @click="handleReturn(row)"
+            >
+              还书
+            </el-button>
+            <el-button
+              text
+              class="reader-action reader-action--renew"
+              @click="handleRenew(row)"
+            >
+              续借
+            </el-button>
+          </footer>
+        </article>
+        <el-empty
+          v-if="!loading && !tableData.length"
+          description="还没有借阅记录"
+        />
+      </div>
+
       <el-pagination
         class="pager"
         @size-change="handleSizeChange"
@@ -124,6 +180,11 @@ export default {
       if (row.status) return false;
       if (!row.dueDate) return false;
       return new Date(row.dueDate) < new Date();
+    },
+    statusMeta(row) {
+      if (row.status) return { label: "已归还", tone: "complete" };
+      if (this.isOverdue(row)) return { label: "已逾期", tone: "danger" };
+      return { label: "借阅中", tone: "waiting" };
     },
     async fetchData() {
       this.loading = true;
@@ -246,14 +307,20 @@ export default {
 }
 
 .filter-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 220px)) auto;
+  align-items: center;
+  justify-content: start;
   gap: 12px;
-  flex-wrap: wrap;
   padding: 16px;
 }
 
 .table-card {
   padding: 18px;
+}
+
+.mobile-record-list {
+  display: none;
 }
 
 .pager {
@@ -273,5 +340,91 @@ export default {
 
 .muted {
   color: rgba(239, 229, 213, 0.5);
+}
+
+@media (max-width: 760px) {
+  .filter-bar {
+    grid-template-columns: 1fr;
+
+    :deep(.el-button) {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-record-list {
+    display: grid;
+  }
+
+  .mobile-record {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--paper-line);
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    header strong {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      color: var(--paper-ink);
+      font-family: var(--reader-serif);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    dl {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin: 14px 0 0;
+    }
+
+    dl div {
+      min-width: 0;
+      padding: 10px 10px 10px 0;
+      border-top: 1px solid var(--paper-line);
+    }
+
+    dt {
+      color: var(--paper-ink-faint);
+      font-size: 11px;
+    }
+
+    dd {
+      margin: 5px 0 0;
+      overflow-wrap: anywhere;
+      color: var(--paper-ink-soft);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    footer {
+      display: flex;
+      gap: 14px;
+      margin-top: 8px;
+    }
+  }
+
+  .pager {
+    justify-content: flex-start;
+    max-width: 100%;
+    overflow-x: auto;
+
+    :deep(.el-pagination__total),
+    :deep(.el-pagination__sizes) {
+      display: none;
+    }
+  }
 }
 </style>

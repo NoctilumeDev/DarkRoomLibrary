@@ -14,6 +14,7 @@
 -- Demo accounts:
 --   super admin       drl_root_aurora
 --   coordinator admin drl_keeper_qingwu
+--   normal admin      drl_admin_mozhou
 --   reader            drl_reader_yandeng
 --   purchaser         drl_buyer_xinglan
 --   logistics         drl_logistics_chenxiang
@@ -522,6 +523,7 @@ INSERT IGNORE INTO `user`
   (`user_account`, `user_name`, `user_pwd`, `user_avatar`, `user_email`, `user_role`, `is_coordinator_admin`, `account_status`, `is_login`, `is_word`, `create_time`)
 VALUES
   ('drl_keeper_qingwu', '守卷青梧', '$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq', '/demo-media/coordinator-avatar.webp', 'drl_keeper_qingwu@darkroomlibrary.local', 1, 1, 0, 0, 0, '2026-07-20 09:10:00'),
+  ('drl_admin_mozhou', '墨舟理卷', '$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq', NULL, 'drl_admin_mozhou@darkroomlibrary.local', 1, 0, 0, 0, 0, '2026-07-20 09:15:00'),
   ('drl_reader_yandeng', '砚灯拾页', '$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq', '/demo-media/reader-avatar.webp', 'drl_reader_yandeng@darkroomlibrary.local', 2, 0, 0, 0, 0, '2026-07-20 09:20:00'),
   ('drl_reader_zhiyue', '纸月听澜', '$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq', NULL, 'drl_reader_zhiyue@darkroomlibrary.local', 2, 0, 1, 1, 0, '2026-07-20 09:25:00'),
   ('drl_buyer_xinglan', '采书星阑', '$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq', NULL, 'drl_buyer_xinglan@darkroomlibrary.local', 3, 0, 0, 0, 0, '2026-07-20 09:30:00'),

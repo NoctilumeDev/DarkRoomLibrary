@@ -240,6 +240,8 @@ Assert-ApiSuccess `
         category = [string]$book.category
         totalCount = [int]$book.totalCount
         availableCount = [int]$book.availableCount
+        originalTotalCount = [int]$book.totalCount
+        originalAvailableCount = [int]$book.availableCount
         cover = $bookCoverUrl
         description = [string]$book.description
         bookshelfId = $book.bookshelfId

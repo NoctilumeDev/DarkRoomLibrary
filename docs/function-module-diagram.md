@@ -1,6 +1,6 @@
 # 图书管理系统功能模块图
 
-本文是可维护的功能结构源文件。系统只有五类基础角色；“馆务协调员”是管理员的增强能力标记，不是第六类角色。适合演示的独立页面见 [`library-system-modules.html`](library-system-modules.html)，设计解释见 [`system-design.md`](system-design.md)。
+本文是可维护的功能结构源文件。系统使用 5 个角色码和 6 个固定权限身份；“普通管理员”与“馆务协调员”都使用管理员角色码，后者通过增强能力标记获得跨管理员协调权限。适合演示的独立页面见 [`library-system-modules.html`](library-system-modules.html)，设计解释见 [`system-design.md`](system-design.md)。
 
 ```mermaid
 flowchart TB
@@ -207,4 +207,4 @@ stateDiagram-v2
 
 ## 当前验证基线
 
-本模块图对应 2026-07-27 公开基线：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。最终验证为后端 225 项、前端 31 项、五角色 75 次真实 API、单实例 20 个并发场景 / 393 次请求、双实例 6 个并发场景 / 125 次请求和 86 个浏览器路由检查，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。
+本模块图对应 2026-07-27 公开基线：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。最终验证为后端 226 项、前端 31 项、6 个固定权限身份完成 78 次真实 API；三个后端实例按 96 / 128 / 160 三批执行 1,986 次场景请求，最大场景 P95 为 461 ms；浏览器完成 116 个路由检查、396 次 API 响应和 5,362 次总网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。

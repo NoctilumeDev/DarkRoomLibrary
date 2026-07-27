@@ -4,7 +4,7 @@ import { getAccount, getConcurrentReaderPassword } from "./test-accounts.mjs";
 const apiBaseUrl =
   process.env.E2E_API_BASE_URL ||
   "http://localhost:20606/api/dark-room-library/v1";
-const validationDate = "2026-07-26";
+const validationDate = "2026-07-27";
 const outputDir = "test-results/concurrency";
 const runKey = process.env.E2E_CONCURRENCY_RUN_KEY || String(Date.now()).slice(-7);
 const readerPassword = getConcurrentReaderPassword();

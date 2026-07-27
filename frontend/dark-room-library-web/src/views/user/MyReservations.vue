@@ -11,7 +11,7 @@
         v-if="!loading && !tableData.length"
         description="还没有预约记录"
       />
-      <el-table v-else :data="tableData">
+      <el-table v-else class="desktop-table" :data="tableData">
         <el-table-column prop="bookName" label="图书名称" min-width="200" />
         <el-table-column prop="reserveTime" label="预约时间" width="168" />
         <el-table-column prop="notifyTime" label="通知时间" width="168">
@@ -51,6 +51,52 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="tableData.length" class="mobile-reservation-list">
+        <article
+          v-for="row in tableData"
+          :key="row.id"
+          class="mobile-reservation"
+        >
+          <header>
+            <strong>{{ row.bookName }}</strong>
+            <el-tag
+              :class="[
+                'reader-status',
+                `reader-status--${statusMeta(row.status).tone}`,
+              ]"
+            >
+              {{ statusMeta(row.status).label }}
+            </el-tag>
+          </header>
+          <dl>
+            <div>
+              <dt>预约时间</dt>
+              <dd>{{ row.reserveTime || "--" }}</dd>
+            </div>
+            <div>
+              <dt>通知时间</dt>
+              <dd>{{ row.notifyTime || "--" }}</dd>
+            </div>
+            <div>
+              <dt>取书时限</dt>
+              <dd :class="{ 'pickup-time': row.status === 3 }">
+                {{ row.status === 3 ? pickupRemaining(row.notifyTime) : "--" }}
+              </dd>
+            </div>
+          </dl>
+          <footer v-if="row.status === 0">
+            <el-button
+              text
+              class="reader-action reader-action--danger"
+              @click="handleCancel(row)"
+            >
+              取消预约
+            </el-button>
+          </footer>
+        </article>
+      </div>
+
       <el-pagination
         v-if="totalItems > 0"
         class="pager"
@@ -199,6 +245,10 @@ export default {
   padding: 18px;
 }
 
+.mobile-reservation-list {
+  display: none;
+}
+
 .pager {
   margin-top: 18px;
   justify-content: flex-end;
@@ -209,4 +259,79 @@ export default {
 }
 
 .pickup-time { color: var(--seal); font-weight: 600; }
+
+@media (max-width: 760px) {
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-reservation-list {
+    display: grid;
+  }
+
+  .mobile-reservation {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--paper-line);
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    header strong {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      color: var(--paper-ink);
+      font-family: var(--reader-serif);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    dl {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin: 14px 0 0;
+    }
+
+    dl div {
+      min-width: 0;
+      padding: 10px 10px 10px 0;
+      border-top: 1px solid var(--paper-line);
+    }
+
+    dt {
+      color: var(--paper-ink-faint);
+      font-size: 11px;
+    }
+
+    dd {
+      margin: 5px 0 0;
+      overflow-wrap: anywhere;
+      color: var(--paper-ink-soft);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    footer {
+      margin-top: 8px;
+    }
+  }
+
+  .pager {
+    justify-content: flex-start;
+    max-width: 100%;
+    overflow-x: auto;
+
+    :deep(.el-pagination__total),
+    :deep(.el-pagination__sizes) {
+      display: none;
+    }
+  }
+}
 </style>

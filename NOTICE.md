@@ -17,7 +17,7 @@ byte-identical files. The starter used Vue 2, Vue CLI, Element UI, Java 8,
 Spring Boot 2.2, the `cn.kmbeast` package and a two-table sample database. The
 current project uses Vue 3, Vite, Element Plus, Java 17, Spring Boot 3.5,
 MyBatis-Plus, the `org.darkroomlibrary` package and a nineteen-table domain
-model with five operational roles.
+model with five role codes and six fixed permission identities.
 
 The current implementation independently defines the reader, administration,
 procurement and logistics interfaces; circulation, reservation, review,

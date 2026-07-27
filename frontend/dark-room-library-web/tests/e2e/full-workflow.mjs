@@ -10,13 +10,15 @@ const apiPathPrefix = new URL(apiBaseUrl).pathname.replace(/\/$/, "");
 const edgePath =
   process.env.EDGE_PATH ||
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const validationDate = "2026-07-26";
+const validationDate = "2026-07-27";
 const outputDir = "test-results/full-workflow";
 const bookName = "暗室藏书";
+const trackingNo = `DRL-E2E-${validationDate.replaceAll("-", "")}`;
 
 const accounts = Object.freeze({
   root: getAccount("root"),
   coordinator: getAccount("coordinator"),
+  admin: getAccount("admin"),
   reader: getAccount("reader"),
   purchaser: getAccount("purchaser"),
   logistics: getAccount("logistics"),
@@ -79,7 +81,20 @@ async function login(identity) {
   if (Number(result.payload.data.role) !== identity.role) {
     throw new Error(`${identity.account} returned role ${result.payload.data.role}`);
   }
-  return result.payload.data.token;
+  const token = result.payload.data.token;
+  const profile = await apiRequest(token, "/user/auth");
+  if (
+    !profile.response.ok ||
+    profile.payload?.code !== 200 ||
+    Number(profile.payload.data.userRole) !== identity.role ||
+    Boolean(profile.payload.data.isCoordinatorAdmin) !== identity.isCoordinatorAdmin
+  ) {
+    throw new Error(
+      `${identity.account} returned unexpected permission profile: ` +
+        `${JSON.stringify(profile.payload?.data)}`
+    );
+  }
+  return token;
 }
 
 async function requireSuccess(token, path, options) {
@@ -103,6 +118,7 @@ async function queryOne(token, path, body, label) {
 
 function attachDiagnostics(page, label, report) {
   const errors = [];
+  const responseChecks = [];
   page.on("console", (message) => {
     if (message.type() === "error") {
       errors.push(`console ${message.text()}`);
@@ -121,10 +137,30 @@ function attachDiagnostics(page, label, report) {
       report.apiEndpoints[key] = (report.apiEndpoints[key] || 0) + 1;
       if (response.status() >= 400) {
         errors.push(`network ${response.status()} ${response.url()}`);
+      } else if ((response.headers()["content-type"] || "").includes("application/json")) {
+        responseChecks.push(
+          response
+            .json()
+            .then((payload) => {
+              if (payload?.code !== undefined && Number(payload.code) !== 200) {
+                errors.push(
+                  `business ${payload.code} ${response.request().method()} ` +
+                    `${response.url()} ${payload.msg || ""}`
+                );
+              }
+            })
+            .catch((error) => {
+              errors.push(
+                `response-inspection ${response.request().method()} ` +
+                  `${response.url()} ${error.message}`
+              );
+            })
+        );
       }
     }
   });
-  return () => {
+  return async () => {
+    await Promise.all(responseChecks);
     if (errors.length) {
       throw new Error(`${label} browser diagnostics:\n${errors.join("\n")}`);
     }
@@ -273,7 +309,7 @@ async function runReaderBorrowReturn(browser, tokens, report) {
       fullPage: true,
     });
   } finally {
-    session.assertDiagnostics();
+    await session.assertDiagnostics();
     await session.context.close();
   }
 }
@@ -330,13 +366,13 @@ async function runCoordinatorToggle(browser, tokens, report) {
       fullPage: true,
     });
   } finally {
-    session.assertDiagnostics();
+    await session.assertDiagnostics();
     await session.context.close();
   }
 }
 
 async function createProcurementOrder(browser, tokens, report) {
-  const session = await openAuthenticatedPage(browser, tokens.root, "procurement create", report);
+  const session = await openAuthenticatedPage(browser, tokens.admin, "procurement create", report);
   try {
     await session.page.goto(`${baseUrl}/#/procurementManage`, { waitUntil: "networkidle" });
     await session.page.getByRole("button", { name: "新建采购单" }).click();
@@ -358,7 +394,7 @@ async function createProcurementOrder(browser, tokens, report) {
       await dialog.getByRole("button", { name: "创建", exact: true }).click();
     });
     await dialog.waitFor({ state: "hidden" });
-    const payload = await requireSuccess(tokens.root, "/procurement/query", {
+    const payload = await requireSuccess(tokens.admin, "/procurement/query", {
       method: "POST",
       body: { current: 1, size: 100, bookName },
     });
@@ -373,7 +409,7 @@ async function createProcurementOrder(browser, tokens, report) {
     if (!order) throw new Error("New procurement order was not found");
     return order;
   } finally {
-    session.assertDiagnostics();
+    await session.assertDiagnostics();
     await session.context.close();
   }
 }
@@ -451,7 +487,7 @@ async function runPurchaserSteps(browser, tokens, report, orderId) {
       fullPage: true,
     });
   } finally {
-    session.assertDiagnostics();
+    await session.assertDiagnostics();
     await session.context.close();
   }
 }
@@ -475,7 +511,7 @@ async function runLogisticsSteps(browser, tokens, report, orderId) {
   const session = await openAuthenticatedPage(browser, tokens.logistics, "logistics workflow", report);
   const details = {
     carrier: "青梧馆配",
-    trackingNo: "DRL-E2E-20260726",
+    trackingNo,
     remark: `全链路物流验收 ${validationDate}`,
   };
   try {
@@ -512,7 +548,7 @@ async function runLogisticsSteps(browser, tokens, report, orderId) {
       fullPage: true,
     });
   } finally {
-    session.assertDiagnostics();
+    await session.assertDiagnostics();
     await session.context.close();
   }
 }
@@ -535,9 +571,46 @@ async function completeProcurement(browser, tokens, report, orderId) {
       fullPage: true,
     });
   } finally {
-    session.assertDiagnostics();
+    await session.assertDiagnostics();
     await session.context.close();
   }
+}
+
+async function verifyPermissionBoundaries(tokens, report) {
+  const checks = [];
+  const readerUserQuery = await apiRequest(tokens.reader, "/user/query", {
+    method: "POST",
+    body: { current: 1, size: 10 },
+  });
+  if (readerUserQuery.response.ok && readerUserQuery.payload?.code === 200) {
+    throw new Error("Reader unexpectedly accessed the administrator user query");
+  }
+  checks.push("reader-cannot-query-users");
+
+  const coordinatorFileQuery = await apiRequest(tokens.coordinator, "/file/query", {
+    method: "POST",
+    body: { current: 1, size: 10 },
+  });
+  if (coordinatorFileQuery.response.ok && coordinatorFileQuery.payload?.code === 200) {
+    throw new Error("Coordinator unexpectedly accessed super-admin file governance");
+  }
+  checks.push("coordinator-cannot-govern-files");
+
+  const coordinator = await queryOne(
+    tokens.admin,
+    "/user/query",
+    { current: 1, size: 10, userAccount: accounts.coordinator.account },
+    "coordinator account"
+  );
+  const peerUpdate = await apiRequest(tokens.admin, "/user/backUpdate", {
+    method: "PUT",
+    body: { id: coordinator.id, isWord: true },
+  });
+  if (peerUpdate.response.ok && peerUpdate.payload?.code === 200) {
+    throw new Error("Normal administrator unexpectedly modified coordinator account");
+  }
+  checks.push("admin-cannot-modify-peer-admin");
+  report.permissionBoundaryChecks = checks;
 }
 
 async function restoreCoordinator(tokens) {
@@ -571,7 +644,8 @@ const report = {
   validationDate,
   apiResponses: 0,
   apiEndpoints: {},
-  rolesLoggedIn: [],
+  identitiesLoggedIn: [],
+  permissionBoundaryChecks: [],
   orderId: null,
   stockBefore: null,
   stockAfter: null,
@@ -582,16 +656,15 @@ let browser;
 try {
   for (const [name, identity] of Object.entries(accounts)) {
     tokens[name] = await login(identity);
-    report.rolesLoggedIn.push(identity.role);
+    report.identitiesLoggedIn.push({
+      name,
+      account: identity.account,
+      role: identity.role,
+      isCoordinatorAdmin: identity.isCoordinatorAdmin,
+    });
   }
 
-  const forbidden = await apiRequest(tokens.reader, "/user/query", {
-    method: "POST",
-    body: { current: 1, size: 10 },
-  });
-  if (forbidden.response.ok && forbidden.payload?.code === 200) {
-    throw new Error("Reader unexpectedly accessed the administrator user query");
-  }
+  await verifyPermissionBoundaries(tokens, report);
 
   const initialBook = await queryOne(
     tokens.root,
@@ -627,7 +700,7 @@ try {
     Number(completed.id) !== Number(order.id) ||
     Number(completed.logisticsStatus) !== 3 ||
     !completed.stockApplied ||
-    completed.trackingNo !== "DRL-E2E-20260726"
+    completed.trackingNo !== trackingNo
   ) {
     throw new Error(`Completed procurement state is invalid: ${JSON.stringify(completed)}`);
   }
