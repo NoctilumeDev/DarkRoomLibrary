@@ -177,6 +177,7 @@
             class="avatar-uploader"
             :action="uploadUrl"
             :headers="uploadHeaders"
+            :disabled="demoMode"
             :show-file-list="false"
             :on-success="handleAvatarSuccess"
           >
@@ -280,6 +281,7 @@
 </template>
 
 <script>
+import { DEMO_MODE } from "@/demo/runtime.js";
 import { Plus } from "@element-plus/icons-vue";
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
 import { toDayRange } from "@/utils/pageQuery.js";
@@ -327,6 +329,9 @@ export default {
     };
   },
   computed: {
+    demoMode() {
+      return DEMO_MODE;
+    },
     uploadUrl() {
       return buildApiUrl("/file/upload");
     },

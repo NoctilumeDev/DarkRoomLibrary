@@ -1,12 +1,15 @@
 {
   "name": "dark-room-library-web",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5175",
+    "dev:demo": "vite --mode demo --host 0.0.0.0 --port 5175",
     "serve": "npm run dev",
     "build": "vite build",
+    "build:demo": "vite build --mode demo",
     "preview": "vite preview --host 0.0.0.0 --port 4175",
+    "preview:demo": "vite preview --mode demo --host 0.0.0.0 --port 4175",
     "lint": "eslint src tests",
     "test:unit": "vitest run",
     "test:visual": "node tests/e2e/visual-baseline.mjs",

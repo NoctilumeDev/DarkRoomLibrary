@@ -5,7 +5,12 @@
         <p>FILE LIFECYCLE</p>
         <h2>文件管理</h2>
       </div>
-      <el-button type="warning" :loading="cleaning" @click="runCleanup">
+      <el-button
+        type="warning"
+        :disabled="demoMode"
+        :loading="cleaning"
+        @click="runCleanup"
+      >
         <el-icon><Delete /></el-icon>
         清理孤儿文件
       </el-button>
@@ -73,7 +78,7 @@
           <el-button
             text
             type="primary"
-            :disabled="!scope.row.diskExists"
+            :disabled="demoMode || !scope.row.diskExists"
             @click="openFile(scope.row)"
           >
             查看
@@ -81,7 +86,7 @@
           <el-button
             text
             type="danger"
-            :disabled="scope.row.status === 1"
+            :disabled="demoMode || scope.row.status === 1"
             @click="deleteFile(scope.row)"
           >
             删除
@@ -104,6 +109,7 @@
 </template>
 
 <script>
+import { DEMO_MODE } from "@/demo/runtime.js";
 import { Delete } from "@element-plus/icons-vue";
 import { resolveFileUrl, toApiRequestPath } from "@/utils/fileUrl.js";
 
@@ -127,6 +133,11 @@ export default {
   },
   created() {
     this.fetchData();
+  },
+  computed: {
+    demoMode() {
+      return DEMO_MODE;
+    },
   },
   methods: {
     async fetchData() {
@@ -180,6 +191,10 @@ export default {
       }[type] || type;
     },
     async openFile(row) {
+      if (this.demoMode) {
+        this.$message.info("在线演示不读取真实文件。");
+        return;
+      }
       if (!row.accessUrl.includes("/file/download")) {
         window.open(resolveFileUrl(row.accessUrl), "_blank", "noopener,noreferrer");
         return;
@@ -203,6 +218,10 @@ export default {
       }
     },
     async deleteFile(row) {
+      if (this.demoMode) {
+        this.$message.info("在线演示不删除真实文件。");
+        return;
+      }
       const confirmed = await this.$swalConfirm({
         title: "删除未绑定文件？",
         text: row.originalName,
@@ -220,6 +239,10 @@ export default {
       }
     },
     async runCleanup() {
+      if (this.demoMode) {
+        this.$message.info("在线演示不执行真实文件清理。");
+        return;
+      }
       const confirmed = await this.$swalConfirm({
         title: "执行文件清理？",
         text: "将删除超过保留期的临时文件和无业务引用的孤儿文件。",

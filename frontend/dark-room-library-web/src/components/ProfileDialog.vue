@@ -22,6 +22,7 @@
         class="avatar-uploader"
         :action="uploadUrl"
         :headers="uploadHeaders"
+        :disabled="demoMode"
         :show-file-list="false"
         :on-success="handleAvatarSuccess"
       >
@@ -54,7 +55,9 @@
           <strong>注销账号</strong>
           <span>注销后账号不可登录，借阅与留言记录会保留。</span>
         </div>
-        <el-button type="danger" plain @click="cancelAccount">注销账号</el-button>
+        <el-button type="danger" plain :disabled="demoMode" @click="cancelAccount">
+          注销账号
+        </el-button>
       </div>
     </div>
 
@@ -71,6 +74,7 @@
 </template>
 
 <script>
+import { DEMO_MODE } from "@/demo/runtime.js";
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
 import { clearAuthSession, getToken } from "@/utils/storage";
 import { USER_ROLE } from "@/utils/userRoles.js";
@@ -100,6 +104,9 @@ export default {
     };
   },
   computed: {
+    demoMode() {
+      return DEMO_MODE;
+    },
     uploadUrl() {
       return buildApiUrl("/file/upload");
     },
@@ -164,6 +171,10 @@ export default {
       }
     },
     async cancelAccount() {
+      if (this.demoMode) {
+        this.$message.info("在线演示不会注销固定体验账号。");
+        return;
+      }
       const confirmed = await this.$swalConfirm({
         title: "确认注销账号？",
         text: "注销前请确认没有未归还图书、未处理罚款或进行中的预约。",

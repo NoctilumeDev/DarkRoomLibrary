@@ -3,9 +3,18 @@ import { getToken, clearAuthSession } from "@/utils/storage.js";
 import router from "@/router";
 import { API_BASE_URL } from "@/utils/fileUrl.js";
 
+const demoAdapter =
+  import.meta.env.VITE_DEMO_MODE === "true"
+    ? async (config) => {
+        const { demoAdapter: adapter } = await import("@/demo/adapter.js");
+        return adapter(config);
+      }
+    : undefined;
+
 const request = axios.create({
   baseURL: API_BASE_URL,
   timeout: 8000,
+  ...(demoAdapter ? { adapter: demoAdapter } : {}),
 });
 
 request.interceptors.request.use(

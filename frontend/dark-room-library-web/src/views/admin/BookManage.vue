@@ -217,6 +217,7 @@
             class="avatar-uploader"
             :action="uploadUrl"
             :headers="uploadHeaders"
+            :disabled="demoMode"
             :show-file-list="false"
             :on-success="handleCoverSuccess"
           >
@@ -339,6 +340,7 @@
 </template>
 
 <script>
+import { DEMO_MODE } from "@/demo/runtime.js";
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
 import { toDayRange } from "@/utils/pageQuery.js";
 import { getToken } from "@/utils/storage.js";
@@ -381,6 +383,9 @@ export default {
     this.fetchBookshelves();
   },
   computed: {
+    demoMode() {
+      return DEMO_MODE;
+    },
     uploadUrl() {
       return buildApiUrl("/file/upload");
     },

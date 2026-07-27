@@ -207,4 +207,4 @@ stateDiagram-v2
 
 ## 当前验证基线
 
-本模块图对应 2026-07-27 公开基线：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。最终验证为后端 226 项、前端 31 项、6 个固定权限身份完成 78 次真实 API；三个后端实例按 96 / 128 / 160 三批执行 1,986 次场景请求，最大场景 P95 为 461 ms；浏览器完成 116 个路由检查、414 次 API 响应和 5,678 次总网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。
+本模块图对应 2026-07-27 公开基线：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。最终验证为后端 226 项、前端 36 项、6 个固定权限身份完成 78 次真实 API；三个后端实例按 96 / 128 / 160 三批执行 1,986 次场景请求，最大场景 P95 为 461 ms；浏览器完成 116 个路由检查、414 次 API 响应和 5,678 次总网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。

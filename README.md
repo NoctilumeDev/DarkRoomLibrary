@@ -1,8 +1,13 @@
 # 暗室藏书（DarkRoomLibrary）
 
 [![CI](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/ci.yml/badge.svg)](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/ci.yml)
+[![GitHub Pages](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/pages.yml/badge.svg)](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/pages.yml)
 
 一个基于 Spring Boot、MyBatis-Plus、Vue 3 与 MySQL 的前后端分离图书管理系统。它不只完成图书增删改查，而是把读者借阅、预约续借、书评互动、内容审核、采购物流、文件治理、操作审计和中间件降级连接成完整业务闭环。
+
+**在线演示：** [直接在浏览器体验六个固定身份](https://noctilumedev.github.io/DarkRoomLibrary/)
+
+在线演示是为 GitHub Pages 单独构建的浏览器会话环境：不连接真实后端或数据库，数据只保存在当前标签页会话中，可随时重置。它保留借还与库存联动、预约收藏、书评留言、采购物流和幂等入库等关键流程；上传下载、邮件、注册、注销和数据导出会明确阻止。需要验证 Spring Boot、MySQL、Redis、RabbitMQ、文件治理与真实并发一致性，请使用下方 Docker Compose 或本机完整环境。
 
 ## 项目一览
 
@@ -13,7 +18,7 @@
 | 数据模型 | 19 张 MySQL 业务表，包含外键、唯一约束、状态字段和审计记录 |
 | 后端结构 | 单体分层：Controller → Service → Mapper/XML → MySQL |
 | 中间件 | Redis、RabbitMQ 可选启用，故障时自动降级，不阻断核心业务 |
-| 自动测试 | 后端 226 项、前端 31 项；6 个固定权限身份全链路 78 次真实 API 响应；三实例并发按 96 / 128 / 160 分批验证，共 1,986 次场景请求 |
+| 自动测试 | 后端 226 项、前端 36 项；6 个固定权限身份全链路 78 次真实 API 响应；三实例并发按 96 / 128 / 160 分批验证，共 1,986 次场景请求 |
 | 前端体验 | 读者端“暗室藏书”叙事界面；管理端宣纸/竹简主题；桌面与移动端适配 |
 
 ## 项目实景
@@ -100,13 +105,13 @@ flowchart TB
 - 安全：JWT、BCrypt、登录数学验证码、邮箱验证码场景隔离、登录失败锁定、AOP 权限控制
 - 前端：Vue 3.5.40、Vue Router 4、Element Plus 2.14.3、ECharts 6.1、Vite 8.1.5
 - 工程：Maven、npm、JUnit 5、H2、Vitest、ESLint、Playwright E2E 脚本、GitHub Actions
-- 部署：本机直接运行；可选 Docker Compose 一键启动 MySQL、Redis、RabbitMQ、后端和前端
+- 部署：GitHub Pages 浏览器演示；本机直接运行；可选 Docker Compose 一键启动 MySQL、Redis、RabbitMQ、后端和前端
 
 ## 目录结构
 
 ```text
 DarkRoomLibrary/
-├─ .github/workflows/ci.yml             GitHub Actions 持续集成
+├─ .github/workflows/                   持续集成、Pages 演示部署
 ├─ backend/dark-room-library-api/       Spring Boot 后端与自动测试
 ├─ frontend/dark-room-library-web/      Vue 前端、单元测试和 E2E 脚本
 ├─ sql/init-dark-room-library.sql       建库、表结构与演示数据的唯一入口
@@ -117,6 +122,12 @@ DarkRoomLibrary/
 ```
 
 ## 快速启动
+
+### 在线浏览器演示
+
+访问 [GitHub Pages 在线演示](https://noctilumedev.github.io/DarkRoomLibrary/)，选择六个固定身份之一即可进入。演示状态使用 `sessionStorage` 隔离在当前浏览器会话，刷新会保留，点击“在线演示”工具中的重置会恢复初始数据。
+
+在线演示不是伪造的后端部署，也不作为并发、事务、中间件或文件系统能力证明。完整系统验收仍以 Compose、本机全链路测试和 [最终验证报告](docs/verification-report.md) 为准。
 
 ### 方案 A：Docker Compose
 
@@ -241,15 +252,17 @@ cd frontend/dark-room-library-web
 npm run lint
 npm run test:unit
 npm run build
+npm run build:demo
+npm run preview:demo
 ```
 
 需连接真实服务和测试账号时，再执行 `tests/e2e` 中的读者、管理员、采购物流、全流程、并发一致性与浏览器诊断脚本。完整命令和证据见 [最终验证报告](docs/verification-report.md)，人工复核步骤见 [验收清单](docs/manual-acceptance-checklist.md)。
 
-推送到 `main` 或创建 Pull Request 时，GitHub Actions 会自动执行后端 Maven 测试、前端 ESLint/单元测试/生产构建/依赖审计，并校验 `compose.yaml`。
+推送到 `main` 或创建 Pull Request 时，GitHub Actions 会自动执行后端 Maven 测试、前端 ESLint/单元测试/生产构建/依赖审计，并校验 `compose.yaml`。合并到 `main` 后，独立 Pages 工作流还会构建并部署浏览器演示。
 
 2026-07-27 最终回归结果：
 
-- 后端 `226/226` 通过，前端单元测试 `31/31` 通过。
+- 后端 `226/226` 通过，前端单元测试 `36/36` 通过。
 - ESLint、Vite 生产构建和 npm 官方 registry 安全审计通过，审计结果为 `0 vulnerabilities`。
 - 6 个固定权限身份全部真实登录，完整流程记录 78 次 API 响应，覆盖借还、权限切换、采购、物流、入库和库存幂等。
 - 三个后端实例共享 MySQL，按突发量 96、128、160 分三批执行；每批 8 个一致性场景，三批共 1,986 次场景请求，最大场景 P95 为 461 ms，未出现违反业务不变量的结果。

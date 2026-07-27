@@ -19,6 +19,7 @@
         <el-upload
           :action="uploadUrl"
           :headers="uploadHeaders"
+          :disabled="demoMode"
           :show-file-list="false"
           :accept="attachmentAccept"
           :before-upload="beforeAttachmentUpload"
@@ -89,6 +90,7 @@
 </template>
 
 <script>
+import { DEMO_MODE } from "@/demo/runtime.js";
 import {
   buildApiUrl,
   resolveFileUrl,
@@ -119,6 +121,9 @@ export default {
     this.fetchData();
   },
   computed: {
+    demoMode() {
+      return DEMO_MODE;
+    },
     uploadUrl() {
       return buildApiUrl("/file/upload");
     },
@@ -136,6 +141,10 @@ export default {
       return ["jpg", "jpeg", "png", "gif", "webp"].includes(type);
     },
     beforeAttachmentUpload(file) {
+      if (this.demoMode) {
+        this.$message.info("在线演示不上传真实附件。");
+        return false;
+      }
       const extension = this.getFileExtension(file.name);
       const allowed = [
         "pdf",
@@ -220,6 +229,10 @@ export default {
       this.attachmentObjectUrls = [];
     },
     async downloadAttachment(item) {
+      if (this.demoMode) {
+        this.$message.info("在线演示不下载真实附件。");
+        return;
+      }
       try {
         const response = await this.$axios.get(
           toApiRequestPath(item.attachmentUrl),
