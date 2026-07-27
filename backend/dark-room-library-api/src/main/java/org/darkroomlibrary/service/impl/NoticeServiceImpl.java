@@ -1,28 +1,26 @@
 package org.darkroomlibrary.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
+import jakarta.annotation.Resource;
 import org.darkroomlibrary.mapper.NoticeMapper;
-import org.darkroomlibrary.web.response.ApiResponse;
-import org.darkroomlibrary.web.response.PageResponse;
-import org.darkroomlibrary.web.dto.query.NoticePageQuery;
-import org.darkroomlibrary.domain.type.FileReferenceType;
 import org.darkroomlibrary.domain.model.Notice;
+import org.darkroomlibrary.domain.type.FileReferenceType;
 import org.darkroomlibrary.service.FileStorageService;
 import org.darkroomlibrary.service.NoticeService;
 import org.darkroomlibrary.utils.ContentSanitizer;
 import org.darkroomlibrary.utils.IdListUtils;
+import org.darkroomlibrary.web.dto.query.NoticePageQuery;
+import org.darkroomlibrary.web.response.ApiResponse;
+import org.darkroomlibrary.web.response.PageResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
-import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 公告业务逻辑实现
+ * 公告的写入、安全清洗、文件引用和分页查询。
  */
-@Slf4j
 @Service
 public class NoticeServiceImpl implements NoticeService {
 
@@ -32,12 +30,6 @@ public class NoticeServiceImpl implements NoticeService {
     @Resource
     private FileStorageService fileStorageService;
 
-    /**
-     * 公告新增
-     *
-     * @param notice 参数
-     * @return ApiResponse<Void>
-     */
     @Override
     @Transactional
     public ApiResponse<Void> save(Notice notice) {
@@ -46,21 +38,15 @@ public class NoticeServiceImpl implements NoticeService {
             return ApiResponse.error(validationError);
         }
         notice.setCreateTime(LocalDateTime.now());
-        noticeMapper.save(notice);
-        if (!fileStorageService.bindFromHtml(
-                notice.getContent(), FileReferenceType.NOTICE_ASSET, notice.getId())) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return ApiResponse.error("公告中的文件无效或不属于当前用户");
+        if (noticeMapper.insert(notice) != 1) {
+            return ApiResponse.error("公告发布失败，请重试");
+        }
+        if (!bindAssets(notice)) {
+            return invalidAssetResponse();
         }
         return ApiResponse.success();
     }
 
-    /**
-     * 公告删除
-     *
-     * @param ids 参数
-     * @return ApiResponse<Void>
-     */
     @Override
     @Transactional
     public ApiResponse<Void> batchDelete(List<Integer> ids) {
@@ -68,17 +54,20 @@ public class NoticeServiceImpl implements NoticeService {
         if (normalizedIds.isEmpty()) {
             return ApiResponse.error("请选择要删除的公告");
         }
+        if (IdListUtils.exceedsBatchLimit(normalizedIds)) {
+            return ApiResponse.error("单次最多删除" + IdListUtils.MAX_BATCH_SIZE + "条公告");
+        }
+        if (noticeMapper.findByIdsForUpdate(normalizedIds).size() != normalizedIds.size()) {
+            return ApiResponse.error("部分公告不存在");
+        }
         fileStorageService.releaseReferences(FileReferenceType.NOTICE_ASSET, normalizedIds);
-        noticeMapper.batchDelete(normalizedIds);
+        if (noticeMapper.deleteByIds(normalizedIds) != normalizedIds.size()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ApiResponse.error("公告状态已变化，请刷新后重试");
+        }
         return ApiResponse.success();
     }
 
-    /**
-     * 公告修改
-     *
-     * @param notice 参数
-     * @return ApiResponse<Void>
-     */
     @Override
     @Transactional
     public ApiResponse<Void> update(Notice notice) {
@@ -86,33 +75,41 @@ public class NoticeServiceImpl implements NoticeService {
         if (validationError != null) {
             return ApiResponse.error(validationError);
         }
-        if (noticeMapper.getById(notice.getId()) == null) {
+        if (notice.getId() == null || noticeMapper.findByIdForUpdate(notice.getId()) == null) {
             return ApiResponse.error("公告不存在");
         }
-        noticeMapper.update(notice);
-        if (!fileStorageService.bindFromHtml(
-                notice.getContent(), FileReferenceType.NOTICE_ASSET, notice.getId())) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return ApiResponse.error("公告中的文件无效或不属于当前用户");
+        if (noticeMapper.updateById(notice) == 0) {
+            return ApiResponse.error("公告状态已变化，请刷新后重试");
+        }
+        if (!bindAssets(notice)) {
+            return invalidAssetResponse();
         }
         return ApiResponse.success();
     }
 
-    /**
-     * 公告查询
-     *
-     * @param noticePageQuery 查询参数
-     * @return ApiResponse<List < Notice>>
-     */
     @Override
-    public ApiResponse<List<Notice>> query(NoticePageQuery noticePageQuery) {
-        List<Notice> noticeList = noticeMapper.query(noticePageQuery);
-        for (Notice notice : noticeList) {
-            notice.setName(ContentSanitizer.plainText(notice.getName()));
-            notice.setContent(ContentSanitizer.richText(notice.getContent()));
-        }
-        Integer totalCount = noticeMapper.queryCount(noticePageQuery);
-        return PageResponse.success(noticeList, totalCount);
+    public ApiResponse<List<Notice>> query(NoticePageQuery query) {
+        List<Notice> notices = noticeMapper.findPage(query);
+        notices.forEach(this::sanitizeForResponse);
+        return PageResponse.success(notices, noticeMapper.countMatching(query));
+    }
+
+    private boolean bindAssets(Notice notice) {
+        return fileStorageService.bindFromHtml(
+                notice.getContent(),
+                FileReferenceType.NOTICE_ASSET,
+                notice.getId()
+        );
+    }
+
+    private ApiResponse<Void> invalidAssetResponse() {
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+        return ApiResponse.error("公告中的文件无效或不属于当前用户");
+    }
+
+    private void sanitizeForResponse(Notice notice) {
+        notice.setName(ContentSanitizer.plainText(notice.getName()));
+        notice.setContent(ContentSanitizer.richText(notice.getContent()));
     }
 
     private String sanitizeAndValidate(Notice notice) {
@@ -139,5 +136,4 @@ public class NoticeServiceImpl implements NoticeService {
         notice.setContent(cleanContent);
         return null;
     }
-
 }

@@ -1,6 +1,5 @@
 package org.darkroomlibrary.controller;
 
-import org.darkroomlibrary.aop.ManualAudit;
 import org.darkroomlibrary.aop.NormalizePageQuery;
 import org.darkroomlibrary.aop.RequireRole;
 import org.darkroomlibrary.domain.type.UserRole;
@@ -72,14 +71,12 @@ public class FileController {
     }
 
     @RequireRole(UserRole.SUPER_ADMIN)
-    @ManualAudit
     @DeleteMapping("/unbound")
     public ApiResponse<Void> deleteUnbound(@RequestParam("fileName") String fileName) {
         return fileStorageService.deleteUnbound(fileName);
     }
 
     @RequireRole(UserRole.SUPER_ADMIN)
-    @ManualAudit
     @PostMapping("/cleanup")
     public ApiResponse<Map<String, Object>> cleanup() {
         return fileStorageService.cleanupNow();

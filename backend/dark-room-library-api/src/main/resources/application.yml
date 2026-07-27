@@ -34,11 +34,15 @@ spring:
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
     connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:1000ms}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
     listener:
       simple:
-        auto-startup: ${RABBITMQ_ENABLED:false}
+        auto-startup: ${middleware.rabbit.enabled:${RABBITMQ_ENABLED:false}}
       direct:
-        auto-startup: ${RABBITMQ_ENABLED:false}
+        auto-startup: ${middleware.rabbit.enabled:${RABBITMQ_ENABLED:false}}
   # 邮件配置
   mail:
     host: ${MAIL_HOST:smtp.qq.com}
@@ -76,12 +80,11 @@ security:
     anonymous-max-per-minute: ${RATE_LIMIT_ANONYMOUS_MAX_PER_MINUTE:60}
     authenticated-max-per-minute: ${RATE_LIMIT_AUTHENTICATED_MAX_PER_MINUTE:300}
 
-auth:
-  user-cache:
-    ttl-seconds: ${AUTH_USER_CACHE_TTL_SECONDS:30}
-
 verification-code:
   daily-max-per-email: ${VERIFICATION_CODE_DAILY_MAX_PER_EMAIL:10}
+
+notification:
+  max-retry-count: ${NOTIFICATION_MAX_RETRY_COUNT:8}
 
 # 借阅配置
 borrow:
@@ -95,6 +98,7 @@ borrow:
 
 reservation:
   max-count: 3
+  reconcile-delay-ms: ${RESERVATION_RECONCILE_DELAY_MS:60000}
 
 # CORS配置
 cors:
@@ -110,10 +114,13 @@ file:
 middleware:
   redis:
     enabled: ${REDIS_ENABLED:false}
+    recovery-interval-ms: ${REDIS_RECOVERY_INTERVAL_MS:30000}
   rabbit:
     enabled: ${RABBITMQ_ENABLED:false}
     recovery-interval-ms: ${RABBITMQ_RECOVERY_INTERVAL_MS:30000}
+    confirm-timeout-ms: ${RABBITMQ_CONFIRM_TIMEOUT_MS:1000}
     exchange: dark.room.library.events
-    operation-log-routing-key: operation.log
+    notification-task-queue: dark.room.library.notification-task
+    book-returned-queue: dark.room.library.book-returned
     notification-routing-key: notification.task
     book-returned-routing-key: book.returned

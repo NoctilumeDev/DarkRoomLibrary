@@ -2,8 +2,8 @@
 -- Dark Room Library optional demo data
 --
 -- Run after init-dark-room-library.sql for local demonstrations.
--- These accounts and passwords are public sample credentials.
--- Delete them or change every password before an internet-facing deployment.
+-- These accounts are public demo identities; only BCrypt hashes are committed.
+-- Delete them or reset every password before an internet-facing deployment.
 -- ============================================================
 
 SET NAMES utf8mb4;
@@ -13,23 +13,38 @@ USE `dark_room_library`;
 INSERT IGNORE INTO `user`
   (`user_account`, `user_name`, `user_pwd`, `user_avatar`, `user_email`, `user_role`, `is_coordinator_admin`, `account_status`, `is_login`, `is_word`, `create_time`)
 VALUES
-  ('drl_keeper_qingwu', '守卷青梧', '$2a$10$WRhoA87NzZORIGHundu3rOJvKdLP0JOiuUM0ayA2bDV9jq0VifrX2', NULL, 'drl_keeper_qingwu@darkroomlibrary.local', 1, 1, 0, 0, 0, '2026-07-20 09:10:00'),
-  ('drl_reader_yandeng', '砚灯拾页', '$2a$10$v8aupQ.WW2jNXX1OjaqksOs0PIkz7PLpJ4we4PrFJ40zox9IPrFsG', NULL, 'drl_reader_yandeng@darkroomlibrary.local', 2, 0, 0, 0, 0, '2026-07-20 09:20:00'),
-  ('drl_reader_zhiyue', '纸月听澜', '$2a$10$v8aupQ.WW2jNXX1OjaqksOs0PIkz7PLpJ4we4PrFJ40zox9IPrFsG', NULL, 'drl_reader_zhiyue@darkroomlibrary.local', 2, 0, 1, 1, 0, '2026-07-20 09:25:00'),
-  ('drl_buyer_xinglan', '采书星阑', '$2a$10$L2As1i8VTpsLUrcHv3JvuOk59kFia65rc2HYvqqChL0EDcXygiLIa', NULL, 'drl_buyer_xinglan@darkroomlibrary.local', 3, 0, 0, 0, 0, '2026-07-20 09:30:00'),
-  ('drl_logistics_chenxiang', '归架沉香', '$2a$10$DWE7yocPtSmeU9oRknAXi.3rLlnSrtStvRHTCcUk7PmJdmNrMIvOy', NULL, 'drl_logistics_chenxiang@darkroomlibrary.local', 4, 0, 0, 0, 0, '2026-07-20 09:40:00');
+  ('drl_keeper_qingwu', '守卷青梧', '$2a$10$wvyYGQY5B7CUsCqnrGpln.y5.VdBf30qOtJ6Nfg2UT4a0/dd0DVOS', '/demo-media/coordinator-avatar.webp', 'drl_keeper_qingwu@darkroomlibrary.local', 1, 1, 0, 0, 0, '2026-07-20 09:10:00'),
+  ('drl_reader_yandeng', '砚灯拾页', '$2a$10$hSPtO6rIql8oJg5bPEEI8u8Pmt1F4ZPUZ.xjiAkFH8o6NMmQx4aCG', '/demo-media/reader-avatar.webp', 'drl_reader_yandeng@darkroomlibrary.local', 2, 0, 0, 0, 0, '2026-07-20 09:20:00'),
+  ('drl_reader_zhiyue', '纸月听澜', '$2a$10$hSPtO6rIql8oJg5bPEEI8u8Pmt1F4ZPUZ.xjiAkFH8o6NMmQx4aCG', NULL, 'drl_reader_zhiyue@darkroomlibrary.local', 2, 0, 1, 1, 0, '2026-07-20 09:25:00'),
+  ('drl_buyer_xinglan', '采书星阑', '$2a$10$hiCzki0zAqw4uHaKr/.DmOJw6ExkoFcNGox8Dk5U1B1YC.3Nyv5B2', NULL, 'drl_buyer_xinglan@darkroomlibrary.local', 3, 0, 0, 0, 0, '2026-07-20 09:30:00'),
+  ('drl_logistics_chenxiang', '归架沉香', '$2a$10$zP9sKeXVddjsTW8Ic5xzEuahoEvVs/HtZcXJBS8V0RQkD6DKAbOIu', NULL, 'drl_logistics_chenxiang@darkroomlibrary.local', 4, 0, 0, 0, 0, '2026-07-20 09:40:00');
+
+UPDATE `user`
+SET `user_avatar` = '/demo-media/coordinator-avatar.webp'
+WHERE `user_account` = 'drl_keeper_qingwu'
+  AND (`user_avatar` IS NULL OR TRIM(`user_avatar`) = '');
+
+UPDATE `user`
+SET `user_avatar` = '/demo-media/reader-avatar.webp'
+WHERE `user_account` = 'drl_reader_yandeng'
+  AND (`user_avatar` IS NULL OR TRIM(`user_avatar`) = '');
 
 -- Fictional catalogue records avoid copying real book metadata.
 INSERT INTO `book`
   (`name`, `author`, `isbn`, `publisher`, `category`, `total_count`, `available_count`, `cover`, `description`, `create_time`, `is_deleted`, `bookshelf_id`)
 SELECT
-  '暗室藏书', '岑夜录', '9900000000001', '暗室藏书局', '文学', 6, 3, NULL,
+  '暗室藏书', '岑夜录', '9900000000001', '暗室藏书局', '文学', 6, 3, '/demo-media/dark-room-library-cover.webp',
   '记录一间夜间图书馆里，书与读者彼此抵达的六个片段。',
   '2026-07-20 10:00:00', 0, shelf.id
 FROM `bookshelf` shelf
 WHERE shelf.name = '暗室总架'
   AND NOT EXISTS (SELECT 1 FROM `book` WHERE `name` = '暗室藏书')
 LIMIT 1;
+
+UPDATE `book`
+SET `cover` = '/demo-media/dark-room-library-cover.webp'
+WHERE `name` = '暗室藏书'
+  AND (`cover` IS NULL OR TRIM(`cover`) = '');
 
 INSERT INTO `book`
   (`name`, `author`, `isbn`, `publisher`, `category`, `total_count`, `available_count`, `cover`, `description`, `create_time`, `is_deleted`, `bookshelf_id`)

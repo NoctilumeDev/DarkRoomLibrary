@@ -125,10 +125,10 @@ export default {
       loading: false,
       lightFrame: null,
       lightMotion: {
-        currentX: 27.5,
-        currentY: 61,
-        targetX: 27.5,
-        targetY: 61,
+        currentX: 21.87,
+        currentY: 56.72,
+        targetX: 21.87,
+        targetY: 56.72,
       },
     };
   },
@@ -145,9 +145,11 @@ export default {
     this.fetchCaptcha();
   },
   mounted() {
-    this.applyLightPosition();
+    this.syncLightToLamp();
+    window.addEventListener("resize", this.syncLightToLamp);
   },
   beforeUnmount() {
+    window.removeEventListener("resize", this.syncLightToLamp);
     if (this.captchaRetryTimer) clearTimeout(this.captchaRetryTimer);
     if (this.lightFrame) cancelAnimationFrame(this.lightFrame);
   },
@@ -162,20 +164,43 @@ export default {
     returnToDoor() {
       this.paperOpen = false;
       sessionStorage.removeItem("auth-intro-seen");
-      this.setLightTarget(27.5, 61);
+      this.$nextTick(this.syncLightToLamp);
     },
     trackLight(event) {
       if (this.paperOpen || prefersReducedMotion() || event.pointerType === "touch") return;
       const bounds = this.$el.getBoundingClientRect();
       const x = ((event.clientX - bounds.left) / bounds.width) * 100;
       const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+      const lamp = this.getLampPosition();
       this.setLightTarget(
-        27.5 + (x - 50) * 0.12,
-        61 + (y - 50) * 0.08
+        lamp.x + (x - 50) * 0.12,
+        lamp.y + (y - 50) * 0.08
       );
     },
     settleLight() {
-      if (!this.paperOpen) this.setLightTarget(27.5, 61);
+      if (!this.paperOpen) {
+        const lamp = this.getLampPosition();
+        this.setLightTarget(lamp.x, lamp.y);
+      }
+    },
+    getLampPosition() {
+      if (!this.$el) return { x: 21.87, y: 56.72 };
+      const styles = getComputedStyle(this.$el);
+      return {
+        x: Number.parseFloat(styles.getPropertyValue("--lamp-x")) || 21.87,
+        y: Number.parseFloat(styles.getPropertyValue("--lamp-y")) || 56.72,
+      };
+    },
+    syncLightToLamp() {
+      if (!this.$el || this.paperOpen) return;
+      const lamp = this.getLampPosition();
+      Object.assign(this.lightMotion, {
+        currentX: lamp.x,
+        currentY: lamp.y,
+        targetX: lamp.x,
+        targetY: lamp.y,
+      });
+      this.applyLightPosition();
     },
     setLightTarget(x, y) {
       this.lightMotion.targetX = x;
@@ -207,7 +232,7 @@ export default {
       const token = getToken();
       if (!token) return;
 
-      this.$axios.get("user/auth").then((response) => {
+      this.$axios.get("/user/auth").then((response) => {
         const { data } = response;
         if (data.code !== 200) return;
         this.navigateToRole(data.data.userRole);
@@ -227,7 +252,7 @@ export default {
     async fetchCaptcha() {
       this.captchaLoading = true;
       try {
-        const { data } = await request.get("captcha/generate");
+        const { data } = await request.get("/captcha/generate");
         if (data.code === 200 && data.data) {
           this.captchaId = data.data.captchaId;
           this.captchaExpression = data.data.expression;
@@ -272,7 +297,7 @@ export default {
 
       this.loading = true;
       try {
-        const { data } = await request.post("user/login", {
+        const { data } = await request.post("/user/login", {
           userAccount: this.act,
           userPwd: this.pwd,
           captchaId: this.captchaId,
@@ -322,6 +347,9 @@ export default {
 
 <style scoped lang="scss">
 .auth-page {
+  --lamp-x: 21.87%;
+  --lamp-y: 56.72%;
+
   position: relative;
   min-height: 100vh;
   display: grid;
@@ -340,21 +368,49 @@ export default {
 
 .door-scene {
   z-index: 0;
-  background: url("../../assets/images/reading-room-night-v2.webp") center / cover no-repeat;
   filter: brightness(0.94) saturate(0.76);
   transform: scale(1.035);
   transition: filter 0.8s ease, transform 1.2s ease;
 }
 
-.auth-page[data-reader-theme="day"] .door-scene {
+.door-scene::before,
+.door-scene::after,
+.door-reveal::before,
+.door-reveal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transition: opacity 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
+}
+
+.door-scene::before,
+.door-reveal::before {
+  background-image: url("../../assets/images/reading-room-night-v2.webp");
+  opacity: 1;
+}
+
+.door-scene::after,
+.door-reveal::after {
   background-image: url("../../assets/images/reading-room-day-v2.webp");
+  opacity: 0;
+}
+
+.auth-page[data-reader-theme="day"] .door-scene::after,
+.auth-page[data-reader-theme="day"] .door-reveal::after {
+  opacity: 1;
+}
+
+.auth-page[data-reader-theme="day"] .door-scene {
   filter: brightness(0.9) saturate(0.64);
 }
 
 .door-reveal {
   z-index: 1;
   display: none;
-  background: url("../../assets/images/reading-room-night-v2.webp") center / cover no-repeat;
   filter: brightness(1.06) saturate(0.9);
   opacity: 0.28;
   transform: scale(1.035);
@@ -380,22 +436,45 @@ export default {
 }
 
 .auth-page[data-reader-theme="day"] .door-reveal {
-  background-image: url("../../assets/images/reading-room-day-v2.webp");
   filter: brightness(1.02) saturate(0.7);
   opacity: 0.16;
 }
 
 .door-mist {
   z-index: 2;
-  background: rgba(4, 4, 3, 0.16);
-  transition: background 0.8s ease, backdrop-filter 0.8s ease;
+  background: transparent;
 }
 
-.auth-page[data-reader-theme="day"] .door-mist {
+.door-mist::before,
+.door-mist::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transition: opacity 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
+}
+
+.door-mist::before {
+  background:
+    radial-gradient(
+      circle 18rem at var(--lamp-x) var(--lamp-y),
+      rgba(4, 4, 3, 0.04),
+      rgba(4, 4, 3, 0.16) 58%,
+      rgba(4, 4, 3, 0.24) 100%
+    ),
+    rgba(4, 4, 3, 0.08);
+  opacity: 1;
+}
+
+.door-mist::after {
   background:
     radial-gradient(ellipse at 50% 42%, rgba(239, 241, 235, 0.05), rgba(239, 241, 235, 0.15) 72%),
     linear-gradient(180deg, rgba(244, 245, 239, 0.18), rgba(235, 238, 231, 0.08) 48%, rgba(229, 232, 224, 0.16));
+  opacity: 0;
 }
+
+.auth-page[data-reader-theme="day"] .door-mist::before { opacity: 0; }
+.auth-page[data-reader-theme="day"] .door-mist::after { opacity: 1; }
 .auth-page.paper-open .door-scene { filter: brightness(0.72) saturate(0.66) blur(2px); transform: scale(1.01); }
 .auth-page.paper-open .door-reveal { opacity: 0.08; filter: brightness(0.84) saturate(0.58) blur(2px); }
 .auth-page[data-reader-theme="day"].paper-open .door-scene { filter: brightness(0.78) saturate(0.48) blur(3px); }
@@ -438,6 +517,9 @@ export default {
 }
 
 .threshold-light {
+  position: absolute;
+  top: 0;
+  left: 50%;
   display: block;
   width: 8px;
   height: 8px;
@@ -445,31 +527,35 @@ export default {
   border: 1px solid rgba(244, 222, 178, 0.48);
   background: #d6ae72;
   box-shadow: 0 0 13px 2px rgba(205, 158, 89, 0.13);
+  transform: translate(-50%, -50%);
 }
 
 .threshold-entry {
   position: absolute;
-  top: 61%;
-  left: 27.5%;
-  width: 96px;
-  display: grid;
-  justify-items: center;
-  gap: 16px;
-  padding: 18px;
+  top: var(--lamp-y);
+  left: var(--lamp-x);
+  width: 112px;
+  height: 64px;
+  padding: 0;
   border: 0;
   color: inherit;
   background: transparent;
   cursor: pointer;
   pointer-events: auto;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 .threshold-word {
+  position: absolute;
+  top: 26px;
+  left: 50%;
   font-family: var(--reader-serif);
   font-size: 12px;
+  line-height: 17px;
   letter-spacing: 0.16em;
   opacity: 0.72;
   white-space: nowrap;
+  transform: translateX(calc(-50% + 0.08em));
 }
 
 .paper-sheet {
@@ -669,8 +755,12 @@ export default {
 }
 
 @media (max-width: 760px) {
+  .auth-page { --lamp-x: 34.82%; }
+  .door-scene::before,
+  .door-scene::after,
+  .door-reveal::before,
+  .door-reveal::after { background-position: 25.4% center; }
   .threshold-brand { top: 24px; left: 20px; }
-  .threshold-entry { left: 35%; }
   .paper-sheet { width: calc(100vw - 28px); min-height: 0; grid-template-columns: 1fr; }
   .paper-copy { padding: 34px 34px 20px; border-right: 0; border-bottom: 1px solid var(--paper-line); }
   .paper-copy > p { margin-bottom: 20px; }
@@ -679,8 +769,8 @@ export default {
   .paper-copy > span { display: none; }
   .auth-card { padding: 26px 34px 34px; }
   .door-reveal {
-    -webkit-mask-image: radial-gradient(circle 15rem at 35% 61%, #000 0, rgba(0, 0, 0, 0.72) 48%, transparent 82%);
-    mask-image: radial-gradient(circle 15rem at 35% 61%, #000 0, rgba(0, 0, 0, 0.72) 48%, transparent 82%);
+    -webkit-mask-image: radial-gradient(circle 15rem at var(--reader-light-x) var(--reader-light-y), #000 0, rgba(0, 0, 0, 0.72) 48%, transparent 82%);
+    mask-image: radial-gradient(circle 15rem at var(--reader-light-x) var(--reader-light-y), #000 0, rgba(0, 0, 0, 0.72) 48%, transparent 82%);
   }
 }
 </style>

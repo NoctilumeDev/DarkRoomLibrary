@@ -31,7 +31,7 @@ class BookFavoriteServiceImplTest extends BaseTest {
         reader = createTestUser(
                 "favorite_" + suffix,
                 "收藏读者" + suffix,
-                "favorite_" + suffix + "@test.com"
+                "favorite_" + suffix + "@example.test"
         );
         setCurrentUser(reader.getId(), reader.getUserRole());
     }

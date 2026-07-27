@@ -6,6 +6,7 @@ import org.darkroomlibrary.mapper.UserMapper;
 import org.darkroomlibrary.context.CurrentUserContext;
 import org.darkroomlibrary.web.dto.query.BookPageQuery;
 import org.darkroomlibrary.web.dto.query.BorrowRecordPageQuery;
+import org.darkroomlibrary.web.dto.query.PageQuery;
 import org.darkroomlibrary.web.dto.query.UserPageQuery;
 import org.darkroomlibrary.domain.type.UserRole;
 import org.darkroomlibrary.domain.model.Book;
@@ -46,6 +47,7 @@ public class ExportServiceImpl implements ExportService {
 
     private static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter FILE_DTF = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final int MAX_EXPORT_ROWS = 10_000;
 
     // ==================== 公共模板方法 ====================
 
@@ -125,11 +127,34 @@ public class ExportServiceImpl implements ExportService {
         return localPart.substring(0, keepLength) + "***" + domain;
     }
 
+    private boolean prepareExport(HttpServletResponse response, PageQuery query, int total) {
+        if (total > MAX_EXPORT_ROWS) {
+            try {
+                response.sendError(
+                        HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                        "导出数据超过" + MAX_EXPORT_ROWS + "行，请缩小筛选范围"
+                );
+            } catch (IOException e) {
+                log.warn("导出数量限制响应失败", e);
+            }
+            return false;
+        }
+        query.setCurrent(0);
+        query.setSize(MAX_EXPORT_ROWS);
+        return true;
+    }
+
     // ==================== 导出方法 ====================
 
     @Override
     public void exportBorrowRecords(HttpServletResponse response, BorrowRecordPageQuery dto) {
         if (!requireAdmin(response)) {
+            return;
+        }
+        if (dto == null) {
+            dto = new BorrowRecordPageQuery();
+        }
+        if (!prepareExport(response, dto, borrowRecordMapper.queryCount(dto))) {
             return;
         }
         List<BorrowRecordView> records = borrowRecordMapper.query(dto);
@@ -154,6 +179,12 @@ public class ExportServiceImpl implements ExportService {
     @Override
     public void exportBooks(HttpServletResponse response, BookPageQuery dto) {
         if (!requireAdmin(response)) {
+            return;
+        }
+        if (dto == null) {
+            dto = new BookPageQuery();
+        }
+        if (!prepareExport(response, dto, bookMapper.queryCount(dto))) {
             return;
         }
         List<Book> books = bookMapper.query(dto);
@@ -183,6 +214,9 @@ public class ExportServiceImpl implements ExportService {
         if (dto == null) {
             dto = new UserPageQuery();
         }
+        if (!prepareExport(response, dto, userMapper.queryCount(dto))) {
+            return;
+        }
         List<User> users = userMapper.query(dto);
         boolean showFullEmail = isSuperAdmin();
 
@@ -209,6 +243,10 @@ public class ExportServiceImpl implements ExportService {
             return;
         }
         BorrowRecordPageQuery dto = new BorrowRecordPageQuery();
+        dto.setOverdue(true);
+        if (!prepareExport(response, dto, borrowRecordMapper.queryCount(dto))) {
+            return;
+        }
         List<BorrowRecordView> allRecords = borrowRecordMapper.query(dto);
 
         List<List<String>> data = new ArrayList<>();

@@ -11,6 +11,12 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import jakarta.annotation.Resource;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,7 +39,7 @@ public class VerificationCodeServiceImplTest extends BaseTest {
     @MockitoBean
     private MailUtil mailUtil;
 
-    private static final String TEST_EMAIL = "test-code@library.com";
+    private static final String TEST_EMAIL = "test-code@example.test";
 
     @BeforeEach
     void setUp() throws Exception {
@@ -85,5 +91,34 @@ public class VerificationCodeServiceImplTest extends BaseTest {
     void testVerifyRejectsInvalidPurpose() {
         boolean result = verificationCodeService.verify(TEST_EMAIL + "5", "INVALID_PURPOSE", "123456");
         assertFalse(result);
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("并发发送同一邮箱只允许一个请求成功")
+    void testConcurrentSendCodeUsesAtomicCooldown() throws Exception {
+        String email = "concurrent-code-" + System.nanoTime() + "@example.test";
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<ApiResponse<String>>> futures = List.of(
+                executor.submit(() -> sendAfterStart(start, email)),
+                executor.submit(() -> sendAfterStart(start, email))
+        );
+
+        start.countDown();
+        int successCount = 0;
+        for (Future<ApiResponse<String>> future : futures) {
+            if (future.get(5, TimeUnit.SECONDS).getCode() == 200) {
+                successCount++;
+            }
+        }
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        assertEquals(1, successCount);
+    }
+
+    private ApiResponse<String> sendAfterStart(CountDownLatch start, String email) throws Exception {
+        start.await();
+        return verificationCodeService.sendCode(email, VerificationCodePurpose.REGISTER.name());
     }
 }

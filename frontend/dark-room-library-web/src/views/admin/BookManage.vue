@@ -157,9 +157,8 @@
         <el-table-column prop="availableCount" width="60" label="可借">
           <template #default="scope">
             <span
-              :style="{
-                color: scope.row.availableCount > 0 ? '#13ce66' : '#e6a23c',
-              }"
+              class="stock-count"
+              :class="{ 'stock-count--empty': scope.row.availableCount <= 0 }"
             >
               {{ scope.row.availableCount }}
             </span>
@@ -341,6 +340,7 @@
 
 <script>
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
+import { toDayRange } from "@/utils/pageQuery.js";
 import { getToken } from "@/utils/storage.js";
 import { Plus } from "@element-plus/icons-vue";
 
@@ -559,20 +559,10 @@ export default {
     async fetchFreshData() {
       try {
         this.tableData = [];
-        let startTime = null;
-        let endTime = null;
-        if (this.searchTime != null && this.searchTime.length === 2) {
-          const [startDate, endDate] = await Promise.all(
-            this.searchTime.map((date) => date.toISOString())
-          );
-          startTime = `${startDate.split("T")[0]}T00:00:00`;
-          endTime = `${endDate.split("T")[0]}T23:59:59`;
-        }
         const params = {
           current: this.currentPage,
           size: this.pageSize,
-          startTime: startTime,
-          endTime: endTime,
+          ...toDayRange(this.searchTime),
           deleted: this.showDeleted,
           ...this.bookQueryDto,
         };
@@ -608,7 +598,11 @@ export default {
     handleEdit(row) {
       this.dialogBookOperation = true;
       this.isOperation = true;
-      this.data = { ...row };
+      this.data = {
+        ...row,
+        originalTotalCount: row.totalCount,
+        originalAvailableCount: row.availableCount,
+      };
     },
     handleDelete(row) {
       this.selectedRows.push(row);
@@ -638,6 +632,15 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+.stock-count {
+  color: var(--admin-jade);
+  font-weight: 600;
+}
+
+.stock-count--empty {
+  color: var(--admin-gold);
+}
+
 .book-toolbar {
   display: flex;
   align-items: flex-end;

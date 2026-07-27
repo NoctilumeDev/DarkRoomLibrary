@@ -7,7 +7,7 @@ import org.darkroomlibrary.domain.model.Notice;
 import java.util.List;
 
 /**
- * 公告业务逻辑接口
+ * 公告业务能力。
  */
 public interface NoticeService {
 
@@ -17,6 +17,5 @@ public interface NoticeService {
 
     ApiResponse<Void> update(Notice notice);
 
-    ApiResponse<List<Notice>> query(NoticePageQuery noticePageQuery);
-
+    ApiResponse<List<Notice>> query(NoticePageQuery query);
 }

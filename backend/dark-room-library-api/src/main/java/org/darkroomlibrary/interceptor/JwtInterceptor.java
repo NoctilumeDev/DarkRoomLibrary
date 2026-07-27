@@ -1,7 +1,7 @@
 package org.darkroomlibrary.interceptor;
 
 import org.darkroomlibrary.context.CurrentUserContext;
-import org.darkroomlibrary.infrastructure.security.UserAuthCache;
+import org.darkroomlibrary.infrastructure.security.UserAuthLookup;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,17 +18,17 @@ import java.io.Writer;
 public class JwtInterceptor implements HandlerInterceptor {
 
     private final String apiPrefix;
-    private final UserAuthCache userAuthCache;
+    private final UserAuthLookup userAuthLookup;
     private final ObjectMapper objectMapper;
     private final JwtUtil jwtUtil;
 
     public JwtInterceptor(
             String apiPrefix,
-            UserAuthCache userAuthCache,
+            UserAuthLookup userAuthLookup,
             ObjectMapper objectMapper,
             JwtUtil jwtUtil) {
         this.apiPrefix = apiPrefix;
-        this.userAuthCache = userAuthCache;
+        this.userAuthLookup = userAuthLookup;
         this.objectMapper = objectMapper;
         this.jwtUtil = jwtUtil;
     }
@@ -59,7 +59,7 @@ public class JwtInterceptor implements HandlerInterceptor {
             return false;
         }
         Integer userId = claims.get("id", Integer.class);
-        UserAuthCache.AuthUser user = userAuthCache.getActiveUser(userId).orElse(null);
+        UserAuthLookup.AuthUser user = userAuthLookup.getActiveUser(userId).orElse(null);
         if (user == null || Boolean.TRUE.equals(user.getDisabled())) {
             writeAuthError(response);
             return false;

@@ -113,7 +113,7 @@ flowchart TB
     Support --> LowStockAlert["低库存告警"]
     Support --> DegradableMiddleware["可降级中间件"]
     DegradableMiddleware --> RedisFallback["Redis 异常：内存 / MySQL 兜底"]
-    DegradableMiddleware --> MqFallback["RabbitMQ 异常：同步写库 / 补偿表"]
+    DegradableMiddleware --> MqFallback["RabbitMQ 异常：数据库任务 / 定时补偿"]
 
     Workflow --> RequestFlow["后台请求处理流程"]
     RequestFlow --> ControllerFlow["Controller 参数校验 / 权限注解"]
@@ -166,7 +166,7 @@ flowchart LR
     Controller --> Service["Service\n事务边界 / 业务规则 / 状态判断"]
     Service --> Mapper["Mapper / XML\n条件更新 / 查询聚合"]
     Mapper --> MySQL["MySQL\n核心数据一致性"]
-    Service --> Audit["操作审计\n同步写库或 MQ 降级"]
+    Service --> Audit["操作审计\n提交后独立事务写库"]
     Service --> Event["领域事件\n还书 / 预约通知 / 到期提醒"]
     Event --> NotifyTask["notification_task\n失败保留 / 定时补偿"]
     Event --> Mail["邮件服务\n配置可用则发送"]
@@ -207,4 +207,4 @@ stateDiagram-v2
 
 ## 当前验证基线
 
-本模块图对应 2026-07-26 公开基线：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。最终验证为后端 165 项、前端 26 项、五角色 75 次真实 API、19 个并发场景 / 392 次请求和 86 个浏览器路由检查，详情见 [`verification-report.md`](verification-report.md)。
+本模块图对应 2026-07-27 公开基线：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。最终验证为后端 225 项、前端 31 项、五角色 75 次真实 API、单实例 20 个并发场景 / 393 次请求、双实例 6 个并发场景 / 125 次请求和 86 个浏览器路由检查，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。

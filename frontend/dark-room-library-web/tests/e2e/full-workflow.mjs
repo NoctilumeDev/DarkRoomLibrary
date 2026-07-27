@@ -6,6 +6,7 @@ const baseUrl = process.env.E2E_BASE_URL || "http://localhost:5175";
 const apiBaseUrl =
   process.env.E2E_API_BASE_URL ||
   "http://localhost:20606/api/dark-room-library/v1";
+const apiPathPrefix = new URL(apiBaseUrl).pathname.replace(/\/$/, "");
 const edgePath =
   process.env.EDGE_PATH ||
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
@@ -40,6 +41,11 @@ async function apiRequest(token, path, { method = "GET", body } = {}) {
     throw new Error(`${method} ${path} returned invalid JSON: ${text.slice(0, 200)}`);
   }
   return { response, payload };
+}
+
+function matchesApiPath(response, suffix = "") {
+  const pathname = new URL(response.url()).pathname;
+  return pathname.startsWith(`${apiPathPrefix}${suffix}`);
 }
 
 function solveCaptcha(expression) {
@@ -109,7 +115,7 @@ function attachDiagnostics(page, label, report) {
     );
   });
   page.on("response", (response) => {
-    if (response.url().startsWith(apiBaseUrl)) {
+    if (matchesApiPath(response)) {
       report.apiResponses += 1;
       const key = `${response.request().method()} ${new URL(response.url()).pathname}`;
       report.apiEndpoints[key] = (report.apiEndpoints[key] || 0) + 1;
@@ -137,7 +143,7 @@ async function waitForApiResponse(page, method, path, action) {
   const responsePromise = page.waitForResponse(
     (response) =>
       response.request().method() === method &&
-      response.url().includes(`${apiBaseUrl}${path}`)
+      matchesApiPath(response, path)
   );
   await action();
   const response = await responsePromise;
@@ -190,7 +196,7 @@ async function runReaderBorrowReturn(browser, tokens, report) {
     const borrowResponse = page.waitForResponse(
       (response) =>
         response.request().method() === "POST" &&
-        response.url().includes(`${apiBaseUrl}/borrowRecord/borrow/`)
+        matchesApiPath(response, "/borrowRecord/borrow/")
     );
     await card.getByRole("button", { name: "借阅", exact: true }).click();
     await page.locator(".swal2-confirm").click();
@@ -212,7 +218,7 @@ async function runReaderBorrowReturn(browser, tokens, report) {
     const returnResponse = page.waitForResponse(
       (response) =>
         response.request().method() === "POST" &&
-        response.url().includes(`${apiBaseUrl}/borrowRecord/return/`)
+        matchesApiPath(response, "/borrowRecord/return/")
     );
     await row.getByRole("button", { name: "还书", exact: true }).click();
     await page.locator(".swal2-confirm").click();
@@ -234,7 +240,10 @@ async function runReaderBorrowReturn(browser, tokens, report) {
 
 async function setCoordinatorFlag(page, enabled) {
   await page.goto(`${baseUrl}/#/userManage`, { waitUntil: "networkidle" });
-  const row = page.locator(".el-table__row").filter({ hasText: "守卷青梧" }).first();
+  const row = page
+    .locator(".el-table__row")
+    .filter({ hasText: accounts.coordinator.account })
+    .first();
   await row.waitFor();
   await row.getByText("编辑", { exact: true }).click();
   const dialog = page.locator(".admin-editor-dialog--user");

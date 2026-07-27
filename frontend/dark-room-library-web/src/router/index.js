@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { getToken, clearAuthSession } from "@/utils/storage.js";
 import { resolveRoleHome } from "@/utils/roleHome.js";
+import { USER_ROLE } from "@/utils/userRoles.js";
 import jwtDecode from "jwt-decode";
 
 const routes = [
@@ -13,7 +14,10 @@ const routes = [
     path: "/admin",
     component: () => import("@/views/admin/Home.vue"),
     redirect: "/dashboard",
-    meta: { requireAuth: true, roles: [0, 1] },
+    meta: {
+      requireAuth: true,
+      roles: [USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN],
+    },
     children: [
       {
         path: "/dashboard",
@@ -84,7 +88,11 @@ const routes = [
         name: "公告编辑",
         group: "内容",
         component: () => import("@/views/admin/CreateNotice.vue"),
-        meta: { requireAuth: true, roles: [0, 1], hidden: true },
+        meta: {
+          requireAuth: true,
+          roles: [USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN],
+          hidden: true,
+        },
       },
       {
         path: "/procurementManage",
@@ -92,7 +100,10 @@ const routes = [
         icon: "Van",
         group: "采购",
         component: () => import("@/views/procurement/ProcurementWorkbench.vue"),
-        meta: { requireAuth: true, roles: [0, 1] },
+        meta: {
+          requireAuth: true,
+          roles: [USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN],
+        },
       },
       {
         path: "/contentAudit",
@@ -132,7 +143,7 @@ const routes = [
         icon: "FolderOpened",
         group: "系统",
         component: () => import("@/views/admin/FileManage.vue"),
-        meta: { requireAuth: true, roles: [0] },
+        meta: { requireAuth: true, roles: [USER_ROLE.SUPER_ADMIN] },
       },
       {
         path: "/messageManage",
@@ -148,7 +159,7 @@ const routes = [
     path: "/user",
     component: () => import("@/views/user/Home.vue"),
     redirect: "/readerRoom",
-    meta: { requireAuth: true, roles: [2] },
+    meta: { requireAuth: true, roles: [USER_ROLE.READER] },
     children: [
       {
         name: "藏书室",
@@ -212,7 +223,10 @@ const routes = [
     path: "/procurement",
     component: () => import("@/views/procurement/ProcurementHome.vue"),
     redirect: "/procurementWorkbench",
-    meta: { requireAuth: true, roles: [3, 4] },
+    meta: {
+      requireAuth: true,
+      roles: [USER_ROLE.ACQUISITIONS, USER_ROLE.LOGISTICS],
+    },
     children: [
       {
         path: "/procurementWorkbench",

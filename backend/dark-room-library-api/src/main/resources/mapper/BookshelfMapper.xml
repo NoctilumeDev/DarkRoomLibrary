@@ -12,6 +12,24 @@
         </if>
     </sql>
 
+    <select id="findByIdForUpdate" resultMap="BaseResultMap">
+        SELECT bs.*
+        FROM bookshelf bs
+        WHERE bs.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="findByIdsForUpdate" resultMap="BaseResultMap">
+        SELECT bs.*
+        FROM bookshelf bs
+        WHERE bs.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY bs.id
+        FOR UPDATE
+    </select>
+
     <!-- ==================== 查询操作 ==================== -->
     <select id="query" resultMap="BaseResultMap">
         SELECT bs.*

@@ -278,9 +278,14 @@ try {
     return {
       x: Number.parseFloat(style.getPropertyValue("--reader-light-x")),
       y: Number.parseFloat(style.getPropertyValue("--reader-light-y")),
+      lampX: Number.parseFloat(style.getPropertyValue("--lamp-x")),
+      lampY: Number.parseFloat(style.getPropertyValue("--lamp-y")),
     };
   });
-  if (lightPosition.x < 20 || lightPosition.x > 35 || lightPosition.y < 56 || lightPosition.y > 66) {
+  if (
+    Math.abs(lightPosition.x - lightPosition.lampX) > 6
+    || Math.abs(lightPosition.y - lightPosition.lampY) > 4
+  ) {
     throw new Error(`door light moved beyond the threshold area: ${JSON.stringify(lightPosition)}`);
   }
   await guest.mouse.click(1100, 500);
@@ -290,8 +295,49 @@ try {
   await guest.screenshot({ path: `${outputDir}/threshold-v2.png`, fullPage: true });
   await guest.locator(".auth-theme-toggle").click();
   await guest.locator('.auth-page[data-reader-theme="day"]').waitFor();
-  await guest.waitForTimeout(850);
+  await guest.waitForTimeout(320);
+  const dayThemeTransition = await guest.locator(".door-mist").evaluate((element) => ({
+    night: Number(getComputedStyle(element, "::before").opacity),
+    day: Number(getComputedStyle(element, "::after").opacity),
+    sceneDay: Number(getComputedStyle(document.querySelector(".door-scene"), "::after").opacity),
+    revealDay: Number(getComputedStyle(document.querySelector(".door-reveal"), "::after").opacity),
+  }));
+  if (
+    dayThemeTransition.night <= 0
+    || dayThemeTransition.night >= 1
+    || dayThemeTransition.day <= 0
+    || dayThemeTransition.day >= 1
+    || dayThemeTransition.sceneDay <= 0
+    || dayThemeTransition.sceneDay >= 1
+    || dayThemeTransition.revealDay <= 0
+    || dayThemeTransition.revealDay >= 1
+  ) {
+    throw new Error(`day scene did not crossfade: ${JSON.stringify(dayThemeTransition)}`);
+  }
+  await guest.waitForTimeout(1100);
   await guest.screenshot({ path: `${outputDir}/threshold-day-v2.png`, fullPage: true });
+  await guest.locator(".auth-theme-toggle").click();
+  await guest.locator('.auth-page[data-reader-theme="night"]').waitFor();
+  await guest.waitForTimeout(320);
+  const nightThemeTransition = await guest.locator(".door-mist").evaluate((element) => ({
+    night: Number(getComputedStyle(element, "::before").opacity),
+    day: Number(getComputedStyle(element, "::after").opacity),
+    sceneDay: Number(getComputedStyle(document.querySelector(".door-scene"), "::after").opacity),
+    revealDay: Number(getComputedStyle(document.querySelector(".door-reveal"), "::after").opacity),
+  }));
+  if (
+    nightThemeTransition.night <= 0
+    || nightThemeTransition.night >= 1
+    || nightThemeTransition.day <= 0
+    || nightThemeTransition.day >= 1
+    || nightThemeTransition.sceneDay <= 0
+    || nightThemeTransition.sceneDay >= 1
+    || nightThemeTransition.revealDay <= 0
+    || nightThemeTransition.revealDay >= 1
+  ) {
+    throw new Error(`night scene did not crossfade: ${JSON.stringify(nightThemeTransition)}`);
+  }
+  await guest.waitForTimeout(1000);
   await guest.locator(".threshold-entry").click();
   await guest.locator(".paper-sheet").waitFor();
   await guest.waitForTimeout(800);

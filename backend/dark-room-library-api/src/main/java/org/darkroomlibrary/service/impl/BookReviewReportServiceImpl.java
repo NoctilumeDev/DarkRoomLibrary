@@ -12,6 +12,7 @@ import org.darkroomlibrary.service.OperationAuditService;
 import org.darkroomlibrary.service.BookReviewReportService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
@@ -44,11 +45,13 @@ public class BookReviewReportServiceImpl implements BookReviewReportService {
         if (report.getStatus() != null && report.getStatus() != 0) {
             return ApiResponse.error("该举报已处理");
         }
-        bookReviewReportMapper.updateById(BookReviewReport.builder()
+        if (bookReviewReportMapper.updateById(BookReviewReport.builder()
                 .id(reportId)
                 .status(2)
                 .handleTime(LocalDateTime.now())
-                .build());
+                .build()) == 0) {
+            return ApiResponse.error("举报记录状态已变化，请刷新后重试");
+        }
         operationAuditService.record("审核", "书评举报",
                 reportDetail(report) + "，处理结果=忽略举报");
         return ApiResponse.success("已忽略举报");
@@ -57,26 +60,35 @@ public class BookReviewReportServiceImpl implements BookReviewReportService {
     @Override
     @Transactional
     public ApiResponse<Void> hideReview(Integer reportId) {
-        BookReviewReport report = bookReviewReportMapper.findByIdForUpdate(reportId);
-        if (report == null) {
+        BookReviewReport snapshot = reportId == null ? null : bookReviewReportMapper.selectById(reportId);
+        if (snapshot == null) {
             return ApiResponse.error("举报记录不存在");
+        }
+        BookReview review = bookReviewMapper.findByIdForUpdate(snapshot.getReviewId());
+        if (review == null) {
+            return ApiResponse.error("被举报书评不存在");
+        }
+        BookReviewReport report = bookReviewReportMapper.findByIdForUpdate(reportId);
+        if (report == null || !snapshot.getReviewId().equals(report.getReviewId())) {
+            return ApiResponse.error("举报记录状态已变化，请刷新后重试");
         }
         if (report.getStatus() != null && report.getStatus() != 0) {
             return ApiResponse.error("该举报已处理");
         }
-        BookReview review = bookReviewMapper.selectById(report.getReviewId());
-        if (review == null) {
-            return ApiResponse.error("被举报书评不存在");
-        }
-        bookReviewMapper.updateById(BookReview.builder()
+        if (bookReviewMapper.updateById(BookReview.builder()
                 .id(review.getId())
                 .status(1)
-                .build());
-        bookReviewReportMapper.updateById(BookReviewReport.builder()
+                .build()) == 0) {
+            return ApiResponse.error("书评状态已变化，请刷新后重试");
+        }
+        if (bookReviewReportMapper.updateById(BookReviewReport.builder()
                 .id(reportId)
                 .status(1)
                 .handleTime(LocalDateTime.now())
-                .build());
+                .build()) == 0) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ApiResponse.error("举报记录状态已变化，请刷新后重试");
+        }
         operationAuditService.record("审核", "书评举报",
                 reportDetail(report) + "，处理结果=隐藏书评，书评作者ID=" + review.getUserId());
         return ApiResponse.success("已隐藏书评");

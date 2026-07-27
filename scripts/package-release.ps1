@@ -39,6 +39,7 @@ $deliveryItems = @(
     ".gitattributes",
     ".gitignore",
     "CONTRIBUTING.md",
+    "LICENSE",
     "NOTICE.md",
     "SECURITY.md",
     "README.md",

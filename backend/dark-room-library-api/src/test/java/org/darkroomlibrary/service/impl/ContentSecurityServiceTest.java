@@ -56,7 +56,7 @@ class ContentSecurityServiceTest extends BaseTest {
     @DisplayName("留言、回复和附件元数据执行长度校验与纯文本净化")
     void sanitizeMessageBoardContent() {
         User reader = createTestUser(
-                "content_reader_01", "内容读者一", "content_reader_01@test.com");
+                "content_reader_01", "内容读者一", "content_reader_01@example.test");
         setCurrentUser(reader.getId(), reader.getUserRole());
 
         MessageBoard message = MessageBoard.builder()
@@ -99,7 +99,7 @@ class ContentSecurityServiceTest extends BaseTest {
     @DisplayName("书评和回复移除脚本并拒绝超长输入")
     void sanitizeBookReviewContent() {
         User reader = createTestUser(
-                "content_reader_02", "内容读者二", "content_reader_02@test.com");
+                "content_reader_02", "内容读者二", "content_reader_02@example.test");
         Book book = createTestBook("内容安全测试图书", "安全作者", 1);
         setCurrentUser(reader.getId(), reader.getUserRole());
 
@@ -207,7 +207,7 @@ class ContentSecurityServiceTest extends BaseTest {
     }
 
     private User createRoleUser(String account, String userName, Integer role) {
-        User user = createTestUser(account, userName, account + "@test.com");
+        User user = createTestUser(account, userName, account + "@example.test");
         userMapper.update(User.builder().id(user.getId()).userRole(role).build());
         user.setUserRole(role);
         return user;

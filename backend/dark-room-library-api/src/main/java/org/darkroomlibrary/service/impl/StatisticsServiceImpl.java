@@ -7,7 +7,7 @@ import org.darkroomlibrary.mapper.UserMapper;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.dto.query.BorrowRecordPageQuery;
 import org.darkroomlibrary.domain.model.Book;
-import org.darkroomlibrary.web.view.BorrowRecordView;
+import org.darkroomlibrary.web.view.DailyCount;
 import org.darkroomlibrary.service.FineService;
 import org.darkroomlibrary.service.StatisticsService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
 import java.time.Duration;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -55,12 +56,13 @@ public class StatisticsServiceImpl implements StatisticsService {
      */
     @Override
     public ApiResponse<Map<String, Object>> hotBooks(Integer limit) {
-        String cacheKey = "cache:statistics:hot-books:" + limit;
+        int actualLimit = limit == null ? 10 : Math.max(1, Math.min(limit, 100));
+        String cacheKey = "cache:statistics:hot-books:" + actualLimit;
         Map<String, Object> cached = getCachedMap(cacheKey);
         if (cached != null) {
             return ApiResponse.success(cached);
         }
-        List<Map<String, Object>> books = borrowRecordMapper.hotBookStats(limit);
+        List<Map<String, Object>> books = borrowRecordMapper.hotBookStats(actualLimit);
         Map<String, Object> result = new HashMap<>();
         result.put("books", books);
         result.put("total", books.size());
@@ -108,19 +110,19 @@ public class StatisticsServiceImpl implements StatisticsService {
      */
     @Override
     public ApiResponse<List<Map<String, Object>>> monthlyBorrowStats(Integer year, Integer month) {
-        List<BorrowRecordView> records = borrowRecordMapper.monthlyBorrowStats(year, month);
-        Map<String, Integer> dayCount = new LinkedHashMap<>();
-        for (BorrowRecordView record : records) {
-            if (record.getBorrowTime() != null) {
-                String day = String.format("%02d", record.getBorrowTime().getDayOfMonth());
-                dayCount.put(day, dayCount.getOrDefault(day, 0) + 1);
-            }
+        if (year == null || year < 1970 || year > 2100 || month == null || month < 1 || month > 12) {
+            return ApiResponse.error("统计年月不正确");
         }
+        YearMonth yearMonth = YearMonth.of(year, month);
+        List<DailyCount> dailyCounts = borrowRecordMapper.dailyBorrowStats(
+                yearMonth.atDay(1).atStartOfDay(),
+                yearMonth.plusMonths(1).atDay(1).atStartOfDay()
+        );
         List<Map<String, Object>> result = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : dayCount.entrySet()) {
+        for (DailyCount dailyCount : dailyCounts) {
             Map<String, Object> map = new HashMap<>();
-            map.put("day", entry.getKey());
-            map.put("count", entry.getValue());
+            map.put("day", String.format("%02d", dailyCount.getDay().getDayOfMonth()));
+            map.put("count", dailyCount.getCount());
             result.add(map);
         }
         return ApiResponse.success(result);

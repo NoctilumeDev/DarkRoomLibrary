@@ -68,6 +68,45 @@
         </where>
     </select>
 
+    <select id="countActiveByBookIds" resultType="int">
+        SELECT COUNT(*)
+        FROM procurement_order po
+        WHERE po.status NOT IN (6, 7)
+          AND po.book_id IN
+        <foreach collection="bookIds" item="bookId" open="(" separator="," close=")">
+            #{bookId}
+        </foreach>
+    </select>
+
+    <select id="countActiveByUserIds" resultType="int">
+        SELECT COUNT(*)
+        FROM procurement_order po
+        WHERE po.status NOT IN (6, 7)
+          AND (
+            po.requester_id IN
+            <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                #{userId}
+            </foreach>
+            OR po.purchaser_id IN
+            <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                #{userId}
+            </foreach>
+            OR po.logistics_id IN
+            <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                #{userId}
+            </foreach>
+            OR EXISTS (
+                SELECT 1
+                FROM procurement_logistics pl
+                WHERE pl.order_id = po.id
+                  AND pl.logistics_user_id IN
+                <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                    #{userId}
+                </foreach>
+            )
+          )
+    </select>
+
     <update id="markStockApplied">
         UPDATE procurement_order
         SET stock_applied = 1,

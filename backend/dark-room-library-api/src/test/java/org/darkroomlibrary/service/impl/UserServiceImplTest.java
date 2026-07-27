@@ -51,7 +51,7 @@ public class UserServiceImplTest extends BaseTest {
         dto.setUserName("测试用户");
         dto.setUserAccount("newuser999");
         dto.setUserPwd(TEST_PASSWORD);
-        dto.setUserEmail("newuser@test.com");
+        dto.setUserEmail("newuser@example.test");
         // 注意：需要验证码校验，此处测试会被拦截，仅验证参数校验通过
         ApiResponse<String> result = userService.insert(dto);
         assertNotNull(result);
@@ -66,13 +66,13 @@ public class UserServiceImplTest extends BaseTest {
     void testRegisterDuplicateUsername() {
         setCurrentUser(1, UserRole.ADMIN.code());
         // 先创建用户
-        createTestUser("dupuser001", "重复用户", "dup@test.com");
+        createTestUser("dupuser001", "重复用户", "dup@example.test");
 
         UserRegisterDto dto = new UserRegisterDto();
         dto.setUserName("重复用户");
         dto.setUserAccount("dupuser002");
         dto.setUserPwd(TEST_PASSWORD);
-        dto.setUserEmail("dup2@test.com");
+        dto.setUserEmail("dup2@example.test");
 
         ApiResponse<String> result = userService.insert(dto);
         assertNotNull(result);
@@ -89,7 +89,7 @@ public class UserServiceImplTest extends BaseTest {
         dto.setUserName("弱密码用户");
         dto.setUserAccount("weakpwd001");
         dto.setUserPwd("123");
-        dto.setUserEmail("weak@test.com");
+        dto.setUserEmail("weak@example.test");
 
         ApiResponse<String> result = userService.insert(dto);
         assertNotNull(result);
@@ -101,7 +101,7 @@ public class UserServiceImplTest extends BaseTest {
     @Order(4)
     @DisplayName("登录成功 - 正确账号密码")
     void testLoginSuccess() {
-        createTestUser("loginsuccess", "登录用户", "login@test.com");
+        createTestUser("loginsuccess", "登录用户", "login@example.test");
 
         UserLoginDto dto = new UserLoginDto();
         dto.setUserAccount("loginsuccess");
@@ -122,7 +122,7 @@ public class UserServiceImplTest extends BaseTest {
     @Order(5)
     @DisplayName("登录失败 - 密码错误")
     void testLoginWrongPassword() {
-        createTestUser("wrongpwd", "错误密码用户", "wrong@test.com");
+        createTestUser("wrongpwd", "错误密码用户", "wrong@example.test");
 
         UserLoginDto dto = new UserLoginDto();
         dto.setUserAccount("wrongpwd");
@@ -152,7 +152,7 @@ public class UserServiceImplTest extends BaseTest {
     @Order(7)
     @DisplayName("登录失败 - 账户被禁用")
     void testLoginDisabledAccount() {
-        User user = createTestUser("disabled001", "禁用用户", "disabled@test.com");
+        User user = createTestUser("disabled001", "禁用用户", "disabled@example.test");
         userMapper.update(User.builder().id(user.getId()).isLogin(true).build());
 
         UserLoginDto dto = new UserLoginDto();
@@ -168,7 +168,7 @@ public class UserServiceImplTest extends BaseTest {
     @Order(8)
     @DisplayName("登录失败 - 验证码错误")
     void testLoginWrongCaptcha() {
-        createTestUser("wrongcaptcha", "验证码用户", "captcha@test.com");
+        createTestUser("wrongcaptcha", "验证码用户", "captcha@example.test");
 
         UserLoginDto dto = new UserLoginDto();
         dto.setUserAccount("wrongcaptcha");
@@ -186,7 +186,7 @@ public class UserServiceImplTest extends BaseTest {
     @Order(9)
     @DisplayName("修改密码成功")
     void testUpdatePasswordSuccess() {
-        User user = createTestUser("updatepwd", "改密用户", "updatepwd@test.com");
+        User user = createTestUser("updatepwd", "改密用户", "updatepwd@example.test");
         setCurrentUser(user.getId(), user.getUserRole());
 
         PasswordUpdateDto dto = new PasswordUpdateDto();
@@ -203,7 +203,7 @@ public class UserServiceImplTest extends BaseTest {
     @Order(10)
     @DisplayName("修改密码失败 - 旧密码错误")
     void testUpdatePasswordWrongOld() {
-        User user = createTestUser("wrongold", "旧密码错", "wrongold@test.com");
+        User user = createTestUser("wrongold", "旧密码错", "wrongold@example.test");
         setCurrentUser(user.getId(), user.getUserRole());
 
         PasswordUpdateDto dto = new PasswordUpdateDto();
@@ -222,7 +222,7 @@ public class UserServiceImplTest extends BaseTest {
     void testResetPasswordAccountNotExist() {
         PasswordResetDto dto = new PasswordResetDto();
         dto.setAccount("nonexistent");
-        dto.setEmail("test@test.com");
+        dto.setEmail("test@example.test");
         dto.setCode("123456");
         dto.setNewPwd(TEST_PASSWORD);
 
@@ -235,8 +235,8 @@ public class UserServiceImplTest extends BaseTest {
     @Order(12)
     @DisplayName("查询用户失败 - 普通用户不能查看他人资料")
     void testGetByIdRejectsOtherUserForReader() {
-        User currentUser = createTestUser("profile001", "资料用户1", "profile001@test.com");
-        User otherUser = createTestUser("profile002", "资料用户2", "profile002@test.com");
+        User currentUser = createTestUser("profile001", "资料用户1", "profile001@example.test");
+        User otherUser = createTestUser("profile002", "资料用户2", "profile002@example.test");
         setCurrentUser(currentUser.getId(), currentUser.getUserRole());
 
         ApiResponse<?> result = userService.getById(otherUser.getId());

@@ -100,8 +100,8 @@ public class AdminWorkflowServiceImpl implements AdminWorkflowService {
                 "还书后发布预约通知事件，邮件失败时保留补偿任务，不影响主交易。",
                 "BookReturnedEvent", "到期提醒", "预约到货"));
         stages.add(stage("可降级中间件", "Redis / RabbitMQ",
-                "Redis 和 MQ 只是增强能力，异常时走内存、同步写库或补偿表。",
-                "缓存降级", "日志同步", "通知补偿"));
+                "Redis 和 MQ 只增强性能与通知投递；异常时核心事务继续，缓存转本地兜底，通知留在数据库任务中补偿。",
+                "缓存降级", "提交后审计", "通知补偿"));
         stages.add(stage("后台审核", "Admin",
                 "后台集中查看用户、留言、书评举报、借阅、预约和通知补偿状态，优先处理异常项。",
                 "冻结用户", "回复留言", "书评举报", "处理逾期"));

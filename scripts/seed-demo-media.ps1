@@ -228,6 +228,7 @@ $bookCoverUrl = Send-MediaFile -Path $BookCoverPath -Token $token
 Assert-ApiSuccess `
     (Invoke-JsonApi -Method PUT -Path "/book/update" -Body @{
         id = [int]$book.id
+        version = [int]$book.version
         name = [string]$book.name
         author = [string]$book.author
         isbn = [string]$book.isbn

@@ -193,7 +193,7 @@ export default {
     },
     async tokenCheckLoad() {
       try {
-        const res = await request.get("user/auth");
+        const res = await request.get("/user/auth");
         if (res.data.code !== 200) {
           clearAuthSession();
           this.$router.push("/login");

@@ -3,6 +3,7 @@ package org.darkroomlibrary.mapper;
 import org.darkroomlibrary.web.dto.query.BorrowRecordPageQuery;
 import org.darkroomlibrary.domain.model.BorrowRecord;
 import org.darkroomlibrary.web.view.BorrowRecordView;
+import org.darkroomlibrary.web.view.DailyCount;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -48,15 +49,17 @@ public interface BorrowRecordMapper extends BaseMapper<BorrowRecord> {
 
     BigDecimal sumFineAmountByUserId(@Param("userId") Integer userId);
 
-    List<BorrowRecordView> monthlyBorrowStats(@Param("year") Integer year,
-                                            @Param("month") Integer month);
+    List<DailyCount> dailyBorrowStats(@Param("startTime") LocalDateTime startTime,
+                                      @Param("endTime") LocalDateTime endTime);
 
     List<Map<String, Object>> overdueUserStats();
 
     List<Map<String, Object>> hotBookStats(@Param("limit") Integer limit);
 
     List<Map<String, Object>> findDueReminders(@Param("startTime") LocalDateTime startTime,
-                                               @Param("endTime") LocalDateTime endTime);
+                                               @Param("endTime") LocalDateTime endTime,
+                                               @Param("afterId") Integer afterId,
+                                               @Param("limit") Integer limit);
 
     int markDueReminderSent(@Param("id") Integer id,
                             @Param("reminderTime") LocalDateTime reminderTime);

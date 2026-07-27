@@ -3,6 +3,11 @@ import {
   normalizeReaderTheme,
   READER_THEMES,
 } from "../../src/utils/readerTheme.js";
+import {
+  getUserRoleName,
+  isAdministratorRole,
+  USER_ROLE,
+} from "../../src/utils/userRoles.js";
 
 describe("resolveRoleHome", () => {
   test.each([
@@ -22,6 +27,25 @@ describe("resolveRoleHome", () => {
       expect(resolveRoleHome(role)).toBeNull();
     }
   );
+});
+
+describe("user roles", () => {
+  test("keeps role names aligned with backend role codes", () => {
+    expect(getUserRoleName(USER_ROLE.SUPER_ADMIN)).toBe("超级管理员");
+    expect(getUserRoleName(USER_ROLE.ADMIN)).toBe("管理员");
+    expect(getUserRoleName(USER_ROLE.READER)).toBe("读者");
+    expect(getUserRoleName(USER_ROLE.ACQUISITIONS)).toBe("采购员");
+    expect(getUserRoleName(USER_ROLE.LOGISTICS)).toBe("物流员");
+    expect(getUserRoleName(99)).toBeNull();
+  });
+
+  test("only the two administrator roles share admin capabilities", () => {
+    expect(isAdministratorRole(USER_ROLE.SUPER_ADMIN)).toBe(true);
+    expect(isAdministratorRole(USER_ROLE.ADMIN)).toBe(true);
+    expect(isAdministratorRole(USER_ROLE.READER)).toBe(false);
+    expect(isAdministratorRole(USER_ROLE.ACQUISITIONS)).toBe(false);
+    expect(isAdministratorRole(USER_ROLE.LOGISTICS)).toBe(false);
+  });
 });
 
 describe("reader theme", () => {

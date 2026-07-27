@@ -29,8 +29,17 @@ public interface StoredFileMapper extends BaseMapper<StoredFile> {
     int markDeletePending(@Param("fileNames") List<String> fileNames,
                           @Param("now") LocalDateTime now);
 
+    int claimUnboundForDeletion(@Param("fileName") String fileName,
+                                @Param("now") LocalDateTime now);
+
+    int claimForCleanup(@Param("fileName") String fileName,
+                         @Param("temporaryCutoff") LocalDateTime temporaryCutoff,
+                         @Param("deletingLeaseCutoff") LocalDateTime deletingLeaseCutoff,
+                         @Param("now") LocalDateTime now);
+
     List<StoredFile> findCleanupCandidates(@Param("temporaryCutoff") LocalDateTime temporaryCutoff,
-                                           @Param("limit") Integer limit);
+                                            @Param("deletingLeaseCutoff") LocalDateTime deletingLeaseCutoff,
+                                            @Param("limit") Integer limit);
 
     Integer countLegacyReferences(@Param("fileName") String fileName);
 

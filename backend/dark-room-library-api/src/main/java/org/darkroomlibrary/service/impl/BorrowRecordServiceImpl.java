@@ -10,6 +10,7 @@ import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
 import org.darkroomlibrary.web.dto.query.BorrowRecordPageQuery;
 import org.darkroomlibrary.domain.type.AccountStatus;
+import org.darkroomlibrary.domain.type.UserRole;
 import org.darkroomlibrary.domain.model.Book;
 import org.darkroomlibrary.domain.model.BookReservation;
 import org.darkroomlibrary.domain.model.BorrowRecord;
@@ -18,13 +19,12 @@ import org.darkroomlibrary.web.view.BorrowRecordView;
 import org.darkroomlibrary.service.BorrowRecordService;
 import org.darkroomlibrary.service.FineService;
 import org.darkroomlibrary.service.ReservationWorkflowService;
+import org.darkroomlibrary.utils.TransactionCallbacks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import jakarta.annotation.Resource;
 import java.math.BigDecimal;
@@ -87,7 +87,9 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
             return ApiResponse.error("当前用户不存在或已被删除");
         }
         if (!Objects.equals(user.getAccountStatus(), AccountStatus.NORMAL.code())
-                || Boolean.TRUE.equals(user.getIsLogin())) {
+                || Boolean.TRUE.equals(user.getIsLogin())
+                || !Objects.equals(user.getUserRole(), CurrentUserContext.roleCode())
+                || !Objects.equals(user.getUserRole(), UserRole.READER.code())) {
             return ApiResponse.error("当前账号状态不允许借阅");
         }
         int activeCount = borrowRecordMapper.getActiveCountByUserId(userId);
@@ -122,8 +124,7 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
                 .build();
         int inserted = borrowRecordMapper.insertIfNoActiveBorrow(record);
         if (inserted == 0) {
-            // 并发冲突：恢复库存
-            bookMapper.increaseAvailableCount(bookId);
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("您已借阅该图书，请勿重复借阅");
         }
         if (notifiedReservation != null && bookReservationMapper.markBorrowed(notifiedReservation.getId()) == 0) {
@@ -137,12 +138,25 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
     @Transactional
     public ApiResponse<Void> returnBook(Integer recordId) {
         Integer userId = CurrentUserContext.userId();
-        BorrowRecord record = borrowRecordMapper.findByIdForUpdate(recordId);
-        if (record == null) {
+        BorrowRecord snapshot = recordId == null ? null : borrowRecordMapper.getById(recordId);
+        if (snapshot == null) {
             return ApiResponse.error("借阅记录不存在");
         }
-        if (!CurrentUserContext.isAdministrator() && !record.getUserId().equals(userId)) {
+        if (!CurrentUserContext.isAdministrator() && !snapshot.getUserId().equals(userId)) {
             return ApiResponse.error("该借阅记录不属于当前用户，无法归还");
+        }
+        if (userMapper.findByIdForUpdate(snapshot.getUserId()) == null) {
+            return ApiResponse.error("借阅用户不存在");
+        }
+        Book book = bookMapper.findByIdForUpdate(snapshot.getBookId());
+        if (book == null || Boolean.TRUE.equals(book.getIsDeleted())) {
+            return ApiResponse.error("图书库存状态异常，归还失败");
+        }
+        BorrowRecord record = borrowRecordMapper.findByIdForUpdate(recordId);
+        if (record == null
+                || !Objects.equals(record.getUserId(), snapshot.getUserId())
+                || !Objects.equals(record.getBookId(), snapshot.getBookId())) {
+            return ApiResponse.error("借阅记录状态已变化，请刷新后重试");
         }
         if (Boolean.TRUE.equals(record.getStatus())) {
             return ApiResponse.error("该图书已归还，请勿重复操作");
@@ -170,12 +184,30 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
     @Transactional
     public ApiResponse<Void> renew(Integer recordId) {
         Integer userId = CurrentUserContext.userId();
-        BorrowRecord record = borrowRecordMapper.findByIdForUpdate(recordId);
-        if (record == null) {
+        BorrowRecord snapshot = recordId == null ? null : borrowRecordMapper.getById(recordId);
+        if (snapshot == null) {
             return ApiResponse.error("借阅记录不存在");
         }
-        if (!record.getUserId().equals(userId)) {
+        if (!snapshot.getUserId().equals(userId)) {
             return ApiResponse.error("该借阅记录不属于当前用户，无法续借");
+        }
+        User user = userMapper.findByIdForUpdate(userId);
+        if (user == null
+                || !Objects.equals(user.getAccountStatus(), AccountStatus.NORMAL.code())
+                || Boolean.TRUE.equals(user.getIsLogin())
+                || !Objects.equals(user.getUserRole(), CurrentUserContext.roleCode())
+                || !Objects.equals(user.getUserRole(), UserRole.READER.code())) {
+            return ApiResponse.error("当前账号状态不允许续借");
+        }
+        Book book = bookMapper.findByIdForUpdate(snapshot.getBookId());
+        if (book == null || Boolean.TRUE.equals(book.getIsDeleted())) {
+            return ApiResponse.error("图书不存在，无法续借");
+        }
+        BorrowRecord record = borrowRecordMapper.findByIdForUpdate(recordId);
+        if (record == null
+                || !Objects.equals(record.getUserId(), snapshot.getUserId())
+                || !Objects.equals(record.getBookId(), snapshot.getBookId())) {
+            return ApiResponse.error("借阅记录状态已变化，请刷新后重试");
         }
         if (Boolean.TRUE.equals(record.getStatus())) {
             return ApiResponse.error("该图书已归还，无法续借");
@@ -190,10 +222,6 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
         int renewCount = record.getRenewCount() == null ? 0 : record.getRenewCount();
         if (renewCount >= maxRenewCount) {
             return ApiResponse.error("该借阅记录已达到续借次数上限");
-        }
-        Book book = bookMapper.findByIdForUpdate(record.getBookId());
-        if (book == null || Boolean.TRUE.equals(book.getIsDeleted())) {
-            return ApiResponse.error("图书不存在，无法续借");
         }
         if (bookReservationMapper.countActiveByBookId(record.getBookId()) > 0) {
             return ApiResponse.error("该图书存在预约排队，暂不允许续借");
@@ -230,15 +258,6 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
                 log.warn("BookReturnedEvent fallback failed: bookId={}, error={}", bookId, e.getMessage());
             }
         };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    publishTask.run();
-                }
-            });
-            return;
-        }
-        publishTask.run();
+        TransactionCallbacks.afterCommit(publishTask);
     }
 }

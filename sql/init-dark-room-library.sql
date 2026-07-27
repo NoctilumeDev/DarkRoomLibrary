@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS `bookshelf` (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `book` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'book id',
+  `version` int NOT NULL DEFAULT 0 COMMENT 'optimistic concurrency version',
   `name` varchar(255) NOT NULL COMMENT 'book name',
   `author` varchar(100) DEFAULT NULL COMMENT 'author',
   `isbn` varchar(30) DEFAULT NULL COMMENT 'isbn',
@@ -124,6 +125,7 @@ CREATE TABLE IF NOT EXISTS `borrow_record` (
   KEY `idx_status` (`status`),
   KEY `idx_due_date` (`due_date`),
   KEY `idx_due_reminder` (`due_reminder_sent_time`),
+  KEY `idx_due_reminder_scan` (`status`, `due_reminder_sent_time`, `due_date`),
   UNIQUE KEY `uk_borrow_active` (`user_id`, `book_id`, `active_flag`),
   CONSTRAINT `fk_borrow_user`
     FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
@@ -276,6 +278,7 @@ CREATE TABLE IF NOT EXISTS `book_reservation` (
   KEY `idx_book_id` (`book_id`),
   KEY `idx_status` (`status`),
   KEY `idx_book_status_time` (`book_id`, `status`, `reserve_time`),
+  KEY `idx_status_notify_book` (`status`, `notify_time`, `book_id`),
   UNIQUE KEY `uk_reservation_active` (`user_id`, `book_id`, `active_flag`),
   CONSTRAINT `fk_reservation_user`
     FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
@@ -312,6 +315,7 @@ CREATE TABLE IF NOT EXISTS `message_board` (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `operation_log` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'log id',
+  `event_key` varchar(64) DEFAULT NULL COMMENT 'message idempotency key',
   `user_id` int unsigned DEFAULT NULL COMMENT 'user id',
   `user_name` varchar(50) DEFAULT NULL COMMENT 'user name',
   `operation` varchar(100) NOT NULL COMMENT 'operation',
@@ -320,6 +324,7 @@ CREATE TABLE IF NOT EXISTS `operation_log` (
   `ip` varchar(50) DEFAULT NULL COMMENT 'ip address',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT 'created time',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_operation_log_event_key` (`event_key`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_create_time` (`create_time`),
   KEY `idx_operation` (`operation`)
@@ -327,7 +332,7 @@ CREATE TABLE IF NOT EXISTS `operation_log` (
 
 -- ============================================================
 -- 15. notification_task
--- status: 0=pending, 1=sent, 2=failed, 3=processing
+-- status: 0=pending, 1=sent, 2=retry pending, 3=processing, 4=dead
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `notification_task` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'notification task id',
@@ -337,6 +342,7 @@ CREATE TABLE IF NOT EXISTS `notification_task` (
   `status` tinyint NOT NULL DEFAULT 0 COMMENT 'status',
   `retry_count` int NOT NULL DEFAULT 0 COMMENT 'retry count',
   `last_error` varchar(500) DEFAULT NULL COMMENT 'last error',
+  `processing_token` varchar(64) DEFAULT NULL COMMENT 'current processing lease owner',
   `next_retry_time` datetime DEFAULT NULL COMMENT 'next retry time',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT 'created time',
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'updated time',
@@ -446,7 +452,7 @@ CREATE TABLE IF NOT EXISTS `procurement_message` (
 
 -- ============================================================
 -- 19. stored_file
--- status: 0=temporary, 1=bound, 2=delete pending
+-- status: 0=temporary, 1=bound, 2=delete pending, 3=deleting lease
 -- ref_type: book_cover/user_avatar/msg_attachment/notice_asset
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `stored_file` (
@@ -456,7 +462,7 @@ CREATE TABLE IF NOT EXISTS `stored_file` (
   `content_type` varchar(100) NOT NULL COMMENT 'normalized MIME type',
   `file_size` bigint unsigned NOT NULL COMMENT 'file size in bytes',
   `uploader_id` int unsigned DEFAULT NULL COMMENT 'upload user id',
-  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0 temporary, 1 bound, 2 delete pending',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0 temporary, 1 bound, 2 delete pending, 3 deleting lease',
   `ref_type` varchar(30) DEFAULT NULL COMMENT 'business reference type',
   `ref_id` int unsigned DEFAULT NULL COMMENT 'business reference id',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'upload time',
@@ -464,6 +470,7 @@ CREATE TABLE IF NOT EXISTS `stored_file` (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'update time',
   PRIMARY KEY (`file_name`),
   KEY `idx_status_create` (`status`, `create_time`),
+  KEY `idx_status_update` (`status`, `update_time`),
   KEY `idx_reference` (`ref_type`, `ref_id`),
   KEY `idx_uploader_id` (`uploader_id`),
   CONSTRAINT `fk_stored_file_uploader`
@@ -480,7 +487,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT IGNORE INTO `user`
   (`user_account`, `user_name`, `user_pwd`, `user_avatar`, `user_email`, `user_role`, `is_coordinator_admin`, `account_status`, `is_login`, `is_word`, `create_time`)
 VALUES
-  ('drl_root_aurora', '暗室总馆员', '$2a$10$L1Tf7a1p/l86HX2TbVE8nuahTuM/NerVSFgJEAWj40CdIhwKY.MwO', NULL, 'drl_root_aurora@darkroomlibrary.local', 0, 0, 0, 0, 0, NOW());
+  ('drl_root_aurora', '暗室总馆员', '$2a$10$M9hGrNHqObpNZ8X5BHRakOLBh.mZa1Zz3Ii0Jm26SgVohZ/gXFWCO', NULL, 'drl_root_aurora@darkroomlibrary.local', 0, 0, 0, 0, 0, NOW());
 
 INSERT IGNORE INTO `category` (`name`, `create_time`) VALUES
   ('编程', NOW()),

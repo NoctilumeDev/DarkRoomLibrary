@@ -314,8 +314,6 @@ body[data-admin-theme="night"] {
 }
 
 .admin-shell .top-bar {
-  display: block;
-  margin-bottom: 7px;
   color: var(--admin-ink-soft) !important;
   font-size: 12px;
   font-weight: 600;
@@ -399,6 +397,10 @@ body[data-admin-theme="night"] {
 .admin-shell .el-textarea__inner::placeholder,
 .admin-shell .el-select__placeholder {
   color: var(--admin-ink-muted) !important;
+}
+
+.admin-shell .el-date-editor + .el-button {
+  margin-left: 12px;
 }
 
 .admin-shell .el-button {

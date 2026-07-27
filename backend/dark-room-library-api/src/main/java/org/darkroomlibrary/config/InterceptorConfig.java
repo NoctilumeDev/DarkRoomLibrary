@@ -1,7 +1,8 @@
 package org.darkroomlibrary.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.darkroomlibrary.infrastructure.security.UserAuthCache;
+import org.darkroomlibrary.infrastructure.cache.CacheService;
+import org.darkroomlibrary.infrastructure.security.UserAuthLookup;
 import org.darkroomlibrary.interceptor.JwtInterceptor;
 import org.darkroomlibrary.interceptor.RateLimitInterceptor;
 import org.darkroomlibrary.utils.JwtUtil;
@@ -20,7 +21,8 @@ public class InterceptorConfig implements WebMvcConfigurer {
     private final boolean trustForwardedHeaders;
     private final int anonymousMaxRequestsPerMinute;
     private final int authenticatedMaxRequestsPerMinute;
-    private final UserAuthCache userAuthCache;
+    private final CacheService cacheService;
+    private final UserAuthLookup userAuthLookup;
     private final ObjectMapper objectMapper;
     private final JwtUtil jwtUtil;
 
@@ -29,21 +31,23 @@ public class InterceptorConfig implements WebMvcConfigurer {
             @Value("${security.rate-limit.trust-forwarded-headers:false}") boolean trustForwardedHeaders,
             @Value("${security.rate-limit.anonymous-max-per-minute:60}") int anonymousMaxRequestsPerMinute,
             @Value("${security.rate-limit.authenticated-max-per-minute:300}") int authenticatedMaxRequestsPerMinute,
-            UserAuthCache userAuthCache,
+            CacheService cacheService,
+            UserAuthLookup userAuthLookup,
             ObjectMapper objectMapper,
             JwtUtil jwtUtil) {
         this.apiPrefix = apiPrefix;
         this.trustForwardedHeaders = trustForwardedHeaders;
         this.anonymousMaxRequestsPerMinute = anonymousMaxRequestsPerMinute;
         this.authenticatedMaxRequestsPerMinute = authenticatedMaxRequestsPerMinute;
-        this.userAuthCache = userAuthCache;
+        this.cacheService = cacheService;
+        this.userAuthLookup = userAuthLookup;
         this.objectMapper = objectMapper;
         this.jwtUtil = jwtUtil;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new JwtInterceptor(apiPrefix, userAuthCache, objectMapper, jwtUtil))
+        registry.addInterceptor(new JwtInterceptor(apiPrefix, userAuthLookup, objectMapper, jwtUtil))
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         apiPrefix + "/user/login",
@@ -61,6 +65,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
                         trustForwardedHeaders,
                         anonymousMaxRequestsPerMinute,
                         authenticatedMaxRequestsPerMinute,
+                        cacheService,
                         objectMapper))
                 .addPathPatterns("/**")
                 .excludePathPatterns(

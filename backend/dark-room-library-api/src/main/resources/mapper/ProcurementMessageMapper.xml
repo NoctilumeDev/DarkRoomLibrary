@@ -56,6 +56,20 @@
         </if>
     </select>
 
+    <select id="countUnreadByOrderIds"
+            resultType="org.darkroomlibrary.web.view.OrderUnreadSummary">
+        SELECT pm.order_id AS orderId,
+               COUNT(*) AS unreadCount
+        FROM procurement_message pm
+        WHERE pm.receiver_id = #{receiverId}
+          AND pm.read_status = 0
+          AND pm.order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        GROUP BY pm.order_id
+    </select>
+
     <update id="markRead">
         UPDATE procurement_message
         SET read_status = 1,

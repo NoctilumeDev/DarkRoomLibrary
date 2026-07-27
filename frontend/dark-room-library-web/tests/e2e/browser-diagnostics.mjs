@@ -6,6 +6,7 @@ const baseUrl = process.env.E2E_BASE_URL || "http://localhost:5175";
 const apiBaseUrl =
   process.env.E2E_API_BASE_URL ||
   "http://localhost:20606/api/dark-room-library/v1";
+const apiPathPrefix = new URL(apiBaseUrl).pathname.replace(/\/$/, "");
 const edgePath =
   process.env.EDGE_PATH ||
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
@@ -100,6 +101,10 @@ async function apiRequest(token, path, { method = "GET", body } = {}) {
   return { response, payload };
 }
 
+function matchesApiPath(response) {
+  return new URL(response.url()).pathname.startsWith(apiPathPrefix);
+}
+
 async function login(identity) {
   const captcha = await apiRequest(null, "/captcha/generate");
   assert(
@@ -147,7 +152,7 @@ function attachDiagnostics(page, routeEntry) {
   });
   page.on("response", (response) => {
     routeEntry.network.responses += 1;
-    if (response.url().startsWith(apiBaseUrl)) {
+    if (matchesApiPath(response)) {
       routeEntry.network.apiResponses += 1;
     }
     if (response.status() >= 400) {

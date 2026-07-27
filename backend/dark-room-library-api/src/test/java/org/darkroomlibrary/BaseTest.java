@@ -75,6 +75,7 @@ public abstract class BaseTest {
                 .description("测试图书")
                 .createTime(LocalDateTime.now())
                 .isDeleted(false)
+                .version(0)
                 .build();
         bookMapper.insert(book);
         return book;

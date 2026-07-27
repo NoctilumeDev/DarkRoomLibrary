@@ -1,9 +1,10 @@
 package org.darkroomlibrary.service.impl;
 
 import org.darkroomlibrary.context.CurrentUserContext;
-import org.darkroomlibrary.infrastructure.security.UserAuthCache;
+import org.darkroomlibrary.mapper.BookMapper;
 import org.darkroomlibrary.mapper.BookReservationMapper;
 import org.darkroomlibrary.mapper.BorrowRecordMapper;
+import org.darkroomlibrary.mapper.ProcurementOrderMapper;
 import org.darkroomlibrary.mapper.UserMapper;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
@@ -28,11 +29,14 @@ import org.darkroomlibrary.service.OperationAuditService;
 import org.darkroomlibrary.service.CaptchaService;
 import org.darkroomlibrary.service.FileStorageService;
 import org.darkroomlibrary.service.LoginAttemptService;
+import org.darkroomlibrary.service.ReservationWorkflowService;
 import org.darkroomlibrary.service.UserService;
 import org.darkroomlibrary.service.VerificationCodeService;
 import org.darkroomlibrary.utils.AnalyticsTimeline;
+import org.darkroomlibrary.utils.IdListUtils;
 import org.darkroomlibrary.utils.JwtUtil;
 import org.darkroomlibrary.utils.PasswordValidator;
+import org.darkroomlibrary.utils.TransactionCallbacks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -69,19 +73,25 @@ public class UserServiceImpl implements UserService {
     private CaptchaService captchaService;
 
     @Resource
-    private UserAuthCache userAuthCache;
-
-    @Resource
     private BorrowRecordMapper borrowRecordMapper;
 
     @Resource
     private BookReservationMapper bookReservationMapper;
 
     @Resource
+    private BookMapper bookMapper;
+
+    @Resource
+    private ProcurementOrderMapper procurementOrderMapper;
+
+    @Resource
     private OperationAuditService operationAuditService;
 
     @Resource
     private FileStorageService fileStorageService;
+
+    @Resource
+    private ReservationWorkflowService reservationWorkflowService;
 
     @Resource
     private JwtUtil jwtUtil;
@@ -174,7 +184,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public ApiResponse<String> update(UserUpdateDto userUpdateDTO) {
         Integer userId = CurrentUserContext.userId();
-        User existing = userMapper.getByActive(User.builder().id(userId).build());
+        User existing = userMapper.findByIdForUpdate(userId);
         if (existing == null) {
             return ApiResponse.error("用户不存在");
         }
@@ -196,7 +206,9 @@ public class UserServiceImpl implements UserService {
                 .userEmail(trimToNull(userUpdateDTO.getUserEmail()))
                 .build();
         try {
-            userMapper.update(updateEntity);
+            if (userMapper.update(updateEntity) != 1) {
+                return ApiResponse.error("用户状态已变化，请刷新后重试");
+            }
         } catch (DuplicateKeyException e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error(duplicateUserMessage(e));
@@ -208,7 +220,6 @@ public class UserServiceImpl implements UserService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("头像文件无效或不属于当前用户");
         }
-        userAuthCache.evict(userId);
         return ApiResponse.success("保存成功");
     }
 
@@ -225,6 +236,9 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
         if (normalizedIds.isEmpty()) {
             return ApiResponse.error("请选择要删除的用户");
+        }
+        if (IdListUtils.exceedsBatchLimit(normalizedIds)) {
+            return ApiResponse.error("单次最多删除" + IdListUtils.MAX_BATCH_SIZE + "个用户");
         }
         Integer currentUserId = CurrentUserContext.userId();
         Integer currentRoleId = CurrentUserContext.roleCode();
@@ -246,14 +260,23 @@ public class UserServiceImpl implements UserService {
         if (borrowRecordMapper.countByUserIds(normalizedIds) > 0) {
             return ApiResponse.error("存在借阅历史，不能删除用户；可改为冻结账号");
         }
+        if (bookReservationMapper.countActiveByUserIds(normalizedIds) > 0) {
+            return ApiResponse.error("存在进行中的预约，不能删除用户；请先处理预约");
+        }
+        if (procurementOrderMapper.countActiveByUserIds(normalizedIds) > 0) {
+            return ApiResponse.error("用户仍参与进行中的采购单，不能删除；可改为冻结账号");
+        }
 
         fileStorageService.releaseUserBusinessFiles(normalizedIds);
-        userMapper.batchDelete(normalizedIds);
-        normalizedIds.forEach(userAuthCache::evict);
+        if (userMapper.batchDelete(normalizedIds) != normalizedIds.size()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ApiResponse.error("部分用户状态已变化，请刷新后重试");
+        }
         return ApiResponse.success("删除成功");
     }
 
     @Override
+    @Transactional
     public ApiResponse<String> updatePwd(PasswordUpdateDto dto) {
         String oldPwd = dto.getOldPwd();
         String newPwd = dto.getNewPwd();
@@ -274,7 +297,7 @@ public class UserServiceImpl implements UserService {
             return ApiResponse.error(PasswordValidator.getRequirement());
         }
 
-        User user = userMapper.getByActive(User.builder().id(CurrentUserContext.userId()).build());
+        User user = userMapper.findByIdForUpdate(CurrentUserContext.userId());
         if (user == null) {
             return ApiResponse.error("用户不存在");
         }
@@ -286,7 +309,12 @@ public class UserServiceImpl implements UserService {
             return ApiResponse.error("原始密码验证失败");
         }
 
-        userMapper.update(User.builder().id(user.getId()).userPwd(encoder.encode(newPwd)).build());
+        if (userMapper.update(User.builder()
+                .id(user.getId())
+                .userPwd(encoder.encode(newPwd))
+                .build()) != 1) {
+            return ApiResponse.error("用户状态已变化，请刷新后重试");
+        }
         return ApiResponse.success("密码修改成功");
     }
 
@@ -337,7 +365,7 @@ public class UserServiceImpl implements UserService {
         if (!isAdminOrSuper(currentRoleId)) {
             return ApiResponse.error("无操作权限");
         }
-        User target = userMapper.getByActive(User.builder().id(dto.getId()).build());
+        User target = userMapper.findByIdForUpdate(dto.getId());
         if (target == null) {
             return ApiResponse.error("用户不存在");
         }
@@ -407,6 +435,10 @@ public class UserServiceImpl implements UserService {
         if (Boolean.TRUE.equals(dto.getIsLogin()) && targetIsSuperAdmin) {
             return ApiResponse.error("不能禁用超级管理员");
         }
+        String roleTransitionError = validateRoleTransition(target, roleAfterUpdate, roleChanged);
+        if (roleTransitionError != null) {
+            return ApiResponse.error(roleTransitionError);
+        }
         String invalidProfile = validateOptionalProfileFields(dto.getUserName(), dto.getUserEmail());
         if (invalidProfile != null) {
             return ApiResponse.error(invalidProfile);
@@ -430,7 +462,9 @@ public class UserServiceImpl implements UserService {
                 .isCoordinatorAdmin(coordinatorAdminUpdate)
                 .build();
         try {
-            userMapper.update(updateEntity);
+            if (userMapper.update(updateEntity) != 1) {
+                return ApiResponse.error("用户状态已变化，请刷新后重试");
+            }
         } catch (DuplicateKeyException e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error(duplicateUserMessage(e));
@@ -442,13 +476,12 @@ public class UserServiceImpl implements UserService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("头像文件无效或不属于当前用户");
         }
-        userAuthCache.evict(dto.getId());
+        if (isReaderRole(target.getUserRole())
+                && (Boolean.TRUE.equals(dto.getIsLogin()) || !isReaderRole(roleAfterUpdate))) {
+            releaseReaderReservations(target.getId());
+        }
         if (passwordResetRequested) {
-            loginAttemptService.loginSucceeded(target.getUserAccount());
-            if (dto.getUserAccount() != null
-                    && !Objects.equals(dto.getUserAccount(), target.getUserAccount())) {
-                loginAttemptService.loginSucceeded(dto.getUserAccount());
-            }
+            clearLoginAttemptsAfterCommit(target.getUserAccount(), dto.getUserAccount());
             operationAuditService.record("重置", "用户密码",
                     userIdentity(target) + "，密码已由超级管理员重置");
         }
@@ -461,14 +494,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public ApiResponse<List<MetricPoint>> queryByDays(Integer day) {
         PageQuery queryDto = AnalyticsTimeline.queryWindow(day);
-        UserPageQuery userPageQuery = new UserPageQuery();
-        userPageQuery.setStartTime(queryDto.getStartTime());
-        userPageQuery.setEndTime(queryDto.getEndTime());
-        List<User> userList = userMapper.query(userPageQuery);
-        List<LocalDateTime> createTimes = userList.stream()
-                .map(User::getCreateTime)
-                .collect(Collectors.toList());
-        return ApiResponse.success(AnalyticsTimeline.toDailyMetrics(day, createTimes));
+        return ApiResponse.success(AnalyticsTimeline.toDailyMetrics(
+                day,
+                userMapper.dailyCreateStats(queryDto.getStartTime(), queryDto.getEndTime())
+        ));
     }
 
     @Override
@@ -494,9 +523,13 @@ public class UserServiceImpl implements UserService {
             return ApiResponse.error(PasswordValidator.getRequirement());
         }
 
-        User user = userMapper.getByActive(User.builder().userAccount(account).build());
-        if (user == null) {
+        User snapshot = userMapper.getByActive(User.builder().userAccount(account).build());
+        if (snapshot == null) {
             return ApiResponse.error("账号不存在");
+        }
+        User user = userMapper.findByIdForUpdate(snapshot.getId());
+        if (user == null || !Objects.equals(user.getUserAccount(), account)) {
+            return ApiResponse.error("账号状态已变化，请重新提交");
         }
         if (user.getUserEmail() == null || !user.getUserEmail().equalsIgnoreCase(email)) {
             return ApiResponse.error("邮箱与账号不匹配");
@@ -505,8 +538,13 @@ public class UserServiceImpl implements UserService {
             return ApiResponse.error("验证码错误或已过期");
         }
 
-        userMapper.update(User.builder().id(user.getId()).userPwd(encoder.encode(newPwd)).build());
-        userAuthCache.evict(user.getId());
+        if (userMapper.update(User.builder()
+                .id(user.getId())
+                .userPwd(encoder.encode(newPwd))
+                .build()) != 1) {
+            return ApiResponse.error("用户状态已变化，请重新提交");
+        }
+        clearLoginAttemptsAfterCommit(user.getUserAccount());
         return ApiResponse.success("密码重置成功，请使用新密码登录");
     }
 
@@ -527,6 +565,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<String> freezeUser(Integer userId) {
         ApiResponse<User> checkResult = checkStatusChangePermission(userId, "冻结", true);
         if (checkResult.getCode() != 200) {
@@ -535,12 +574,16 @@ public class UserServiceImpl implements UserService {
         User target = checkResult.getData();
         boolean changed = !Objects.equals(target.getAccountStatus(), AccountStatus.FROZEN.code())
                 || !Boolean.TRUE.equals(target.getIsLogin());
-        userMapper.update(User.builder()
+        if (userMapper.update(User.builder()
                 .id(userId)
                 .isLogin(true)
                 .accountStatus(AccountStatus.FROZEN.code())
-                .build());
-        userAuthCache.evict(userId);
+                .build()) != 1) {
+            return ApiResponse.error("用户状态已变化，请刷新后重试");
+        }
+        if (isReaderRole(target.getUserRole())) {
+            releaseReaderReservations(target.getId());
+        }
         if (changed) {
             operationAuditService.record("修改", "用户状态",
                     userIdentity(target) + "，账号状态："
@@ -550,6 +593,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<String> unfreezeUser(Integer userId) {
         ApiResponse<User> checkResult = checkStatusChangePermission(userId, "解冻", false);
         if (checkResult.getCode() != 200) {
@@ -559,12 +603,13 @@ public class UserServiceImpl implements UserService {
         if (Objects.equals(target.getAccountStatus(), AccountStatus.CANCELLED.code())) {
             return ApiResponse.error("已注销账号不能解冻");
         }
-        userMapper.update(User.builder()
+        if (userMapper.update(User.builder()
                 .id(userId)
                 .isLogin(false)
                 .accountStatus(AccountStatus.NORMAL.code())
-                .build());
-        userAuthCache.evict(userId);
+                .build()) != 1) {
+            return ApiResponse.error("用户状态已变化，请刷新后重试");
+        }
         if (!Objects.equals(target.getAccountStatus(), AccountStatus.NORMAL.code())
                 || !Boolean.FALSE.equals(target.getIsLogin())) {
             operationAuditService.record("修改", "用户状态",
@@ -603,12 +648,13 @@ public class UserServiceImpl implements UserService {
             return ApiResponse.error("存在进行中的预约，不能注销账号");
         }
 
-        userMapper.update(User.builder()
+        if (userMapper.update(User.builder()
                 .id(userId)
                 .isLogin(true)
                 .accountStatus(AccountStatus.CANCELLED.code())
-                .build());
-        userAuthCache.evict(userId);
+                .build()) != 1) {
+            return ApiResponse.error("用户状态已变化，请刷新后重试");
+        }
         return ApiResponse.success("账号已注销");
     }
 
@@ -668,7 +714,9 @@ public class UserServiceImpl implements UserService {
                 .isWord(MuteStatus.ACTIVE.muted())
                 .build();
         try {
-            userMapper.insert(saveEntity);
+            if (userMapper.insert(saveEntity) != 1) {
+                return ApiResponse.error("用户创建失败，请重试");
+            }
         } catch (DuplicateKeyException e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error(duplicateUserMessage(e));
@@ -724,6 +772,44 @@ public class UserServiceImpl implements UserService {
         return Boolean.TRUE.equals(isLogin)
                 ? AccountStatus.FROZEN.code()
                 : AccountStatus.NORMAL.code();
+    }
+
+    private String validateRoleTransition(User target, Integer roleAfterUpdate, boolean roleChanged) {
+        if (!roleChanged) {
+            return null;
+        }
+        if (isReaderRole(target.getUserRole()) && !isReaderRole(roleAfterUpdate)) {
+            if (borrowRecordMapper.getActiveCountByUserId(target.getId()) > 0) {
+                return "用户仍有未归还图书，不能变更为非读者角色";
+            }
+            BigDecimal fineAmount = borrowRecordMapper.sumFineAmountByUserId(target.getId());
+            if (fineAmount != null && fineAmount.compareTo(BigDecimal.ZERO) > 0) {
+                return "用户仍有未处理罚款，不能变更为非读者角色";
+            }
+        }
+        if (procurementOrderMapper.countActiveByUserIds(List.of(target.getId())) > 0) {
+            return "用户仍参与进行中的采购单，不能变更角色";
+        }
+        return null;
+    }
+
+    private void releaseReaderReservations(Integer userId) {
+        List<Integer> bookIds = bookReservationMapper.findActiveBookIdsByUserId(userId);
+        if (bookIds.isEmpty()) {
+            return;
+        }
+        bookMapper.findByIdsForUpdate(bookIds);
+        if (bookReservationMapper.releaseActiveByUserId(userId) == 0) {
+            return;
+        }
+        TransactionCallbacks.afterCommit(() -> bookIds.forEach(bookId -> {
+            try {
+                reservationWorkflowService.onBookReturned(bookId);
+            } catch (Exception e) {
+                log.warn("用户状态变化后的预约递补失败，等待定时对账: userId={}, bookId={}, error={}",
+                        userId, bookId, e.getMessage());
+            }
+        }));
     }
 
     private void recordUserUpdateAudits(User target,
@@ -789,7 +875,7 @@ public class UserServiceImpl implements UserService {
         if (Objects.equals(targetUserId, currentUserId)) {
             return ApiResponse.error("不能" + actionName + "自己");
         }
-        User target = userMapper.getByActive(User.builder().id(targetUserId).build());
+        User target = userMapper.findByIdForUpdate(targetUserId);
         if (target == null) {
             return ApiResponse.error("用户不存在");
         }
@@ -888,6 +974,20 @@ public class UserServiceImpl implements UserService {
             return "用户名已经被使用，请换一个";
         }
         return "账号不可用";
+    }
+
+    private void clearLoginAttemptsAfterCommit(String... accounts) {
+        List<String> normalizedAccounts = java.util.Arrays.stream(accounts)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(account -> !account.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+        if (normalizedAccounts.isEmpty()) {
+            return;
+        }
+        TransactionCallbacks.afterCommit(() ->
+                normalizedAccounts.forEach(loginAttemptService::loginSucceeded));
     }
 
     private String trimToNull(String value) {

@@ -1,22 +1,21 @@
 package org.darkroomlibrary.mapper;
 
-import org.darkroomlibrary.web.dto.query.NoticePageQuery;
-import org.darkroomlibrary.domain.model.Notice;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.darkroomlibrary.domain.model.Notice;
+import org.darkroomlibrary.web.dto.query.NoticePageQuery;
 
 import java.util.List;
 
 @Mapper
 public interface NoticeMapper extends BaseMapper<Notice> {
 
-    default Notice getById(Integer id) { return selectById(id); }
-    default int update(Notice entity) { return updateById(entity); }
-    default int batchDelete(List<Integer> ids) { return deleteByIds(ids); }
-    default int save(Notice notice) { return insert(notice); }
+    Notice findByIdForUpdate(@Param("id") Integer id);
 
-    List<Notice> query(NoticePageQuery noticePageQuery);
+    List<Notice> findByIdsForUpdate(@Param("ids") List<Integer> ids);
 
-    Integer queryCount(NoticePageQuery noticePageQuery);
+    List<Notice> findPage(NoticePageQuery query);
+
+    Integer countMatching(NoticePageQuery query);
 }

@@ -72,6 +72,47 @@ async function assertToolbarBaseline(page) {
   }
 }
 
+async function assertInlineFilterToolbar(page, label) {
+  const scope = page.locator(".paper-workspace > .admin-table-page").last();
+  const date = scope.locator(".el-date-editor").last();
+  if ((await date.count()) !== 1) {
+    throw new Error(`${label} expected one date-to-action pair`);
+  }
+
+  const button = date.locator("xpath=following-sibling::button[1]");
+  const dateBox = await date.boundingBox();
+  const buttonBox = await button.boundingBox();
+  if (!dateBox || !buttonBox) {
+    throw new Error(`${label} date filter controls are not visible`);
+  }
+
+  const gap = buttonBox.x - (dateBox.x + dateBox.width);
+  if (Math.abs(dateBox.width - 220) > 1 || Math.abs(gap - 12) > 1) {
+    throw new Error(
+      `${label} date filter geometry is inconsistent: ${JSON.stringify({
+        width: dateBox.width,
+        gap,
+      })}`
+    );
+  }
+
+  const centerOffsets = await scope
+    .locator(".top-bar")
+    .evaluateAll((labels) =>
+      labels.map((item) => {
+        const control = item.nextElementSibling;
+        const labelBox = item.getBoundingClientRect();
+        const controlBox = control?.getBoundingClientRect();
+        return controlBox
+          ? labelBox.top + labelBox.height / 2 - (controlBox.top + controlBox.height / 2)
+          : 0;
+      })
+    );
+  if (centerOffsets.some((offset) => Math.abs(offset) > 1)) {
+    throw new Error(`${label} labels are not vertically centered: ${centerOffsets.join(", ")}`);
+  }
+}
+
 async function assertEditorDialog(page, {
   route,
   button,
@@ -297,6 +338,7 @@ try {
   await desktop.page.locator(".admin-table-page").waitFor();
   await waitForDeveloped(desktop.page);
   await assertNoHorizontalOverflow(desktop.page, "user management desktop");
+  await assertInlineFilterToolbar(desktop.page, "user management");
   await desktop.page.screenshot({
     path: `${outputDir}/user-manage-night.png`,
     fullPage: true,
@@ -393,6 +435,9 @@ try {
     await desktop.page.locator(".admin-shell").waitFor();
     await waitForDeveloped(desktop.page);
     await assertNoHorizontalOverflow(desktop.page, `${route} desktop`);
+    if (route === "/noticeManage" || route === "/operationLog") {
+      await assertInlineFilterToolbar(desktop.page, route);
+    }
   }
   await desktop.context.close();
 } finally {

@@ -1,10 +1,13 @@
 package org.darkroomlibrary.service.impl;
 
+import jakarta.annotation.Resource;
+import org.darkroomlibrary.infrastructure.cache.CacheService;
 import org.darkroomlibrary.service.CaptchaService;
-import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -14,6 +17,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CaptchaServiceImpl implements CaptchaService {
 
     private static final long CAPTCHA_EXPIRE_MS = 5 * 60 * 1000;
+    private static final Duration CAPTCHA_TTL = Duration.ofMillis(CAPTCHA_EXPIRE_MS);
+    private static final String CAPTCHA_PREFIX = "captcha:";
+
+    @Resource
+    private CacheService cacheService;
 
     private final Map<String, CaptchaEntry> captchaMap = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
@@ -41,7 +49,14 @@ public class CaptchaServiceImpl implements CaptchaService {
         }
 
         String captchaId = UUID.randomUUID().toString().replace("-", "");
-        captchaMap.put(captchaId, new CaptchaEntry(answer, System.currentTimeMillis() + CAPTCHA_EXPIRE_MS));
+        boolean storedInRedis = cacheService.setString(
+                CAPTCHA_PREFIX + captchaId,
+                String.valueOf(answer),
+                CAPTCHA_TTL
+        );
+        if (!storedInRedis) {
+            captchaMap.put(captchaId, new CaptchaEntry(answer, System.currentTimeMillis() + CAPTCHA_EXPIRE_MS));
+        }
 
         Map<String, String> result = new HashMap<>();
         result.put("captchaId", captchaId);
@@ -54,7 +69,17 @@ public class CaptchaServiceImpl implements CaptchaService {
         if (captchaId == null || captchaId.trim().isEmpty() || answer == null) {
             return false;
         }
-        CaptchaEntry entry = captchaMap.remove(captchaId);
+        String normalizedId = captchaId.trim();
+        var redisAnswer = cacheService.getAndDelete(CAPTCHA_PREFIX + normalizedId);
+        if (redisAnswer.isPresent()) {
+            captchaMap.remove(normalizedId);
+            try {
+                return Integer.parseInt(redisAnswer.get()) == answer;
+            } catch (NumberFormatException ignored) {
+                return false;
+            }
+        }
+        CaptchaEntry entry = captchaMap.remove(normalizedId);
         if (entry == null || System.currentTimeMillis() > entry.expireTime) {
             return false;
         }

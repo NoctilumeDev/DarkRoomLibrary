@@ -16,6 +16,7 @@ import org.darkroomlibrary.web.dto.command.ProcurementMessageDto;
 import org.darkroomlibrary.web.dto.command.ProcurementOrderCreateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementStatusUpdateDto;
 import org.darkroomlibrary.domain.type.UserRole;
+import org.darkroomlibrary.domain.type.AccountStatus;
 import org.darkroomlibrary.domain.model.Book;
 import org.darkroomlibrary.domain.model.ProcurementLogistics;
 import org.darkroomlibrary.domain.model.ProcurementMessage;
@@ -23,23 +24,34 @@ import org.darkroomlibrary.domain.model.ProcurementOrder;
 import org.darkroomlibrary.domain.model.User;
 import org.darkroomlibrary.web.view.ProcurementMessageView;
 import org.darkroomlibrary.web.view.ProcurementOrderView;
+import org.darkroomlibrary.web.view.OrderUnreadSummary;
 import org.darkroomlibrary.service.OperationAuditService;
 import org.darkroomlibrary.service.ProcurementService;
+import org.darkroomlibrary.service.ReservationWorkflowService;
 import org.darkroomlibrary.utils.ContentSanitizer;
+import org.darkroomlibrary.utils.TransactionCallbacks;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 采购协作服务实现
  */
 @Service
+@Slf4j
 public class ProcurementServiceImpl implements ProcurementService {
 
     private static final int ORDER_PENDING = 0;
@@ -77,6 +89,9 @@ public class ProcurementServiceImpl implements ProcurementService {
     @Resource
     private OperationAuditService operationAuditService;
 
+    @Resource
+    private ReservationWorkflowService reservationWorkflowService;
+
     @Override
     @Transactional
     public ApiResponse<Void> save(ProcurementOrderCreateDto dto) {
@@ -86,12 +101,21 @@ public class ProcurementServiceImpl implements ProcurementService {
         if (dto.getRequestCount() == null || dto.getRequestCount() <= 0) {
             return ApiResponse.error("采购数量必须大于0");
         }
-        Book book = bookMapper.getById(dto.getBookId());
+        Map<Integer, User> lockedUsers =
+                lockUsers(CurrentUserContext.userId(), dto.getPurchaserId());
+        User requester = lockedUsers.get(CurrentUserContext.userId());
+        if (!isCurrentUserStateValid(requester) || !isAdmin(requester.getUserRole())) {
+            return ApiResponse.error("当前账号状态不允许创建采购单");
+        }
+        User purchaser = dto.getPurchaserId() == null ? null : lockedUsers.get(dto.getPurchaserId());
+        if (dto.getPurchaserId() != null
+                && (!isActiveUser(purchaser)
+                || !Objects.equals(purchaser.getUserRole(), UserRole.ACQUISITIONS.code()))) {
+            return ApiResponse.error("只能指派采购员处理采购单");
+        }
+        Book book = bookMapper.findByIdForUpdate(dto.getBookId());
         if (book == null || Boolean.TRUE.equals(book.getIsDeleted())) {
             return ApiResponse.error("图书不存在");
-        }
-        if (dto.getPurchaserId() != null && !isUserRole(dto.getPurchaserId(), UserRole.ACQUISITIONS.code())) {
-            return ApiResponse.error("只能指派采购员处理采购单");
         }
         LocalDateTime now = LocalDateTime.now();
         ProcurementOrder order = ProcurementOrder.builder()
@@ -108,7 +132,9 @@ public class ProcurementServiceImpl implements ProcurementService {
                 .createTime(now)
                 .updateTime(now)
                 .build();
-        procurementOrderMapper.insert(order);
+        if (procurementOrderMapper.insert(order) != 1) {
+            return ApiResponse.error("采购单创建失败，请重试");
+        }
         operationAuditService.record("新增", "采购单",
                 orderIdentity(order) + "，创建采购单，申请说明=" + auditText(order.getRequestNote()));
         if (order.getPurchaserId() != null) {
@@ -121,6 +147,20 @@ public class ProcurementServiceImpl implements ProcurementService {
     @Override
     @Transactional
     public ApiResponse<Void> assignPurchaser(ProcurementAssignDto dto) {
+        if (dto == null || dto.getOrderId() == null || dto.getUserId() == null) {
+            return ApiResponse.error("请选择采购单和采购员");
+        }
+        Map<Integer, User> lockedUsers =
+                lockUsers(CurrentUserContext.userId(), dto.getUserId());
+        User actor = lockedUsers.get(CurrentUserContext.userId());
+        if (!isCurrentUserStateValid(actor) || !isAdmin(actor.getUserRole())) {
+            return ApiResponse.error("当前账号权限已变化，请刷新后重试");
+        }
+        User purchaser = lockedUsers.get(dto.getUserId());
+        if (!isActiveUser(purchaser)
+                || !Objects.equals(purchaser.getUserRole(), UserRole.ACQUISITIONS.code())) {
+            return ApiResponse.error("请选择有效采购员");
+        }
         ProcurementOrder order = requireOrderForUpdate(dto == null ? null : dto.getOrderId());
         if (order == null) {
             return ApiResponse.error("采购单不存在");
@@ -131,14 +171,13 @@ public class ProcurementServiceImpl implements ProcurementService {
         if (isFinalStatus(order.getStatus())) {
             return ApiResponse.error("已结束的采购单不能重新指派");
         }
-        if (dto.getUserId() == null || !isUserRole(dto.getUserId(), UserRole.ACQUISITIONS.code())) {
-            return ApiResponse.error("请选择有效采购员");
-        }
-        procurementOrderMapper.update(ProcurementOrder.builder()
+        if (procurementOrderMapper.update(ProcurementOrder.builder()
                 .id(order.getId())
                 .purchaserId(dto.getUserId())
                 .updateTime(LocalDateTime.now())
-                .build());
+                .build()) != 1) {
+            return stateChanged("采购单状态已变化，请刷新后重试");
+        }
         if (!Objects.equals(order.getPurchaserId(), dto.getUserId())) {
             operationAuditService.record("指派", "采购单",
                     orderIdentity(order) + "，采购员：" + userLabel(order.getPurchaserId())
@@ -150,6 +189,11 @@ public class ProcurementServiceImpl implements ProcurementService {
     @Override
     @Transactional
     public ApiResponse<Void> claim(Integer id) {
+        User currentUser = lockUser(CurrentUserContext.userId());
+        if (!isCurrentUserStateValid(currentUser)
+                || !Objects.equals(currentUser.getUserRole(), UserRole.ACQUISITIONS.code())) {
+            return ApiResponse.error("只有正常状态的采购员可以认领采购单");
+        }
         ProcurementOrder order = requireOrderForUpdate(id);
         if (order == null) {
             return ApiResponse.error("采购单不存在");
@@ -170,7 +214,9 @@ public class ProcurementServiceImpl implements ProcurementService {
                 .status(Math.max(order.getStatus(), ORDER_PURCHASING))
                 .updateTime(LocalDateTime.now())
                 .build();
-        procurementOrderMapper.update(update);
+        if (procurementOrderMapper.update(update) != 1) {
+            return stateChanged("采购单状态已变化，请刷新后重试");
+        }
         if (!Objects.equals(order.getPurchaserId(), currentUserId)
                 || order.getStatus() < ORDER_PURCHASING) {
             operationAuditService.record("认领", "采购单",
@@ -184,6 +230,10 @@ public class ProcurementServiceImpl implements ProcurementService {
     @Override
     @Transactional
     public ApiResponse<Void> updateStatus(ProcurementStatusUpdateDto dto) {
+        User currentUser = lockUser(CurrentUserContext.userId());
+        if (!isCurrentUserStateValid(currentUser)) {
+            return ApiResponse.error("当前账号状态不允许更新采购单");
+        }
         ProcurementOrder order = requireOrderForUpdate(dto == null ? null : dto.getId());
         if (order == null) {
             return ApiResponse.error("采购单不存在");
@@ -223,7 +273,9 @@ public class ProcurementServiceImpl implements ProcurementService {
             update.setPurchaserId(CurrentUserContext.userId());
         }
         fillStatusTime(update, targetStatus, now);
-        procurementOrderMapper.update(update);
+        if (procurementOrderMapper.update(update) != 1) {
+            return stateChanged("采购单状态已变化，请刷新后重试");
+        }
         if (update.getPurchaserId() != null) {
             operationAuditService.record("认领", "采购单",
                     orderIdentity(order) + "，认领人=" + userLabel(update.getPurchaserId())
@@ -242,6 +294,21 @@ public class ProcurementServiceImpl implements ProcurementService {
     @Override
     @Transactional
     public ApiResponse<Void> assignLogistics(ProcurementAssignDto dto) {
+        if (dto == null || dto.getOrderId() == null || dto.getUserId() == null) {
+            return ApiResponse.error("请选择采购单和物流员");
+        }
+        Map<Integer, User> lockedUsers =
+                lockUsers(CurrentUserContext.userId(), dto.getUserId());
+        User actor = lockedUsers.get(CurrentUserContext.userId());
+        if (!isCurrentUserStateValid(actor)
+                || (!isPurchaser(actor.getUserRole()) && !isSuperAdmin(actor.getUserRole()))) {
+            return ApiResponse.error("当前账号权限已变化，请刷新后重试");
+        }
+        User logisticsUser = lockedUsers.get(dto.getUserId());
+        if (!isActiveUser(logisticsUser)
+                || !Objects.equals(logisticsUser.getUserRole(), UserRole.LOGISTICS.code())) {
+            return ApiResponse.error("请选择有效物流员");
+        }
         ProcurementOrder order = requireOrderForUpdate(dto == null ? null : dto.getOrderId());
         if (order == null) {
             return ApiResponse.error("采购单不存在");
@@ -258,9 +325,6 @@ public class ProcurementServiceImpl implements ProcurementService {
         if (!isSuperAdmin(CurrentUserContext.roleCode()) && !canCurrentPurchaserHandle(order)) {
             return ApiResponse.error("只有负责该单的采购员可以分配物流");
         }
-        if (dto.getUserId() == null || !isUserRole(dto.getUserId(), UserRole.LOGISTICS.code())) {
-            return ApiResponse.error("请选择有效物流员");
-        }
         LocalDateTime now = LocalDateTime.now();
         ProcurementOrder update = ProcurementOrder.builder()
                 .id(order.getId())
@@ -270,21 +334,27 @@ public class ProcurementServiceImpl implements ProcurementService {
         if (isPurchaser(CurrentUserContext.roleCode()) && order.getPurchaserId() == null) {
             update.setPurchaserId(CurrentUserContext.userId());
         }
-        procurementOrderMapper.update(update);
+        if (procurementOrderMapper.update(update) != 1) {
+            return stateChanged("采购单状态已变化，请刷新后重试");
+        }
 
         ProcurementLogistics logistics = procurementLogisticsMapper.getByOrderId(order.getId());
         if (logistics == null) {
-            procurementLogisticsMapper.insert(ProcurementLogistics.builder()
+            if (procurementLogisticsMapper.insert(ProcurementLogistics.builder()
                     .orderId(order.getId())
                     .logisticsUserId(dto.getUserId())
                     .status(LOGISTICS_PENDING)
                     .createTime(now)
                     .updateTime(now)
-                    .build());
+                    .build()) != 1) {
+                return stateChanged("物流任务创建失败，请刷新后重试");
+            }
         } else {
             logistics.setLogisticsUserId(dto.getUserId());
             logistics.setUpdateTime(now);
-            procurementLogisticsMapper.updateById(logistics);
+            if (procurementLogisticsMapper.updateById(logistics) != 1) {
+                return stateChanged("物流任务状态已变化，请刷新后重试");
+            }
         }
         if (!Objects.equals(order.getLogisticsId(), dto.getUserId())) {
             operationAuditService.record("指派", "物流任务",
@@ -297,6 +367,10 @@ public class ProcurementServiceImpl implements ProcurementService {
     @Override
     @Transactional
     public ApiResponse<Void> updateLogistics(ProcurementLogisticsUpdateDto dto) {
+        User currentUser = lockUser(CurrentUserContext.userId());
+        if (!isCurrentUserStateValid(currentUser)) {
+            return ApiResponse.error("当前账号状态不允许更新物流进度");
+        }
         ProcurementOrder order = requireOrderForUpdate(dto == null ? null : dto.getOrderId());
         if (order == null) {
             return ApiResponse.error("采购单不存在");
@@ -323,27 +397,28 @@ public class ProcurementServiceImpl implements ProcurementService {
             return ApiResponse.error("请先分配物流员");
         }
         ProcurementLogistics logistics = procurementLogisticsMapper.getByOrderId(order.getId());
-        Integer previousLogisticsStatus = logistics == null ? LOGISTICS_PENDING : logistics.getStatus();
+        if (logistics == null) {
+            return ApiResponse.error("物流任务不存在，请重新分配物流员");
+        }
+        Integer previousLogisticsStatus = logistics.getStatus();
         if (!isAllowedLogisticsTransition(previousLogisticsStatus, targetStatus)) {
             return ApiResponse.error("物流状态流转不合法");
         }
         LocalDateTime now = LocalDateTime.now();
-        if (logistics == null) {
-            logistics = ProcurementLogistics.builder()
-                    .orderId(order.getId())
-                    .logisticsUserId(order.getLogisticsId())
-                    .createTime(now)
-                    .build();
-        }
         logistics.setStatus(targetStatus);
         logistics.setTrackingNo(cleanPlainText(dto.getTrackingNo()));
         logistics.setCarrier(cleanPlainText(dto.getCarrier()));
         logistics.setRemark(cleanPlainText(dto.getRemark()));
         logistics.setUpdateTime(now);
-        if (logistics.getId() == null) {
-            procurementLogisticsMapper.insert(logistics);
-        } else {
-            procurementLogisticsMapper.updateById(logistics);
+        if (procurementLogisticsMapper.updateById(ProcurementLogistics.builder()
+                .id(logistics.getId())
+                .status(logistics.getStatus())
+                .trackingNo(logistics.getTrackingNo())
+                .carrier(logistics.getCarrier())
+                .remark(logistics.getRemark())
+                .updateTime(logistics.getUpdateTime())
+                .build()) != 1) {
+            return stateChanged("物流任务状态已变化，请刷新后重试");
         }
 
         ProcurementOrder orderUpdate = ProcurementOrder.builder()
@@ -355,7 +430,9 @@ public class ProcurementServiceImpl implements ProcurementService {
             orderUpdate.setStatus(mappedOrderStatus);
             fillStatusTime(orderUpdate, mappedOrderStatus, now);
         }
-        procurementOrderMapper.update(orderUpdate);
+        if (procurementOrderMapper.update(orderUpdate) != 1) {
+            return stateChanged("采购单状态已变化，请刷新后重试");
+        }
 
         boolean stockApplied = false;
         if (targetStatus == LOGISTICS_WAREHOUSED) {
@@ -381,6 +458,7 @@ public class ProcurementServiceImpl implements ProcurementService {
             operationAuditService.record("库存补充", "图书库存",
                     orderIdentity(order) + "，库存增加=" + order.getRequestCount()
                             + "，stockApplied=false -> true");
+            notifyReservationsAfterCommit(order.getBookId());
         }
         return ApiResponse.success("物流进度已更新");
     }
@@ -401,16 +479,40 @@ public class ProcurementServiceImpl implements ProcurementService {
             dto.setRequesterId(userId);
         }
         List<ProcurementOrderView> list = procurementOrderMapper.query(dto);
+        Map<Integer, Integer> unreadCounts = unreadCountsByOrder(list, userId);
         for (ProcurementOrderView item : list) {
             item.setRequestNote(cleanPlainText(item.getRequestNote()));
             item.setPurchaseNote(cleanPlainText(item.getPurchaseNote()));
             item.setTrackingNo(cleanPlainText(item.getTrackingNo()));
             item.setCarrier(cleanPlainText(item.getCarrier()));
             item.setLogisticsRemark(cleanPlainText(item.getLogisticsRemark()));
-            item.setUnreadCount(procurementMessageMapper.countUnread(CurrentUserContext.userId(), item.getId(), null));
+            item.setUnreadCount(unreadCounts.getOrDefault(item.getId(), 0));
         }
         Integer total = procurementOrderMapper.queryCount(dto);
         return PageResponse.success(list, total);
+    }
+
+    private Map<Integer, Integer> unreadCountsByOrder(List<ProcurementOrderView> orders, Integer userId) {
+        if (orders == null || orders.isEmpty() || userId == null) {
+            return Collections.emptyMap();
+        }
+        List<Integer> orderIds = orders.stream()
+                .map(ProcurementOrderView::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (orderIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<OrderUnreadSummary> summaries =
+                procurementMessageMapper.countUnreadByOrderIds(userId, orderIds);
+        if (summaries == null || summaries.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return summaries.stream().collect(Collectors.toMap(
+                OrderUnreadSummary::getOrderId,
+                summary -> summary.getUnreadCount() == null ? 0 : summary.getUnreadCount(),
+                Integer::sum,
+                LinkedHashMap::new));
     }
 
     @Override
@@ -427,6 +529,19 @@ public class ProcurementServiceImpl implements ProcurementService {
     @Override
     @Transactional
     public ApiResponse<Void> sendMessage(ProcurementMessageDto dto) {
+        if (dto == null || dto.getOrderId() == null || dto.getReceiverId() == null) {
+            return ApiResponse.error("采购单、接收人和消息内容不能为空");
+        }
+        Map<Integer, User> lockedUsers =
+                lockUsers(CurrentUserContext.userId(), dto.getReceiverId());
+        User sender = lockedUsers.get(CurrentUserContext.userId());
+        User receiver = lockedUsers.get(dto.getReceiverId());
+        if (!isCurrentUserStateValid(sender)) {
+            return ApiResponse.error("当前账号状态不允许发送协作消息");
+        }
+        if (!isActiveUser(receiver)) {
+            return ApiResponse.error("接收人不存在或账号不可用");
+        }
         ProcurementOrder order = requireOrderForUpdate(dto == null ? null : dto.getOrderId());
         if (order == null) {
             return ApiResponse.error("采购单不存在");
@@ -436,28 +551,26 @@ public class ProcurementServiceImpl implements ProcurementService {
             return ApiResponse.error("消息内容不能超过1000个字符");
         }
         String cleanContent = ContentSanitizer.plainText(dto.getContent());
-        if (dto.getReceiverId() == null || cleanContent == null || cleanContent.isEmpty()) {
+        if (cleanContent == null || cleanContent.isEmpty()) {
             return ApiResponse.error("接收人和消息内容不能为空");
         }
-        User receiver = userMapper.getById(dto.getReceiverId());
-        if (receiver == null) {
-            return ApiResponse.error("接收人不存在");
-        }
-        String channelError = validateMessageChannel(order, dto.getChannelType(), CurrentUserContext.userId(),
-                CurrentUserContext.roleCode(), receiver.getId(), receiver.getUserRole());
+        String channelError = validateMessageChannel(order, dto.getChannelType(), sender.getId(),
+                sender.getUserRole(), receiver.getId(), receiver.getUserRole());
         if (channelError != null) {
             return ApiResponse.error(channelError);
         }
         ProcurementMessage message = ProcurementMessage.builder()
                 .orderId(order.getId())
                 .channelType(dto.getChannelType())
-                .senderId(CurrentUserContext.userId())
+                .senderId(sender.getId())
                 .receiverId(receiver.getId())
                 .content(cleanContent)
                 .readStatus(false)
                 .createTime(LocalDateTime.now())
                 .build();
-        procurementMessageMapper.insert(message);
+        if (procurementMessageMapper.insert(message) != 1) {
+            return stateChanged("消息发送失败，请重试");
+        }
         return ApiResponse.success("消息已发送");
     }
 
@@ -510,6 +623,13 @@ public class ProcurementServiceImpl implements ProcurementService {
 
     private ProcurementOrder requireOrderForUpdate(Integer id) {
         return id == null ? null : procurementOrderMapper.findByIdForUpdate(id);
+    }
+
+    private <T> ApiResponse<T> stateChanged(String message) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+        }
+        return ApiResponse.error(message);
     }
 
     private boolean canCurrentPurchaserHandle(ProcurementOrder order) {
@@ -638,9 +758,36 @@ public class ProcurementServiceImpl implements ProcurementService {
         return "消息通道不正确";
     }
 
-    private boolean isUserRole(Integer userId, Integer role) {
-        User user = userMapper.getById(userId);
-        return user != null && Objects.equals(user.getUserRole(), role);
+    private User lockUser(Integer userId) {
+        return userId == null ? null : userMapper.findByIdForUpdate(userId);
+    }
+
+    private Map<Integer, User> lockUsers(Integer... userIds) {
+        List<Integer> ids = new ArrayList<>();
+        if (userIds != null) {
+            for (Integer userId : userIds) {
+                if (userId != null && !ids.contains(userId)) {
+                    ids.add(userId);
+                }
+            }
+        }
+        Collections.sort(ids);
+        Map<Integer, User> users = new LinkedHashMap<>();
+        for (Integer userId : ids) {
+            users.put(userId, userMapper.findByIdForUpdate(userId));
+        }
+        return users;
+    }
+
+    private boolean isActiveUser(User user) {
+        return user != null
+                && Objects.equals(user.getAccountStatus(), AccountStatus.NORMAL.code())
+                && !Boolean.TRUE.equals(user.getIsLogin());
+    }
+
+    private boolean isCurrentUserStateValid(User user) {
+        return isActiveUser(user)
+                && Objects.equals(user.getUserRole(), CurrentUserContext.roleCode());
     }
 
     private boolean canCurrentAdminAccess(ProcurementOrder order) {
@@ -766,5 +913,17 @@ public class ProcurementServiceImpl implements ProcurementService {
 
     private String cleanPlainText(String value) {
         return trimToNull(ContentSanitizer.plainText(value));
+    }
+
+    private void notifyReservationsAfterCommit(Integer bookId) {
+        Runnable notification = () -> {
+            try {
+                reservationWorkflowService.onBookReturned(bookId);
+            } catch (Exception e) {
+                log.warn("采购入库后的预约通知失败，等待定时对账: bookId={}, error={}",
+                        bookId, e.getMessage());
+            }
+        };
+        TransactionCallbacks.afterCommit(notification);
     }
 }

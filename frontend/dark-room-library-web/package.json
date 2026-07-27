@@ -14,6 +14,7 @@
     "test:e2e:admin": "node tests/e2e/admin-smoke.mjs",
     "test:e2e:staff": "node tests/e2e/staff-smoke.mjs",
     "test:e2e:concurrency": "node tests/e2e/concurrency-consistency.mjs",
+    "test:e2e:multi-instance": "node tests/e2e/multi-instance-consistency.mjs",
     "test:e2e:diagnostics": "node tests/e2e/browser-diagnostics.mjs",
     "test:e2e:full": "node tests/e2e/full-workflow.mjs"
   },

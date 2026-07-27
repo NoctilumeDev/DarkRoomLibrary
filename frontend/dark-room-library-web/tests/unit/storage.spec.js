@@ -55,6 +55,14 @@ describe("storage", () => {
     expect(getUserProfile()).toEqual(profile);
   });
 
+  it("resolves the role from the token before auth profile hydration", async () => {
+    const { getSessionUserRole } = await import("../../src/utils/storage.js");
+    const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+    setToken(`${encode({ alg: "none", typ: "JWT" })}.${encode({ role: 0 })}.test`);
+
+    expect(getSessionUserRole()).toBe(0);
+  });
+
   it("discards malformed profile data", () => {
     sessionStorage.setItem("userInfo", "{broken");
 

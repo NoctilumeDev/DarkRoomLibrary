@@ -84,7 +84,9 @@ public class MessageBoardServiceImpl implements MessageBoardService {
         messageBoard.setContent(hasContent ? cleanContent : "");
         messageBoard.setReply(null);
         messageBoard.setCreateTime(LocalDateTime.now());
-        messageBoardMapper.insert(messageBoard);
+        if (messageBoardMapper.insert(messageBoard) != 1) {
+            return ApiResponse.error("留言失败，请重试");
+        }
         if (hasAttachment) {
             if (!fileStorageService.bindSingle(
                     messageBoard.getAttachmentUrl(), FileReferenceType.MESSAGE_ATTACHMENT, messageBoard.getId())) {
@@ -92,10 +94,13 @@ public class MessageBoardServiceImpl implements MessageBoardService {
                 return ApiResponse.error("附件文件无效或不属于当前用户");
             }
             String downloadUrl = fileStorageService.toDownloadUrl(messageBoard.getAttachmentUrl());
-            messageBoardMapper.update(MessageBoard.builder()
+            if (messageBoardMapper.update(MessageBoard.builder()
                     .id(messageBoard.getId())
                     .attachmentUrl(downloadUrl)
-                    .build());
+                    .build()) == 0) {
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                return ApiResponse.error("留言状态已变化，请重试");
+            }
             messageBoard.setAttachmentUrl(downloadUrl);
         }
         return ApiResponse.success("留言成功");
@@ -108,18 +113,27 @@ public class MessageBoardServiceImpl implements MessageBoardService {
         if (normalizedIds.isEmpty()) {
             return ApiResponse.error("请选择要删除的留言");
         }
+        if (IdListUtils.exceedsBatchLimit(normalizedIds)) {
+            return ApiResponse.error("单次最多删除" + IdListUtils.MAX_BATCH_SIZE + "条留言");
+        }
+        List<MessageBoard> messages = messageBoardMapper.findByIdsForUpdate(normalizedIds);
+        if (messages.size() != normalizedIds.size()) {
+            return ApiResponse.error("部分留言不存在");
+        }
         // 非管理员只能删除自己的留言
         if (!CurrentUserContext.isAdministrator()) {
             Integer currentUserId = CurrentUserContext.userId();
-            for (Integer id : normalizedIds) {
-                MessageBoard msg = messageBoardMapper.getById(id);
-                if (msg == null || !Objects.equals(msg.getUserId(), currentUserId)) {
+            for (MessageBoard message : messages) {
+                if (!Objects.equals(message.getUserId(), currentUserId)) {
                     return ApiResponse.error("只能删除自己的留言");
                 }
             }
         }
         fileStorageService.releaseReferences(FileReferenceType.MESSAGE_ATTACHMENT, normalizedIds);
-        messageBoardMapper.batchDelete(normalizedIds);
+        if (messageBoardMapper.batchDelete(normalizedIds) != normalizedIds.size()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ApiResponse.error("留言状态已变化，请刷新后重试");
+        }
         return ApiResponse.success("删除留言成功");
     }
 
@@ -144,8 +158,9 @@ public class MessageBoardServiceImpl implements MessageBoardService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<Void> reply(Integer id, String reply) {
-        MessageBoard msg = messageBoardMapper.getById(id);
+        MessageBoard msg = id == null ? null : messageBoardMapper.findByIdForUpdate(id);
         if (msg == null) {
             return ApiResponse.error("留言不存在");
         }
@@ -156,7 +171,9 @@ public class MessageBoardServiceImpl implements MessageBoardService {
         if (cleanReply == null || cleanReply.isEmpty()) {
             return ApiResponse.error("回复内容不能为空");
         }
-        messageBoardMapper.update(MessageBoard.builder().id(id).reply(cleanReply).build());
+        if (messageBoardMapper.update(MessageBoard.builder().id(id).reply(cleanReply).build()) == 0) {
+            return ApiResponse.error("留言状态已变化，请刷新后重试");
+        }
         return ApiResponse.success("回复成功");
     }
 }

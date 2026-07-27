@@ -14,7 +14,7 @@ public class BookReturnedConsumer {
     @Resource
     private ReservationWorkflowService reservationWorkflowService;
 
-    @RabbitListener(queues = "book.manage.book-returned")
+    @RabbitListener(queues = "${middleware.rabbit.book-returned-queue:dark.room.library.book-returned}")
     public void consume(Integer bookId) {
         reservationWorkflowService.onBookReturned(bookId);
     }

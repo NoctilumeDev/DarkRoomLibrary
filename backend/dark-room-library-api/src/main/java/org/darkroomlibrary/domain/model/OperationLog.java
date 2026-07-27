@@ -24,6 +24,10 @@ public class OperationLog {
     @TableId(type = IdType.AUTO)
     private Integer id;
     /**
+     * 审计记录幂等键
+     */
+    private String eventKey;
+    /**
      * 操作用户ID
      */
     private Integer userId;

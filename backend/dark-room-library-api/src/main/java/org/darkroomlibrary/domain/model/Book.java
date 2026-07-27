@@ -1,6 +1,7 @@
 package org.darkroomlibrary.domain.model;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,10 @@ public class Book {
      */
     @TableId(type = IdType.AUTO)
     private Integer id;
+    /**
+     * 图书行版本。管理端编辑携带该值，避免旧表单覆盖并发修改。
+     */
+    private Integer version;
     /**
      * 图书名称
      */
@@ -62,6 +67,16 @@ public class Book {
      * 可借数量
      */
     private Integer availableCount;
+    /**
+     * 编辑表单加载时的总库存快照，用于阻止旧表单覆盖并发库存变化。
+     */
+    @TableField(exist = false)
+    private Integer originalTotalCount;
+    /**
+     * 编辑表单加载时的可借库存快照，用于阻止旧表单覆盖并发库存变化。
+     */
+    @TableField(exist = false)
+    private Integer originalAvailableCount;
     /**
      * 封面
      */

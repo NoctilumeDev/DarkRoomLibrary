@@ -9,6 +9,7 @@ import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
 import org.darkroomlibrary.web.dto.query.BookReservationPageQuery;
 import org.darkroomlibrary.domain.type.AccountStatus;
+import org.darkroomlibrary.domain.type.UserRole;
 import org.darkroomlibrary.domain.model.Book;
 import org.darkroomlibrary.domain.model.BookReservation;
 import org.darkroomlibrary.domain.model.User;
@@ -59,7 +60,9 @@ public class BookReservationServiceImpl implements BookReservationService {
             return ApiResponse.error("当前用户不存在或已被删除");
         }
         if (!java.util.Objects.equals(user.getAccountStatus(), AccountStatus.NORMAL.code())
-                || Boolean.TRUE.equals(user.getIsLogin())) {
+                || Boolean.TRUE.equals(user.getIsLogin())
+                || !java.util.Objects.equals(user.getUserRole(), CurrentUserContext.roleCode())
+                || !java.util.Objects.equals(user.getUserRole(), UserRole.READER.code())) {
             return ApiResponse.error("当前账号状态不允许预约");
         }
         int activeCount = bookReservationMapper.countActiveByUserId(userId);

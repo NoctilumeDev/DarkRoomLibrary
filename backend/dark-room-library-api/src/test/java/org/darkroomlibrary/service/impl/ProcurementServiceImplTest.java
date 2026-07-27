@@ -516,7 +516,7 @@ public class ProcurementServiceImplTest extends BaseTest {
                 .userAccount(account)
                 .userName(userName)
                 .userPwd(encodePassword("Test@123456"))
-                .userEmail(account + "@library.com")
+                .userEmail(account + "@example.test")
                 .userRole(role)
                 .isCoordinatorAdmin(false)
                 .isLogin(LoginStatus.ACTIVE.disabled())

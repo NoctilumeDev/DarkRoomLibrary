@@ -26,6 +26,25 @@ public class HybridLoginAttemptStore implements LoginAttemptStore {
     public void loginFailed(String account, int maxFailAttempts, int lockDurationMinutes) {
         long now = System.currentTimeMillis();
         long lockMillis = lockDurationMinutes * 60L * 1000;
+        Optional<Long> redisCount = cacheService.increment(
+                COUNT_PREFIX + account,
+                Duration.ofMillis(lockMillis)
+        );
+        if (redisCount.isPresent()) {
+            attemptMap.remove(account);
+            if (redisCount.get() >= maxFailAttempts) {
+                boolean stored = cacheService.setString(
+                        LOCK_PREFIX + account,
+                        String.valueOf(now + lockMillis),
+                        Duration.ofMillis(lockMillis));
+                if (!stored) {
+                    lockLocally(account, maxFailAttempts, now, lockMillis);
+                }
+                log.warn("账户 {} 已被锁定，失败次数: {}", account, redisCount.get());
+            }
+            return;
+        }
+
         AttemptEntry entry = attemptMap.computeIfAbsent(account, k -> new AttemptEntry());
         synchronized (entry) {
             if (entry.lastFailTime > 0 && now - entry.lastFailTime > lockMillis) {
@@ -39,15 +58,7 @@ public class HybridLoginAttemptStore implements LoginAttemptStore {
                 entry.lockedUntil = now + lockMillis;
             }
         }
-
-        Optional<Long> redisCount = cacheService.increment(
-                COUNT_PREFIX + account,
-                Duration.ofMillis(lockMillis)
-        );
-        if (redisCount.isPresent() && redisCount.get() >= maxFailAttempts) {
-            cacheService.setString(LOCK_PREFIX + account, String.valueOf(now + lockMillis), Duration.ofMillis(lockMillis));
-            log.warn("账户 {} 已被锁定，失败次数: {}", account, redisCount.get());
-        } else if (entry.failCount >= maxFailAttempts) {
+        if (entry.failCount >= maxFailAttempts) {
             log.warn("账户 {} 已被锁定，失败次数: {}", account, entry.failCount);
         }
     }
@@ -106,6 +117,16 @@ public class HybridLoginAttemptStore implements LoginAttemptStore {
         }
         AttemptEntry entry = attemptMap.get(account);
         return entry == null ? null : entry.lockedUntil;
+    }
+
+    private void lockLocally(String account, int failCount, long now, long lockMillis) {
+        AttemptEntry entry = attemptMap.computeIfAbsent(account, k -> new AttemptEntry());
+        synchronized (entry) {
+            entry.failCount = failCount;
+            entry.lastFailTime = now;
+            entry.expireAfterMillis = lockMillis;
+            entry.lockedUntil = now + lockMillis;
+        }
     }
 
     private static class AttemptEntry {

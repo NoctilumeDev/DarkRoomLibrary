@@ -2,49 +2,70 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.darkroomlibrary.mapper.NoticeMapper">
 
-    <!-- ==================== 公共 SQL 片段 ==================== -->
-    <sql id="queryWhere">
+    <sql id="noticeFilters">
         <if test="name != null and name != ''">
-            AND n.name LIKE concat('%',#{name},'%')
+            AND announcement.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="content != null and content != ''">
+            AND announcement.content LIKE CONCAT('%', #{content}, '%')
         </if>
         <if test="startTime != null and endTime != null">
-            AND n.create_time BETWEEN #{startTime} AND #{endTime}
+            AND announcement.create_time BETWEEN #{startTime} AND #{endTime}
         </if>
     </sql>
 
-    <!-- ==================== 写入操作 ==================== -->
-    <insert id="save">
-        INSERT INTO notice (name, content, create_time)
-        VALUES (#{name}, #{content}, #{createTime})
-    </insert>
+    <select id="findByIdForUpdate" resultMap="noticeResult">
+        SELECT announcement.id,
+               announcement.name,
+               announcement.content,
+               announcement.create_time
+        FROM notice AS announcement
+        WHERE announcement.id = #{id}
+        FOR UPDATE
+    </select>
 
-    <!-- ==================== 查询操作 ==================== -->
-    <select id="query" resultMap="BaseResultMap">
-        SELECT n.*
-        FROM notice n
+    <select id="findByIdsForUpdate" resultMap="noticeResult">
+        SELECT announcement.id,
+               announcement.name,
+               announcement.content,
+               announcement.create_time
+        FROM notice AS announcement
+        WHERE announcement.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY announcement.id
+        FOR UPDATE
+    </select>
+
+    <select id="findPage" resultMap="noticeResult">
+        SELECT
+            announcement.id,
+            announcement.name,
+            announcement.content,
+            announcement.create_time
+        FROM notice AS announcement
         <where>
-            <include refid="queryWhere"/>
+            <include refid="noticeFilters"/>
         </where>
-        ORDER BY n.create_time DESC
+        ORDER BY announcement.create_time DESC, announcement.id DESC
         <if test="current != null and size != null">
             LIMIT #{size} OFFSET #{current}
         </if>
     </select>
 
-    <select id="queryCount" resultType="integer">
+    <select id="countMatching" resultType="integer">
         SELECT COUNT(*)
-        FROM notice n
+        FROM notice AS announcement
         <where>
-            <include refid="queryWhere"/>
+            <include refid="noticeFilters"/>
         </where>
     </select>
 
-    <!-- ==================== 结果映射 ==================== -->
-    <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.Notice">
+    <resultMap id="noticeResult" type="org.darkroomlibrary.domain.model.Notice">
         <id column="id" property="id"/>
         <result column="name" property="name"/>
         <result column="content" property="content"/>
         <result column="create_time" property="createTime"/>
     </resultMap>
-
 </mapper>

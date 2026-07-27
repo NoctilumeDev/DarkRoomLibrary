@@ -10,6 +10,31 @@
     </sql>
 
     <!-- ==================== 查询操作 ==================== -->
+    <select id="findByIdForUpdate" resultMap="BaseResultMap">
+        SELECT c.*
+        FROM category c
+        WHERE c.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="findByNameForUpdate" resultMap="BaseResultMap">
+        SELECT c.*
+        FROM category c
+        WHERE c.name = #{name}
+        FOR UPDATE
+    </select>
+
+    <select id="findByIdsForUpdate" resultMap="BaseResultMap">
+        SELECT c.*
+        FROM category c
+        WHERE c.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY c.id ASC
+        FOR UPDATE
+    </select>
+
     <select id="query" resultMap="BaseResultMap">
         SELECT c.*
         FROM category c

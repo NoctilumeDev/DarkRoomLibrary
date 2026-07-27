@@ -1,8 +1,8 @@
 $compact-action-height: 25px;
-$compact-action-radius: 3px;
+$compact-action-radius: var(--radius-compact, 3px);
 $compact-action-padding: 2px 15px;
 $compact-action-font-size: 12px;
-$light-action-text: #1c1c1c;
+$light-action-text: var(--admin-ink-soft, var(--paper-ink-soft, #465251));
 
 @mixin compact-action($background, $color) {
   display: inline-block;
@@ -18,36 +18,40 @@ $light-action-text: #1c1c1c;
 }
 
 .edit-button {
-  @include compact-action(rgb(56, 183, 129), #fff);
+  @include compact-action(var(--admin-jade-solid, var(--jade, #42645d)), #fffdf7);
   margin-right: 6px;
 
   &:hover {
-    color: #fff;
-    background-color: rgb(25, 136, 88);
+    color: #fffdf7;
+    background-color: var(--admin-jade, var(--jade, #58776d));
   }
 }
 
 .channel-button {
-  @include compact-action(rgb(245, 245, 245), $light-action-text);
+  @include compact-action(var(--admin-paper-wash, var(--paper-soft, #e4e5e1)), $light-action-text);
   margin: 0 10px;
 
   &:hover {
-    color: #304a99;
+    color: var(--admin-seal, var(--seal, #91483e));
   }
 }
 
 .text-button {
   margin-right: 10px;
-  color: rgb(43, 121, 203);
+  color: var(--admin-jade, var(--jade, #58776d));
   cursor: pointer;
+
+  &:hover {
+    color: var(--admin-seal, var(--seal, #91483e));
+  }
 }
 
 .delete-button {
-  @include compact-action(rgb(241, 241, 241), $light-action-text);
+  @include compact-action(var(--admin-paper-wash, var(--paper-soft, #e4e5e1)), $light-action-text);
 
   &:hover {
-    color: #fff;
-    background-color: rgb(167, 83, 90);
+    color: #fffdf7;
+    background-color: var(--admin-danger-solid, var(--seal, #91483e));
     font-size: $compact-action-font-size;
   }
 }

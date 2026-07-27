@@ -21,5 +21,9 @@ public interface ProcurementOrderMapper extends BaseMapper<ProcurementOrder> {
 
     Integer queryCount(ProcurementOrderPageQuery dto);
 
+    int countActiveByBookIds(@Param("bookIds") List<Integer> bookIds);
+
+    int countActiveByUserIds(@Param("userIds") List<Integer> userIds);
+
     int markStockApplied(@Param("id") Integer id);
 }

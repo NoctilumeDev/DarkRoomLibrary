@@ -6,42 +6,45 @@
     <title>暗室藏书 - 功能模块图</title>
     <style>
         :root {
-            --bg: #f0f4f8;
-            --card-bg: #ffffff;
-            --root-bg: #1a2332;
-            --root-text: #ffffff;
-            --auth-color: #4A90D9;
-            --auth-light: #e8f1fb;
-            --auth-border: #b8d4f0;
-            --reader-color: #27AE60;
-            --reader-light: #eafaf1;
-            --reader-border: #a3e4bc;
-            --admin-color: #E67E22;
-            --admin-light: #fef5ec;
-            --admin-border: #f5cba7;
-            --procurement-color: #B7791F;
-            --procurement-light: #fff8e8;
-            --procurement-border: #f1d393;
-            --support-color: #8E44AD;
-            --support-light: #f7f0fa;
-            --support-border: #d7bde2;
-            --workflow-color: #C0392B;
-            --workflow-light: #fff0ee;
-            --workflow-border: #f0b7ad;
-            --data-color: #16A085;
-            --data-light: #e8f8f5;
-            --data-border: #a3e4d7;
-            --connector-line: #b0bec5;
-            --text-primary: #2c3e50;
-            --text-secondary: #4a5568;
-            --text-tertiary: #5a6c7d;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.05);
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 16px;
-            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg: #d8dcde;
+            --bg-deep: #e8e6e0;
+            --card-bg: #f1eee7;
+            --card-raised: #f7f4ed;
+            --root-bg: #252b2c;
+            --root-text: #ece5d8;
+            --auth-color: #607982;
+            --auth-light: #e6e9e8;
+            --auth-border: #aebbc0;
+            --reader-color: #55766f;
+            --reader-light: #e4e9e6;
+            --reader-border: #a9bab5;
+            --admin-color: #99463c;
+            --admin-light: #eee3df;
+            --admin-border: #c9a39c;
+            --procurement-color: #80623a;
+            --procurement-light: #ece7dc;
+            --procurement-border: #c7b693;
+            --support-color: #68716f;
+            --support-light: #e7e9e7;
+            --support-border: #b5bdbb;
+            --workflow-color: #7d4a43;
+            --workflow-light: #ebe2df;
+            --workflow-border: #c5a7a2;
+            --data-color: #42645d;
+            --data-light: #e1e7e4;
+            --data-border: #9fb3ad;
+            --connector-line: rgba(48, 60, 60, 0.27);
+            --text-primary: #252b2c;
+            --text-secondary: #465251;
+            --text-tertiary: #66706e;
+            --seal: #99463c;
+            --gold: #71562e;
+            --line: rgba(48, 60, 60, 0.12);
+            --line-strong: rgba(48, 60, 60, 0.21);
+            --shadow-lg: 0 18px 46px rgba(38, 44, 45, 0.14);
+            --radius-sm: 2px;
+            --radius-lg: 3px;
+            --transition: 0.28s cubic-bezier(0.2, 0.72, 0.24, 1);
         }
 
         * {
@@ -51,67 +54,89 @@
         }
 
         body {
-            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
-            background: var(--bg);
+            position: relative;
+            isolation: isolate;
+            font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+            color: var(--text-primary);
+            background:
+                radial-gradient(ellipse at 12% 4%, rgba(255, 255, 255, 0.62), transparent 32%),
+                radial-gradient(ellipse at 88% 15%, rgba(96, 121, 130, 0.12), transparent 35%),
+                linear-gradient(180deg, var(--bg) 0%, #e4e4e1 48%, var(--bg-deep) 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            padding: 30px 20px 60px;
+            padding: 28px 18px 58px;
             -webkit-font-smoothing: antialiased;
         }
 
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.42;
+            background:
+                repeating-linear-gradient(90deg, transparent 0 92px, rgba(46, 54, 55, 0.018) 92px 93px),
+                repeating-linear-gradient(0deg, transparent 0 118px, rgba(46, 54, 55, 0.014) 118px 119px),
+                radial-gradient(circle at 24% 31%, rgba(31, 37, 38, 0.035) 0 .7px, transparent .9px);
+            background-size: auto, auto, 5px 5px;
+        }
+
         .diagram-wrapper {
+            position: relative;
             width: 100%;
-            max-width: 1740px;
+            max-width: 1780px;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0;
+            padding: 34px clamp(16px, 2vw, 30px) 30px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background:
+                radial-gradient(ellipse at 11% 8%, rgba(255, 255, 255, .58), transparent 26%),
+                radial-gradient(ellipse at 86% 76%, rgba(85, 118, 111, .025), transparent 24%),
+                repeating-linear-gradient(91deg, transparent 0 4px, rgba(80, 62, 38, .012) 4px 5px),
+                var(--card-bg);
+            box-shadow: 0 24px 70px rgba(38, 44, 45, .14), inset 0 0 48px rgba(73, 56, 35, .025);
         }
 
         .baseline-note {
             width: min(100%, 1180px);
-            margin-top: 26px;
-            padding-top: 18px;
-            border-top: 1px solid rgba(44, 62, 80, 0.16);
+            margin-top: 28px;
+            padding: 18px 24px 0;
+            border-top: 1px solid var(--line-strong);
             color: var(--text-tertiary);
-            font-size: 13px;
-            line-height: 1.7;
+            font-size: 12px;
+            line-height: 1.8;
+            letter-spacing: .03em;
             text-align: center;
         }
 
         /* ========== 标题 ========== */
         .page-title {
-            font-size: 26px;
-            font-weight: 700;
-            color: #1a2332;
-            margin-bottom: 28px;
-            letter-spacing: 0.5px;
+            font-size: clamp(26px, 2.4vw, 38px);
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 26px;
+            letter-spacing: .12em;
             text-align: center;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 16px;
         }
         .page-title::before,
         .page-title::after {
             content: '';
             display: inline-block;
-            width: 32px;
-            height: 3px;
-            border-radius: 2px;
-            background: linear-gradient(90deg, #4A90D9, #27AE60, #E67E22, #8E44AD, #16A085);
-            background-size: 200% 100%;
-            animation: titleLine 3s ease-in-out infinite;
+            width: 44px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--seal), var(--gold));
         }
-        @keyframes titleLine {
-            0%,
-            100% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
+        .page-title::after {
+            transform: scaleX(-1);
         }
 
         /* ========== 根节点 ========== */
@@ -121,23 +146,38 @@
             margin-bottom: 0;
         }
         .root-node {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
             background: var(--root-bg);
             color: var(--root-text);
-            font-size: 19px;
-            font-weight: 700;
-            padding: 14px 36px;
-            border-radius: 30px;
-            letter-spacing: 1px;
-            box-shadow: var(--shadow-lg), 0 0 0 6px rgba(26, 35, 50, 0.08);
+            font-size: 18px;
+            font-weight: 500;
+            padding: 12px 25px 12px 14px;
+            border: 1px solid rgba(113, 86, 46, .46);
+            border-radius: 2px;
+            letter-spacing: .12em;
+            box-shadow: var(--shadow-lg), 0 0 0 4px rgba(37, 43, 44, .06);
             position: relative;
             transition: var(--transition);
             cursor: default;
             white-space: nowrap;
         }
         .root-node:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18), 0 0 0 10px rgba(26, 35, 50, 0.06);
+            transform: translateY(-1px);
+            box-shadow: 0 20px 46px rgba(38, 44, 45, .18), 0 0 0 5px rgba(37, 43, 44, .055);
+        }
+        .brand-mark {
+            width: 28px;
+            aspect-ratio: 1;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border: 1px solid rgba(212, 124, 108, .72);
+            color: #d8a095;
+            font-size: 12px;
+            line-height: 1;
+            transform: rotate(-3deg);
         }
         .root-node::after {
             content: '';
@@ -145,10 +185,9 @@
             bottom: -28px;
             left: 50%;
             transform: translateX(-50%);
-            width: 3px;
+            width: 1px;
             height: 28px;
             background: var(--connector-line);
-            border-radius: 2px;
         }
 
         /* ========== 连接线区域 ========== */
@@ -164,19 +203,9 @@
             top: 12px;
             left: 5%;
             right: 5%;
-            height: 3px;
+            height: 1px;
             background: var(--connector-line);
-            border-radius: 2px;
         }
-        .connector-zone .vertical-lines {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-        }
-
         /* ========== 模块行 ========== */
         .modules-row {
             display: grid;
@@ -188,19 +217,22 @@
 
         /* ========== 模块列 ========== */
         .module-column {
-            background: var(--card-bg);
+            background:
+                radial-gradient(ellipse at 12% 7%, rgba(255,255,255,.52), transparent 24%),
+                repeating-linear-gradient(92deg, transparent 0 5px, rgba(64, 55, 43, .01) 5px 6px),
+                var(--card-raised);
             border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
+            box-shadow: 0 8px 22px rgba(38, 44, 45, .075);
             overflow: visible;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
             position: relative;
-            border: 1px solid #e8ecf1;
+            border: 1px solid var(--line-strong);
         }
         .module-column:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-3px);
+            box-shadow: 0 16px 36px rgba(38, 44, 45, .12);
+            transform: translateY(-2px);
         }
 
         /* 列顶部连接线指示 */
@@ -210,22 +242,22 @@
             top: -18px;
             left: 50%;
             transform: translateX(-50%);
-            width: 3px;
+            width: 1px;
             height: 18px;
             background: var(--connector-line);
-            border-radius: 2px;
             z-index: 3;
         }
 
         /* ========== 模块列头部 ========== */
         .module-header {
-            padding: 14px 16px 12px;
-            font-weight: 700;
-            font-size: 15px;
-            color: #fff;
-            letter-spacing: 0.6px;
+            min-height: 48px;
+            padding: 13px 14px 11px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #f0eadf;
+            letter-spacing: .1em;
             text-align: center;
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            border-radius: 2px 2px 0 0;
             position: relative;
             z-index: 1;
             flex-shrink: 0;
@@ -235,37 +267,39 @@
             gap: 8px;
         }
         .module-header .icon-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.7);
+            width: 7px;
+            height: 7px;
+            border: 1px solid rgba(240, 234, 223, .66);
+            border-radius: 1px;
+            background: transparent;
+            transform: rotate(45deg);
             flex-shrink: 0;
         }
         .module-column.auth .module-header {
-            background: linear-gradient(135deg, #3d7ec7, #5a9de0);
+            background: #566e76;
         }
         .module-column.reader .module-header {
-            background: linear-gradient(135deg, #1e8c4e, #2ecc71);
+            background: #4d6b64;
         }
         .module-column.admin .module-header {
-            background: linear-gradient(135deg, #d4700f, #f0932b);
+            background: #873f37;
         }
         .module-column.procurement .module-header {
-            background: linear-gradient(135deg, #9a6517, #d69e2e);
+            background: #715735;
         }
         .module-column.support .module-header {
-            background: linear-gradient(135deg, #7d3c98, #a569bd);
+            background: #5d6664;
         }
         .module-column.workflow .module-header {
-            background: linear-gradient(135deg, #a93226, #d35400);
+            background: #74433d;
         }
         .module-column.data .module-header {
-            background: linear-gradient(135deg, #0e7c63, #1abc9c);
+            background: #3f5d57;
         }
 
         /* ========== 模块主体 ========== */
         .module-body {
-            padding: 10px 6px 14px 10px;
+            padding: 12px 7px 16px 11px;
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -276,34 +310,34 @@
         /* ========== 二级节点 ========== */
         .sub-item {
             position: relative;
-            padding: 6px 10px 6px 18px;
+            padding: 6px 9px 6px 16px;
             margin: 2px 0;
-            border-left: 3px solid transparent;
+            border-left: 1px solid transparent;
             border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
             transition: var(--transition);
             cursor: default;
             background: transparent;
         }
         .sub-item:hover {
-            background: #f8fafb;
+            background: rgba(70, 82, 81, .045);
         }
         .sub-item .sub-item-title {
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 12.8px;
+            font-weight: 500;
             color: var(--text-secondary);
             display: flex;
             align-items: center;
-            gap: 5px;
-            line-height: 1.4;
+            gap: 6px;
+            line-height: 1.48;
         }
         .sub-item .sub-item-title::before {
             content: '';
-            width: 5px;
-            height: 5px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
             flex-shrink: 0;
             background: currentColor;
-            opacity: 0.5;
+            opacity: .68;
         }
         /* 各模块二级节点颜色 */
         .module-column.auth .sub-item {
@@ -391,58 +425,58 @@
 
         /* 有子节点的二级节点 */
         .sub-item.has-children {
-            border-left-width: 3px;
+            border-left-width: 1px;
             border-left-style: solid;
             padding-bottom: 3px;
             margin-bottom: 0;
         }
         .sub-item.has-children .sub-item-title {
-            font-weight: 700;
-            font-size: 13.5px;
+            font-weight: 600;
+            font-size: 13.2px;
             color: var(--text-primary);
         }
         .sub-item.has-children .sub-item-title::before {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             opacity: 0.8;
         }
 
         /* 叶子节点样式 */
         .sub-item.leaf {
-            border-left-width: 3px;
+            border-left-width: 1px;
             border-left-style: solid;
         }
 
         /* ========== 三级节点容器 ========== */
         .sub-sub-items {
-            margin-left: 12px;
-            padding: 3px 0 3px 12px;
-            border-left: 2px dashed #dde4ea;
+            margin-left: 11px;
+            padding: 4px 0 4px 11px;
+            border-left: 1px dashed rgba(70, 82, 81, .2);
             display: flex;
             flex-direction: column;
             gap: 1px;
             position: relative;
         }
         .module-column.auth .sub-sub-items {
-            border-left-color: #c8daf0;
+            border-left-color: var(--auth-border);
         }
         .module-column.reader .sub-sub-items {
-            border-left-color: #b8e6cc;
+            border-left-color: var(--reader-border);
         }
         .module-column.admin .sub-sub-items {
-            border-left-color: #f0d4b5;
+            border-left-color: var(--admin-border);
         }
         .module-column.procurement .sub-sub-items {
-            border-left-color: #ead6a2;
+            border-left-color: var(--procurement-border);
         }
         .module-column.support .sub-sub-items {
-            border-left-color: #dcc8e5;
+            border-left-color: var(--support-border);
         }
         .module-column.workflow .sub-sub-items {
-            border-left-color: #efc0b8;
+            border-left-color: var(--workflow-border);
         }
         .module-column.data .sub-sub-items {
-            border-left-color: #b8e8db;
+            border-left-color: var(--data-border);
         }
 
         /* ========== 三级节点 ========== */
@@ -450,7 +484,7 @@
             font-size: 11.5px;
             color: var(--text-tertiary);
             padding: 4px 8px 4px 10px;
-            border-radius: var(--radius-sm);
+            border-radius: 1px;
             transition: var(--transition);
             cursor: default;
             position: relative;
@@ -466,57 +500,57 @@
             height: 4px;
             border-radius: 50%;
             flex-shrink: 0;
-            background: #c0c9d2;
+            background: rgba(70, 82, 81, .38);
             transition: var(--transition);
         }
         .sub-sub-item:hover {
-            background: #f5f7f9;
+            background: rgba(70, 82, 81, .05);
             color: var(--text-primary);
         }
         .sub-sub-item:hover::before {
-            background: #8899a6;
-            transform: scale(1.4);
+            background: var(--text-secondary);
+            transform: scale(1.25);
         }
 
         /* 各模块三级节点颜色 */
         .module-column.auth .sub-sub-item:hover {
-            background: #e4eff9;
+            background: var(--auth-light);
         }
         .module-column.auth .sub-sub-item:hover::before {
             background: var(--auth-color);
         }
         .module-column.reader .sub-sub-item:hover {
-            background: #e0f7e9;
+            background: var(--reader-light);
         }
         .module-column.reader .sub-sub-item:hover::before {
             background: var(--reader-color);
         }
         .module-column.admin .sub-sub-item:hover {
-            background: #fef0e2;
+            background: var(--admin-light);
         }
         .module-column.admin .sub-sub-item:hover::before {
             background: var(--admin-color);
         }
         .module-column.procurement .sub-sub-item:hover {
-            background: #fff4d8;
+            background: var(--procurement-light);
         }
         .module-column.procurement .sub-sub-item:hover::before {
             background: var(--procurement-color);
         }
         .module-column.support .sub-sub-item:hover {
-            background: #f3ebf7;
+            background: var(--support-light);
         }
         .module-column.support .sub-sub-item:hover::before {
             background: var(--support-color);
         }
         .module-column.workflow .sub-sub-item:hover {
-            background: #fff0ee;
+            background: var(--workflow-light);
         }
         .module-column.workflow .sub-sub-item:hover::before {
             background: var(--workflow-color);
         }
         .module-column.data .sub-sub-item:hover {
-            background: #e2f6f1;
+            background: var(--data-light);
         }
         .module-column.data .sub-sub-item:hover::before {
             background: var(--data-color);
@@ -557,7 +591,7 @@
             .root-node {
                 font-size: 17px;
                 padding: 12px 28px;
-                border-radius: 24px;
+                border-radius: 2px;
             }
             .module-header {
                 font-size: 13px;
@@ -581,8 +615,8 @@
             }
             .root-node {
                 font-size: 16px;
-                padding: 10px 22px;
-                border-radius: 20px;
+                padding: 10px 18px 10px 11px;
+                border-radius: 2px;
             }
             .module-header {
                 font-size: 13px;
@@ -609,6 +643,9 @@
             body {
                 padding: 16px 8px 30px;
             }
+            .diagram-wrapper {
+                padding: 24px 10px 18px;
+            }
         }
 
         /* ========== 打印样式 ========== */
@@ -621,6 +658,10 @@
                 box-shadow: none;
                 border: 1px solid #ccc;
                 break-inside: avoid;
+            }
+            .diagram-wrapper {
+                border: 0;
+                box-shadow: none;
             }
             .module-column:hover {
                 transform: none;
@@ -669,6 +710,13 @@
         .module-column:nth-child(7) {
             animation-delay: 0.47s;
         }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -679,7 +727,7 @@
 
         <!-- 根节点 -->
         <div class="root-node-container">
-            <div class="root-node">📚 图书管理系统</div>
+            <div class="root-node"><span class="brand-mark" aria-hidden="true">藏</span><span>图书管理系统</span></div>
         </div>
 
         <!-- 连接线区域 -->
@@ -969,7 +1017,7 @@
                         <div class="sub-item-title">可降级中间件</div>
                         <div class="sub-sub-items">
                             <div class="sub-sub-item">Redis 异常：内存 / MySQL 兜底</div>
-                            <div class="sub-sub-item">RabbitMQ 异常：同步写库 / 补偿表</div>
+                            <div class="sub-sub-item">RabbitMQ 异常：数据库任务 / 定时补偿</div>
                         </div>
                     </div>
                 </div>
@@ -1082,9 +1130,10 @@
 
         </div><!-- /modules-row -->
         <p class="baseline-note">
-            2026-07-26 公开基线：Spring Boot 3.5.16 / Vue 3.5.40 / Vite 8.1.5；
-            后端 20606，前端 5175；后端 165 项、前端 26 项、五角色 75 次真实 API、
-            19 个并发场景 / 392 次请求、86 个浏览器路由检查全部通过。
+            2026-07-27 公开基线：Spring Boot 3.5.16 / Vue 3.5.40 / Vite 8.1.5；
+            后端 20606，前端 5175；后端 225 项、前端 31 项、五角色 75 次真实 API；
+            单实例 20 个场景 / 393 次请求、双实例 6 个场景 / 125 次请求、
+            86 个浏览器路由检查全部通过。
         </p>
     </div><!-- /diagram-wrapper -->
 

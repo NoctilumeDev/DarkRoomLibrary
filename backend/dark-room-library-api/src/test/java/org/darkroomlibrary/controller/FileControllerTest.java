@@ -15,6 +15,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -45,6 +47,9 @@ class FileControllerTest {
         ReflectionTestUtils.setField(fileStorageService, "uploadDir", tempDir.toString());
         ReflectionTestUtils.setField(fileStorageService, "temporaryRetentionHours", 24L);
         ReflectionTestUtils.setField(fileStorageService, "storedFileMapper", storedFileMapper);
+        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
+        ReflectionTestUtils.setField(fileStorageService, "transactionManager", transactionManager);
         fileController = new FileController();
         ReflectionTestUtils.setField(fileController, "fileStorageService", fileStorageService);
         CurrentUserContext.bind(7, 2);
@@ -58,6 +63,7 @@ class FileControllerTest {
     @Test
     @DisplayName("图片上传成功 - 使用随机文件名并写入安全目录")
     void uploadValidPng() {
+        when(storedFileMapper.insert(any(StoredFile.class))).thenReturn(1);
         byte[] pngHeader = new byte[]{
                 (byte) 0x89, 0x50, 0x4E, 0x47,
                 0x0D, 0x0A, 0x1A, 0x0A,
@@ -81,6 +87,30 @@ class FileControllerTest {
         assertTrue(fileName.matches("^[a-fA-F0-9]{32}\\.png$"));
         assertTrue(Files.exists(tempDir.resolve(fileName)));
         verify(storedFileMapper).insert(any(StoredFile.class));
+    }
+
+    @Test
+    @DisplayName("上传失败 - 元数据写入失败时清理磁盘文件")
+    void cleanupDiskWhenMetadataInsertFails() throws Exception {
+        when(storedFileMapper.insert(any(StoredFile.class))).thenReturn(0);
+        byte[] pngHeader = new byte[]{
+                (byte) 0x89, 0x50, 0x4E, 0x47,
+                0x0D, 0x0A, 0x1A, 0x0A,
+                0x00, 0x00, 0x00, 0x0D
+        };
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "cover.png",
+                "image/png",
+                pngHeader
+        );
+
+        ApiResponse<String> result = fileController.uploadFile(file);
+
+        assertEquals(400, result.getCode());
+        try (java.util.stream.Stream<Path> files = Files.list(tempDir)) {
+            assertTrue(files.findAny().isEmpty());
+        }
     }
 
     @Test

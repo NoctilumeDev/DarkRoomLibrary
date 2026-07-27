@@ -28,6 +28,18 @@ textarea {
 
 // ===== Element Plus 暗室主题变量 =====
 :root {
+  --radius-compact: 3px;
+  --radius-control: 4px;
+  --radius-surface: 6px;
+  --tone-ink: #292a27;
+  --tone-paper: #f4f0e6;
+  --tone-jade: #58776d;
+  --tone-jade-deep: #42645d;
+  --tone-seal: #91483e;
+  --tone-seal-deep: #793b34;
+  --tone-gold: #8a6b3f;
+  --tone-river: #607982;
+
   --el-bg-color: #1c1813;
   --el-bg-color-overlay: #1c1813;
   --el-text-color-primary: #eee4d2;
@@ -36,10 +48,18 @@ textarea {
   --el-border-color-light: rgba(231, 196, 137, 0.08);
   --el-fill-color: rgba(238, 228, 210, 0.04);
   --el-fill-color-light: rgba(238, 228, 210, 0.06);
-  --el-color-primary: #d8a45f;
-  --el-color-primary-light-3: #e5b979;
-  --el-color-primary-light-5: #f0cf9a;
-  --el-color-primary-dark-2: #c58b3e;
+  --el-color-primary: var(--tone-jade);
+  --el-color-primary-light-3: #78938b;
+  --el-color-primary-light-5: #9bada7;
+  --el-color-primary-dark-2: var(--tone-jade-deep);
+  --el-color-success: var(--tone-jade);
+  --el-color-warning: var(--tone-gold);
+  --el-color-danger: var(--tone-seal);
+  --el-color-error: var(--tone-seal);
+  --el-color-info: var(--tone-river);
+  --el-border-radius-base: var(--radius-control);
+  --el-border-radius-small: var(--radius-compact);
+  --el-border-radius-round: var(--radius-control);
 }
 
 .el-table {
@@ -54,7 +74,7 @@ textarea {
 
 .el-dialog {
   --el-dialog-bg-color: #1c1813;
-  border-radius: 8px;
+  border-radius: var(--radius-surface);
   border: 1px solid rgba(231, 196, 137, 0.12);
 }
 

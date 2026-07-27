@@ -14,7 +14,7 @@ public class NotificationTaskConsumer {
     @Resource
     private NotificationService notificationService;
 
-    @RabbitListener(queues = "book.manage.notification-task")
+    @RabbitListener(queues = "${middleware.rabbit.notification-task-queue:dark.room.library.notification-task}")
     public void consume(Integer taskId) {
         notificationService.processTask(taskId);
     }

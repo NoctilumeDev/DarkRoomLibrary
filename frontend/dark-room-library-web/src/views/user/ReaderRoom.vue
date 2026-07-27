@@ -112,7 +112,7 @@ export default {
     async loadRoom() {
       this.loading = true;
       try {
-        const auth = await this.$axios.get("user/auth");
+        const auth = await this.$axios.get("/user/auth");
         if (auth.data.code !== 200) return;
         this.userId = auth.data.data.id;
         this.userName = auth.data.data.userName;

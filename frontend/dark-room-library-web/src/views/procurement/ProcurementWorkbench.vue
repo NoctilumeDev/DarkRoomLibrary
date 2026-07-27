@@ -184,6 +184,11 @@
 </template>
 
 <script>
+import {
+  isAdministratorRole,
+  USER_ROLE,
+} from "@/utils/userRoles.js";
+
 export default {
   name: "ProcurementWorkbench",
   data() {
@@ -205,10 +210,10 @@ export default {
   },
   computed: {
     role() { return this.userInfo.role; },
-    isAdmin() { return this.role === 0 || this.role === 1; },
-    isSuperAdmin() { return this.role === 0; },
-    isPurchaser() { return this.role === 3; },
-    isLogistics() { return this.role === 4; },
+    isAdmin() { return isAdministratorRole(this.role); },
+    isSuperAdmin() { return this.role === USER_ROLE.SUPER_ADMIN; },
+    isPurchaser() { return this.role === USER_ROLE.ACQUISITIONS; },
+    isLogistics() { return this.role === USER_ROLE.LOGISTICS; },
     canCreate() { return this.isAdmin; },
     pageTitle() { return this.isLogistics ? "物流入库工作台" : this.isPurchaser ? "采购协作工作台" : "采购物流管理"; },
     sectionLabel() { return this.isLogistics ? "LOGISTICS" : this.isPurchaser ? "PROCUREMENT" : "WORKFLOW"; },
@@ -238,16 +243,22 @@ export default {
       const tasks = [];
       if (this.isAdmin) {
         tasks.push(this.$axios.post("/book/query", { current: 1, size: 100 }).then(r => { this.books = r.data.data || []; }));
-        tasks.push(this.loadPeople(3));
+        tasks.push(this.loadPeople(USER_ROLE.ACQUISITIONS));
       }
-      if (this.isPurchaser || this.isSuperAdmin) tasks.push(this.loadPeople(4));
+      if (this.isPurchaser || this.isSuperAdmin) {
+        tasks.push(this.loadPeople(USER_ROLE.LOGISTICS));
+      }
       await Promise.all(tasks);
     },
     async loadPeople(role) {
       const response = await this.$axios.get("/user/collaborationUsers", { params: { role } });
       if (response.data.code !== 200) return;
-      if (role === 3) this.purchasers = response.data.data || [];
-      if (role === 4) this.logisticsUsers = response.data.data || [];
+      if (role === USER_ROLE.ACQUISITIONS) {
+        this.purchasers = response.data.data || [];
+      }
+      if (role === USER_ROLE.LOGISTICS) {
+        this.logisticsUsers = response.data.data || [];
+      }
     },
     async loadOrders() {
       this.loading = true;

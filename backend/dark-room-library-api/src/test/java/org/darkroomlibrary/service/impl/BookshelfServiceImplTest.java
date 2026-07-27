@@ -132,4 +132,28 @@ public class BookshelfServiceImplTest extends BaseTest {
 
         assertEquals(400, bookshelfService.save(bs).getCode());
     }
+
+    @Test
+    @Order(10)
+    @DisplayName("仍被图书引用的书架不能删除")
+    void testReferencedBookshelfCannotBeDeleted() {
+        Bookshelf bookshelf = Bookshelf.builder()
+                .name("引用保护书架")
+                .location("测试区")
+                .capacity(20)
+                .build();
+        assertEquals(200, bookshelfService.save(bookshelf).getCode());
+        var book = createTestBook("书架引用保护图书", "测试作者", 1);
+        assertEquals(1, bookMapper.updateById(
+                org.darkroomlibrary.domain.model.Book.builder()
+                        .id(book.getId())
+                        .bookshelfId(bookshelf.getId())
+                        .build()));
+
+        ApiResponse<Void> result = bookshelfService.batchDelete(List.of(bookshelf.getId()));
+
+        assertEquals(400, result.getCode());
+        assertTrue(bookshelfService.queryAll().getData().stream()
+                .anyMatch(item -> bookshelf.getId().equals(item.getId())));
+    }
 }

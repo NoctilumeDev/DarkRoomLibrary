@@ -3,8 +3,10 @@ package org.darkroomlibrary.service.impl;
 import org.darkroomlibrary.BaseTest;
 import org.darkroomlibrary.mapper.BookReservationMapper;
 import org.darkroomlibrary.mapper.OperationLogMapper;
+import org.darkroomlibrary.mapper.ProcurementOrderMapper;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.dto.query.UserPageQuery;
+import org.darkroomlibrary.web.dto.command.PasswordUpdateDto;
 import org.darkroomlibrary.web.dto.command.UserAdminUpdateDto;
 import org.darkroomlibrary.web.dto.command.UserRegisterDto;
 import org.darkroomlibrary.domain.type.AccountStatus;
@@ -13,6 +15,7 @@ import org.darkroomlibrary.domain.model.Book;
 import org.darkroomlibrary.domain.model.BookReservation;
 import org.darkroomlibrary.domain.model.BorrowRecord;
 import org.darkroomlibrary.domain.model.OperationLog;
+import org.darkroomlibrary.domain.model.ProcurementOrder;
 import org.darkroomlibrary.domain.model.User;
 import org.darkroomlibrary.service.BorrowRecordService;
 import org.darkroomlibrary.service.UserService;
@@ -53,6 +56,9 @@ public class UserServiceSecurityTest extends BaseTest {
     private BookReservationMapper bookReservationMapper;
 
     @Resource
+    private ProcurementOrderMapper procurementOrderMapper;
+
+    @Resource
     private OperationLogMapper operationLogMapper;
 
     @BeforeEach
@@ -63,8 +69,8 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate rejects normal admin updating super admin")
     void testBackUpdateRejectsAdminUpdatingSuperAdmin() {
-        User admin = createTestUserWithRole("security_admin_001", "admin", "security_admin_001@test.com", UserRole.ADMIN.code());
-        User superAdmin = createTestUserWithRole("security_super_001", "super", "security_super_001@test.com", UserRole.SUPER_ADMIN.code());
+        User admin = createTestUserWithRole("security_admin_001", "admin", "security_admin_001@example.test", UserRole.ADMIN.code());
+        User superAdmin = createTestUserWithRole("security_super_001", "super", "security_super_001@example.test", UserRole.SUPER_ADMIN.code());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
         UserAdminUpdateDto dto = UserAdminUpdateDto.builder()
@@ -81,7 +87,7 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate rejects disabling current user")
     void testBackUpdateRejectsSelfDisable() {
-        User admin = createTestUserWithRole("security_admin_002", "admin2", "security_admin_002@test.com", UserRole.ADMIN.code());
+        User admin = createTestUserWithRole("security_admin_002", "admin2", "security_admin_002@example.test", UserRole.ADMIN.code());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
         UserAdminUpdateDto dto = UserAdminUpdateDto.builder()
@@ -98,8 +104,8 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate rejects admin updating another admin")
     void testBackUpdateRejectsAdminUpdatingAdmin() {
-        User admin1 = createTestUserWithRole("security_admin_003", "admin3", "security_admin_003@test.com", UserRole.ADMIN.code());
-        User admin2 = createTestUserWithRole("security_admin_004", "admin4", "security_admin_004@test.com", UserRole.ADMIN.code());
+        User admin1 = createTestUserWithRole("security_admin_003", "admin3", "security_admin_003@example.test", UserRole.ADMIN.code());
+        User admin2 = createTestUserWithRole("security_admin_004", "admin4", "security_admin_004@example.test", UserRole.ADMIN.code());
         setCurrentUser(admin1.getId(), admin1.getUserRole());
 
         UserAdminUpdateDto dto = UserAdminUpdateDto.builder()
@@ -116,10 +122,10 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("insert rejects normal admin creating privileged account")
     void testInsertRejectsAdminCreatingPrivilegedAccount() {
-        User admin = createTestUserWithRole("security_admin_005", "admin5", "security_admin_005@test.com", UserRole.ADMIN.code());
+        User admin = createTestUserWithRole("security_admin_005", "admin5", "security_admin_005@example.test", UserRole.ADMIN.code());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
-        UserRegisterDto dto = newUserRegisterDto("security_new_admin", "新管理员", "security_new_admin@test.com");
+        UserRegisterDto dto = newUserRegisterDto("security_new_admin", "新管理员", "security_new_admin@example.test");
         dto.setUserRole(UserRole.ADMIN.code());
 
         ApiResponse<String> result = userService.insert(dto);
@@ -131,10 +137,10 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("insert allows super admin creating purchaser")
     void testInsertAllowsSuperAdminCreatingPurchaser() {
-        User superAdmin = createTestUserWithRole("security_super_002", "super2", "security_super_002@test.com", UserRole.SUPER_ADMIN.code());
+        User superAdmin = createTestUserWithRole("security_super_002", "super2", "security_super_002@example.test", UserRole.SUPER_ADMIN.code());
         setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
 
-        UserRegisterDto dto = newUserRegisterDto("security_buyer_001", "采购员一号", "security_buyer_001@test.com");
+        UserRegisterDto dto = newUserRegisterDto("security_buyer_001", "采购员一号", "security_buyer_001@example.test");
         dto.setUserRole(UserRole.ACQUISITIONS.code());
 
         ApiResponse<String> result = userService.insert(dto);
@@ -149,10 +155,10 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("insert allows super admin creating coordinator admin")
     void testInsertAllowsSuperAdminCreatingCoordinatorAdmin() {
-        User superAdmin = createTestUserWithRole("security_super_004", "super4", "security_super_004@test.com", UserRole.SUPER_ADMIN.code());
+        User superAdmin = createTestUserWithRole("security_super_004", "super4", "security_super_004@example.test", UserRole.SUPER_ADMIN.code());
         setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
 
-        UserRegisterDto dto = newUserRegisterDto("security_coordinator_001", "馆务协调员1", "security_coordinator_001@test.com");
+        UserRegisterDto dto = newUserRegisterDto("security_coordinator_001", "馆务协调员1", "security_coordinator_001@example.test");
         dto.setUserRole(UserRole.ADMIN.code());
         dto.setIsCoordinatorAdmin(true);
 
@@ -169,8 +175,8 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate rejects normal admin promoting reader")
     void testBackUpdateRejectsAdminPromotingReader() {
-        User admin = createTestUserWithRole("security_admin_006", "admin6", "security_admin_006@test.com", UserRole.ADMIN.code());
-        User reader = createTestUserWithRole("security_reader_001", "reader1", "security_reader_001@test.com", UserRole.READER.code());
+        User admin = createTestUserWithRole("security_admin_006", "admin6", "security_admin_006@example.test", UserRole.ADMIN.code());
+        User reader = createTestUserWithRole("security_reader_001", "reader1", "security_reader_001@example.test", UserRole.READER.code());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
         UserAdminUpdateDto dto = UserAdminUpdateDto.builder()
@@ -189,8 +195,8 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate allows super admin appointing and revoking coordinator admin")
     void testBackUpdateAllowsSuperAdminManageCoordinatorAdmin() {
-        User superAdmin = createTestUserWithRole("security_super_005", "super5", "security_super_005@test.com", UserRole.SUPER_ADMIN.code());
-        User admin = createTestUserWithRole("security_admin_013", "admin13", "security_admin_013@test.com", UserRole.ADMIN.code());
+        User superAdmin = createTestUserWithRole("security_super_005", "super5", "security_super_005@example.test", UserRole.SUPER_ADMIN.code());
+        User admin = createTestUserWithRole("security_admin_013", "admin13", "security_admin_013@example.test", UserRole.ADMIN.code());
         setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
 
         UserAdminUpdateDto appoint = UserAdminUpdateDto.builder()
@@ -213,8 +219,8 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate rejects normal admin appointing coordinator admin")
     void testBackUpdateRejectsAdminAppointingCoordinatorAdmin() {
-        User admin = createTestUserWithRole("security_admin_014", "admin14", "security_admin_014@test.com", UserRole.ADMIN.code());
-        User reader = createTestUserWithRole("security_reader_003", "reader3", "security_reader_003@test.com", UserRole.READER.code());
+        User admin = createTestUserWithRole("security_admin_014", "admin14", "security_admin_014@example.test", UserRole.ADMIN.code());
+        User reader = createTestUserWithRole("security_reader_003", "reader3", "security_reader_003@example.test", UserRole.READER.code());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
         UserAdminUpdateDto dto = UserAdminUpdateDto.builder()
@@ -231,8 +237,8 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate allows super admin resetting another user's password")
     void testBackUpdateAllowsSuperAdminResettingPassword() {
-        User superAdmin = createTestUserWithRole("security_super_pwd", "superPwd", "super_pwd@test.com", UserRole.SUPER_ADMIN.code());
-        User reader = createTestUserWithRole("security_reader_pwd", "readerPwd", "reader_pwd@test.com", UserRole.READER.code());
+        User superAdmin = createTestUserWithRole("security_super_pwd", "superPwd", "super_pwd@example.test", UserRole.SUPER_ADMIN.code());
+        User reader = createTestUserWithRole("security_reader_pwd", "readerPwd", "reader_pwd@example.test", UserRole.READER.code());
         setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
 
         ApiResponse<String> result = userService.backUpdate(UserAdminUpdateDto.builder()
@@ -248,8 +254,8 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate rejects normal admin resetting another user's password")
     void testBackUpdateRejectsAdminResettingPassword() {
-        User admin = createTestUserWithRole("security_admin_pwd", "adminPwd", "admin_pwd@test.com", UserRole.ADMIN.code());
-        User reader = createTestUserWithRole("security_reader_pwd2", "readerPwd2", "reader_pwd2@test.com", UserRole.READER.code());
+        User admin = createTestUserWithRole("security_admin_pwd", "adminPwd", "admin_pwd@example.test", UserRole.ADMIN.code());
+        User reader = createTestUserWithRole("security_reader_pwd2", "readerPwd2", "reader_pwd2@example.test", UserRole.READER.code());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
         ApiResponse<String> result = userService.backUpdate(UserAdminUpdateDto.builder()
@@ -265,8 +271,8 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("backUpdate clears coordinator admin when super admin changes role away from admin")
     void testBackUpdateClearsCoordinatorAdminWhenRoleChanged() {
-        User superAdmin = createTestUserWithRole("security_super_006", "super6", "security_super_006@test.com", UserRole.SUPER_ADMIN.code());
-        User admin = createTestUserWithRole("security_admin_015", "admin15", "security_admin_015@test.com", UserRole.ADMIN.code());
+        User superAdmin = createTestUserWithRole("security_super_006", "super6", "security_super_006@example.test", UserRole.SUPER_ADMIN.code());
+        User admin = createTestUserWithRole("security_admin_015", "admin15", "security_admin_015@example.test", UserRole.ADMIN.code());
         userMapper.update(User.builder().id(admin.getId()).isCoordinatorAdmin(true).build());
         setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
 
@@ -285,10 +291,64 @@ public class UserServiceSecurityTest extends BaseTest {
     }
 
     @Test
+    @DisplayName("backUpdate rejects moving a reader with an active borrow to a staff role")
+    void testBackUpdateRejectsReaderRoleChangeWithActiveBorrow() {
+        User superAdmin = createTestUserWithRole(
+                "security_role_super", "roleSuper", "role-super@example.test",
+                UserRole.SUPER_ADMIN.code());
+        User reader = createTestUserWithRole(
+                "security_role_reader", "roleReader", "role-reader@example.test",
+                UserRole.READER.code());
+        Book book = createTestBook("角色变更借阅图书", "借阅作者", 1);
+        createTestBorrowRecord(reader.getId(), book.getId(), LocalDateTime.now().plusDays(7));
+        setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
+
+        ApiResponse<String> result = userService.backUpdate(UserAdminUpdateDto.builder()
+                .id(reader.getId())
+                .userRole(UserRole.ACQUISITIONS.code())
+                .build());
+
+        assertEquals(400, result.getCode());
+        assertEquals(UserRole.READER.code(),
+                userMapper.getByActive(User.builder().id(reader.getId()).build()).getUserRole());
+    }
+
+    @Test
+    @DisplayName("moving a reader to a staff role releases active reservations")
+    void testBackUpdateRoleChangeReleasesReaderReservations() {
+        User superAdmin = createTestUserWithRole(
+                "security_role_release_super", "roleReleaseSuper", "role-release-super@example.test",
+                UserRole.SUPER_ADMIN.code());
+        User reader = createTestUserWithRole(
+                "security_role_release_reader", "roleReleaseReader", "role-release-reader@example.test",
+                UserRole.READER.code());
+        Book book = createTestBook("角色变更释放预约图书", "预约作者", 0);
+        BookReservation reservation = BookReservation.builder()
+                .userId(reader.getId())
+                .bookId(book.getId())
+                .reserveTime(LocalDateTime.now())
+                .status(3)
+                .notifyTime(LocalDateTime.now())
+                .build();
+        bookReservationMapper.insert(reservation);
+        setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
+
+        ApiResponse<String> result = userService.backUpdate(UserAdminUpdateDto.builder()
+                .id(reader.getId())
+                .userRole(UserRole.ACQUISITIONS.code())
+                .build());
+
+        assertEquals(200, result.getCode());
+        assertEquals(UserRole.ACQUISITIONS.code(),
+                userMapper.getByActive(User.builder().id(reader.getId()).build()).getUserRole());
+        assertEquals(4, bookReservationMapper.getById(reservation.getId()).getStatus());
+    }
+
+    @Test
     @DisplayName("freeze rejects normal admin freezing another admin")
     void testFreezeRejectsAdminFreezingAnotherAdmin() {
-        User admin1 = createTestUserWithRole("security_admin_007", "admin7", "security_admin_007@test.com", UserRole.ADMIN.code());
-        User admin2 = createTestUserWithRole("security_admin_008", "admin8", "security_admin_008@test.com", UserRole.ADMIN.code());
+        User admin1 = createTestUserWithRole("security_admin_007", "admin7", "security_admin_007@example.test", UserRole.ADMIN.code());
+        User admin2 = createTestUserWithRole("security_admin_008", "admin8", "security_admin_008@example.test", UserRole.ADMIN.code());
         setCurrentUser(admin1.getId(), admin1.getUserRole());
 
         ApiResponse<String> result = userService.freezeUser(admin2.getId());
@@ -298,10 +358,36 @@ public class UserServiceSecurityTest extends BaseTest {
     }
 
     @Test
+    @DisplayName("freezing a reader releases active reservations")
+    void testFreezeReleasesReaderReservations() {
+        User superAdmin = createTestUserWithRole(
+                "security_freeze_super", "freezeSuper", "freeze-super@example.test",
+                UserRole.SUPER_ADMIN.code());
+        User reader = createTestUserWithRole(
+                "security_freeze_reader", "freezeReader", "freeze-reader@example.test",
+                UserRole.READER.code());
+        Book book = createTestBook("冻结释放预约图书", "预约作者", 0);
+        BookReservation reservation = BookReservation.builder()
+                .userId(reader.getId())
+                .bookId(book.getId())
+                .reserveTime(LocalDateTime.now())
+                .status(3)
+                .notifyTime(LocalDateTime.now())
+                .build();
+        bookReservationMapper.insert(reservation);
+        setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
+
+        ApiResponse<String> result = userService.freezeUser(reader.getId());
+
+        assertEquals(200, result.getCode());
+        assertEquals(4, bookReservationMapper.getById(reservation.getId()).getStatus());
+    }
+
+    @Test
     @DisplayName("unfreeze rejects normal admin unfreezing purchaser")
     void testUnfreezeRejectsAdminUnfreezingPurchaser() {
-        User admin = createTestUserWithRole("security_admin_009", "admin9", "security_admin_009@test.com", UserRole.ADMIN.code());
-        User buyer = createTestUserWithRole("security_buyer_002", "buyer2", "security_buyer_002@test.com", UserRole.ACQUISITIONS.code());
+        User admin = createTestUserWithRole("security_admin_009", "admin9", "security_admin_009@example.test", UserRole.ADMIN.code());
+        User buyer = createTestUserWithRole("security_buyer_002", "buyer2", "security_buyer_002@example.test", UserRole.ACQUISITIONS.code());
         userMapper.update(User.builder().id(buyer.getId()).isLogin(true).build());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
@@ -314,9 +400,9 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("query masks non-reader email for normal admin")
     void testQueryMasksNonReaderEmailForAdmin() {
-        User admin = createTestUserWithRole("security_admin_010", "admin10", "security_admin_010@test.com", UserRole.ADMIN.code());
-        User otherAdmin = createTestUserWithRole("security_admin_011", "admin11", "security_admin_011@test.com", UserRole.ADMIN.code());
-        User reader = createTestUserWithRole("security_reader_002", "reader2", "security_reader_002@test.com", UserRole.READER.code());
+        User admin = createTestUserWithRole("security_admin_010", "admin10", "security_admin_010@example.test", UserRole.ADMIN.code());
+        User otherAdmin = createTestUserWithRole("security_admin_011", "admin11", "security_admin_011@example.test", UserRole.ADMIN.code());
+        User reader = createTestUserWithRole("security_reader_002", "reader2", "security_reader_002@example.test", UserRole.READER.code());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
         ApiResponse<java.util.List<User>> result = userService.query(new UserPageQuery());
@@ -332,15 +418,15 @@ public class UserServiceSecurityTest extends BaseTest {
                 .findFirst()
                 .orElseThrow();
         assertTrue(maskedAdmin.getUserEmail().contains("***"));
-        assertFalse(maskedAdmin.getUserEmail().equalsIgnoreCase("security_admin_011@test.com"));
-        assertEquals("security_reader_002@test.com", visibleReader.getUserEmail());
+        assertFalse(maskedAdmin.getUserEmail().equalsIgnoreCase("security_admin_011@example.test"));
+        assertEquals("security_reader_002@example.test", visibleReader.getUserEmail());
     }
 
     @Test
     @DisplayName("query shows full email for super admin")
     void testQueryShowsFullEmailForSuperAdmin() {
-        User superAdmin = createTestUserWithRole("security_super_003", "super3", "security_super_003@test.com", UserRole.SUPER_ADMIN.code());
-        User admin = createTestUserWithRole("security_admin_012", "admin12", "security_admin_012@test.com", UserRole.ADMIN.code());
+        User superAdmin = createTestUserWithRole("security_super_003", "super3", "security_super_003@example.test", UserRole.SUPER_ADMIN.code());
+        User admin = createTestUserWithRole("security_admin_012", "admin12", "security_admin_012@example.test", UserRole.ADMIN.code());
         setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
 
         ApiResponse<java.util.List<User>> result = userService.query(new UserPageQuery());
@@ -351,13 +437,13 @@ public class UserServiceSecurityTest extends BaseTest {
                 .filter(item -> admin.getId().equals(item.getId()))
                 .findFirst()
                 .orElseThrow();
-        assertEquals("security_admin_012@test.com", visibleAdmin.getUserEmail());
+        assertEquals("security_admin_012@example.test", visibleAdmin.getUserEmail());
     }
 
     @Test
     @DisplayName("cancelAccount allows reader without unfinished business")
     void testCancelAccountAllowsReaderWithoutUnfinishedBusiness() {
-        User reader = createTestUserWithRole("security_cancel_reader_001", "cancelReader1", "cancel_reader_001@test.com", UserRole.READER.code());
+        User reader = createTestUserWithRole("security_cancel_reader_001", "cancelReader1", "cancel_reader_001@example.test", UserRole.READER.code());
         setCurrentUser(reader.getId(), reader.getUserRole());
 
         ApiResponse<String> result = userService.cancelAccount();
@@ -372,7 +458,7 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("cancelAccount rejects non-reader roles")
     void testCancelAccountRejectsNonReaderRole() {
-        User admin = createTestUserWithRole("security_cancel_admin_001", "cancelAdmin1", "cancel_admin_001@test.com", UserRole.ADMIN.code());
+        User admin = createTestUserWithRole("security_cancel_admin_001", "cancelAdmin1", "cancel_admin_001@example.test", UserRole.ADMIN.code());
         setCurrentUser(admin.getId(), admin.getUserRole());
 
         ApiResponse<String> result = userService.cancelAccount();
@@ -387,7 +473,7 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("cancelAccount rejects reader with active borrow")
     void testCancelAccountRejectsActiveBorrow() {
-        User reader = createTestUserWithRole("security_cancel_reader_002", "cancelReader2", "cancel_reader_002@test.com", UserRole.READER.code());
+        User reader = createTestUserWithRole("security_cancel_reader_002", "cancelReader2", "cancel_reader_002@example.test", UserRole.READER.code());
         Book book = createTestBook("注销测试借阅书", "测试作者", 1);
         createTestBorrowRecord(reader.getId(), book.getId(), LocalDateTime.now().plusDays(7));
         setCurrentUser(reader.getId(), reader.getUserRole());
@@ -403,7 +489,7 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("cancelAccount rejects reader with active reservation")
     void testCancelAccountRejectsActiveReservation() {
-        User reader = createTestUserWithRole("security_cancel_reader_003", "cancelReader3", "cancel_reader_003@test.com", UserRole.READER.code());
+        User reader = createTestUserWithRole("security_cancel_reader_003", "cancelReader3", "cancel_reader_003@example.test", UserRole.READER.code());
         Book book = createTestBook("注销测试预约书", "测试作者", 1);
         bookReservationMapper.insert(BookReservation.builder()
                 .userId(reader.getId())
@@ -424,7 +510,7 @@ public class UserServiceSecurityTest extends BaseTest {
     @Test
     @DisplayName("cancelAccount rejects reader with positive fine")
     void testCancelAccountRejectsPositiveFine() {
-        User reader = createTestUserWithRole("security_cancel_reader_004", "cancelReader4", "cancel_reader_004@test.com", UserRole.READER.code());
+        User reader = createTestUserWithRole("security_cancel_reader_004", "cancelReader4", "cancel_reader_004@example.test", UserRole.READER.code());
         Book book = createTestBook("注销测试罚款书", "测试作者", 1);
         BorrowRecord record = createTestBorrowRecord(reader.getId(), book.getId(), LocalDateTime.now().minusDays(2));
         borrowRecordMapper.updateById(BorrowRecord.builder()
@@ -450,7 +536,7 @@ public class UserServiceSecurityTest extends BaseTest {
         User reader = createTestUserWithRole(
                 "security_cancel_race_" + suffix,
                 "cancelRace",
-                "cancel-race-" + suffix + "@test.com",
+                "cancel-race-" + suffix + "@example.test",
                 UserRole.READER.code()
         );
         Book book = createTestBook("注销借阅竞态图书-" + suffix, "竞态作者", 1);
@@ -508,13 +594,13 @@ public class UserServiceSecurityTest extends BaseTest {
         User superAdmin = createTestUserWithRole(
                 "security_delete_super_" + suffix,
                 "deleteSuper",
-                "delete-super-" + suffix + "@test.com",
+                "delete-super-" + suffix + "@example.test",
                 UserRole.SUPER_ADMIN.code()
         );
         User reader = createTestUserWithRole(
                 "security_delete_reader_" + suffix,
                 "deleteReader",
-                "delete-reader-" + suffix + "@test.com",
+                "delete-reader-" + suffix + "@example.test",
                 UserRole.READER.code()
         );
         Book book = createTestBook("删除历史测试图书-" + suffix, "历史作者", 1);
@@ -532,13 +618,80 @@ public class UserServiceSecurityTest extends BaseTest {
     }
 
     @Test
+    @DisplayName("batchDelete rejects users with active reservations")
+    void testBatchDeleteRejectsUserWithActiveReservation() {
+        String suffix = String.valueOf(System.nanoTime());
+        User superAdmin = createTestUserWithRole(
+                "delete_reservation_super_" + suffix,
+                "deleteReservationSuper" + suffix,
+                "delete-reservation-super-" + suffix + "@example.test",
+                UserRole.SUPER_ADMIN.code()
+        );
+        User reader = createTestUserWithRole(
+                "delete_reservation_reader_" + suffix,
+                "deleteReservationReader" + suffix,
+                "delete-reservation-reader-" + suffix + "@example.test",
+                UserRole.READER.code()
+        );
+        Book book = createTestBook("删除预约测试图书-" + suffix, "预约作者", 0);
+        bookReservationMapper.insert(BookReservation.builder()
+                .userId(reader.getId())
+                .bookId(book.getId())
+                .reserveTime(LocalDateTime.now())
+                .status(0)
+                .build());
+        setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
+
+        ApiResponse<String> result = userService.batchDelete(List.of(reader.getId()));
+
+        assertEquals(400, result.getCode());
+        assertNotNull(userMapper.getByActive(User.builder().id(reader.getId()).build()));
+    }
+
+    @Test
+    @DisplayName("batchDelete rejects users participating in active procurement orders")
+    void testBatchDeleteRejectsUserWithActiveProcurementOrder() {
+        String suffix = String.valueOf(System.nanoTime());
+        User superAdmin = createTestUserWithRole(
+                "delete_procurement_super_" + suffix,
+                "deleteProcurementSuper" + suffix,
+                "delete-procurement-super-" + suffix + "@example.test",
+                UserRole.SUPER_ADMIN.code()
+        );
+        User purchaser = createTestUserWithRole(
+                "delete_procurement_user_" + suffix,
+                "deleteProcurementUser" + suffix,
+                "delete-procurement-user-" + suffix + "@example.test",
+                UserRole.ACQUISITIONS.code()
+        );
+        Book book = createTestBook("删除采购测试图书-" + suffix, "采购作者", 1);
+        procurementOrderMapper.insert(ProcurementOrder.builder()
+                .bookId(book.getId())
+                .bookName(book.getName())
+                .requestCount(2)
+                .status(1)
+                .requesterId(superAdmin.getId())
+                .purchaserId(purchaser.getId())
+                .stockApplied(false)
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .build());
+        setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
+
+        ApiResponse<String> result = userService.batchDelete(List.of(purchaser.getId()));
+
+        assertEquals(400, result.getCode());
+        assertNotNull(userMapper.getByActive(User.builder().id(purchaser.getId()).build()));
+    }
+
+    @Test
     @DisplayName("关键用户状态和角色变更均写入语义化审计日志")
     void testSensitiveUserChangesAreAudited() {
         User superAdmin = createTestUserWithRole(
-                "audit_super_001", "审计超管", "audit_super_001@test.com",
+                "audit_super_001", "审计超管", "audit_super_001@example.test",
                 UserRole.SUPER_ADMIN.code());
         User reader = createTestUserWithRole(
-                "audit_reader_001", "审计读者", "audit_reader_001@test.com",
+                "audit_reader_001", "审计读者", "audit_reader_001@example.test",
                 UserRole.READER.code());
         setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
 
@@ -563,6 +716,60 @@ public class UserServiceSecurityTest extends BaseTest {
         assertTrue(logs.stream().anyMatch(log ->
                 "用户角色".equals(log.getTarget())
                         && log.getDetail().contains("读者 -> 采购员")));
+    }
+
+    @Test
+    @DisplayName("并发使用同一旧密码修改时只能有一个请求成功")
+    void testConcurrentPasswordUpdatesSerializeOnUserRow() throws Exception {
+        String suffix = String.valueOf(System.nanoTime());
+        User reader = createTestUserWithRole(
+                "password_race_" + suffix,
+                "并发改密读者",
+                "password-race-" + suffix + "@example.test",
+                UserRole.READER.code());
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch start = new CountDownLatch(1);
+        AtomicInteger successCount = new AtomicInteger();
+        List<Future<?>> futures = List.of(
+                submitPasswordUpdate(executor, start, reader, "NextA@123", successCount),
+                submitPasswordUpdate(executor, start, reader, "NextB@123", successCount)
+        );
+
+        start.countDown();
+        for (Future<?> future : futures) {
+            future.get(5, TimeUnit.SECONDS);
+        }
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+
+        User stored = userMapper.getByActive(User.builder().id(reader.getId()).build());
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        assertEquals(1, successCount.get());
+        assertTrue(encoder.matches("NextA@123", stored.getUserPwd())
+                || encoder.matches("NextB@123", stored.getUserPwd()));
+    }
+
+    private Future<?> submitPasswordUpdate(ExecutorService executor,
+                                           CountDownLatch start,
+                                           User reader,
+                                           String newPassword,
+                                           AtomicInteger successCount) {
+        return executor.submit(() -> {
+            start.await();
+            setCurrentUser(reader.getId(), reader.getUserRole());
+            try {
+                PasswordUpdateDto dto = new PasswordUpdateDto();
+                dto.setOldPwd("Test@123456");
+                dto.setNewPwd(newPassword);
+                dto.setAgainPwd(newPassword);
+                if (userService.updatePwd(dto).getCode() == 200) {
+                    successCount.incrementAndGet();
+                }
+            } finally {
+                clearContext();
+            }
+            return null;
+        });
     }
 
     private User createTestUserWithRole(String account, String userName, String email, Integer role) {

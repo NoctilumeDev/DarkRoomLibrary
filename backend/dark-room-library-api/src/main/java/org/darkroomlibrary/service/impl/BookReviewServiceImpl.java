@@ -6,6 +6,7 @@ import org.darkroomlibrary.mapper.BookReviewLikeMapper;
 import org.darkroomlibrary.mapper.BookReviewMapper;
 import org.darkroomlibrary.mapper.BookReviewReplyMapper;
 import org.darkroomlibrary.mapper.BookReviewReportMapper;
+import org.darkroomlibrary.mapper.UserMapper;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
 import org.darkroomlibrary.web.dto.query.BookReviewPageQuery;
@@ -16,8 +17,10 @@ import org.darkroomlibrary.domain.model.BookReview;
 import org.darkroomlibrary.domain.model.BookReviewLike;
 import org.darkroomlibrary.domain.model.BookReviewReply;
 import org.darkroomlibrary.domain.model.BookReviewReport;
+import org.darkroomlibrary.domain.model.User;
 import org.darkroomlibrary.web.view.BookReviewReplyView;
 import org.darkroomlibrary.web.view.BookReviewView;
+import org.darkroomlibrary.web.view.InteractionSummary;
 import org.darkroomlibrary.service.ContentPostingPolicy;
 import org.darkroomlibrary.service.OperationAuditService;
 import org.darkroomlibrary.service.BookReviewService;
@@ -26,10 +29,12 @@ import org.darkroomlibrary.utils.IdListUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,6 +60,8 @@ public class BookReviewServiceImpl implements BookReviewService {
     private OperationAuditService operationAuditService;
     @Resource
     private ContentPostingPolicy contentPostingPolicy;
+    @Resource
+    private UserMapper userMapper;
 
     @Override
     @Transactional
@@ -66,7 +73,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         if (postingError != null) {
             return ApiResponse.error(postingError);
         }
-        Book book = bookMapper.getById(dto.getBookId());
+        Book book = dto.getBookId() == null ? null : bookMapper.findByIdForUpdate(dto.getBookId());
         if (book == null || Boolean.TRUE.equals(book.getIsDeleted())) {
             return ApiResponse.error("图书不存在或已下架");
         }
@@ -90,7 +97,9 @@ public class BookReviewServiceImpl implements BookReviewService {
                 .status(0)
                 .createTime(LocalDateTime.now())
                 .build();
-        bookReviewMapper.insert(bookReview);
+        if (bookReviewMapper.insert(bookReview) != 1) {
+            return ApiResponse.error("评价发布失败，请重试");
+        }
         return ApiResponse.success("评价成功");
     }
 
@@ -104,7 +113,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         if (postingError != null) {
             return ApiResponse.error(postingError);
         }
-        BookReview exist = bookReviewMapper.getById(dto.getId());
+        BookReview exist = bookReviewMapper.findByIdForUpdate(dto.getId());
         if (exist == null) {
             return ApiResponse.error("评价不存在");
         }
@@ -132,7 +141,9 @@ public class BookReviewServiceImpl implements BookReviewService {
                 .rating(dto.getRating())
                 .content(cleanContent)
                 .build();
-        bookReviewMapper.update(update);
+        if (bookReviewMapper.update(update) == 0) {
+            return ApiResponse.error("评价状态已变化，请刷新后重试");
+        }
         return ApiResponse.success("修改评价成功");
     }
 
@@ -143,12 +154,18 @@ public class BookReviewServiceImpl implements BookReviewService {
         if (normalizedIds.isEmpty()) {
             return ApiResponse.error("请选择要删除的评价");
         }
+        if (IdListUtils.exceedsBatchLimit(normalizedIds)) {
+            return ApiResponse.error("单次最多删除" + IdListUtils.MAX_BATCH_SIZE + "条评价");
+        }
+        List<BookReview> reviews = bookReviewMapper.findByIdsForUpdate(normalizedIds);
+        if (reviews.size() != normalizedIds.size()) {
+            return ApiResponse.error("部分评价不存在");
+        }
         // 非管理员只能删除自己的评价
         if (!CurrentUserContext.isAdministrator()) {
             Integer currentUserId = CurrentUserContext.userId();
-            for (Integer id : normalizedIds) {
-                BookReview review = bookReviewMapper.getById(id);
-                if (review == null || !Objects.equals(review.getUserId(), currentUserId)) {
+            for (BookReview review : reviews) {
+                if (!Objects.equals(review.getUserId(), currentUserId)) {
                     return ApiResponse.error("只能删除自己的评价");
                 }
             }
@@ -157,7 +174,10 @@ public class BookReviewServiceImpl implements BookReviewService {
         bookReviewLikeMapper.deleteByReviewIds(normalizedIds);
         int deletedReplyCount = bookReviewReplyMapper.deleteByReviewIds(normalizedIds);
         bookReviewReportMapper.deleteByReviewIds(normalizedIds);
-        bookReviewMapper.batchDelete(normalizedIds);
+        if (bookReviewMapper.batchDelete(normalizedIds) != normalizedIds.size()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ApiResponse.error("评价状态已变化，请刷新后重试");
+        }
         if (adminOperation) {
             operationAuditService.record("删除", "书评及回复",
                     "书评ID=" + normalizedIds + "，删除书评数=" + normalizedIds.size()
@@ -178,14 +198,20 @@ public class BookReviewServiceImpl implements BookReviewService {
     @Override
     @Transactional
     public ApiResponse<Boolean> toggleLike(Integer reviewId) {
-        BookReview review = bookReviewMapper.getById(reviewId);
+        String accountError = contentPostingPolicy.currentUserAccountRejectionReason();
+        if (accountError != null) {
+            return ApiResponse.error(accountError);
+        }
+        BookReview review = reviewId == null ? null : bookReviewMapper.findByIdForUpdate(reviewId);
         if (review == null || !Objects.equals(review.getStatus(), 0)) {
             return ApiResponse.error("评价不存在或已隐藏");
         }
         Integer userId = CurrentUserContext.userId();
         Integer exists = bookReviewLikeMapper.countByReviewIdAndUserId(reviewId, userId);
         if (exists != null && exists > 0) {
-            bookReviewLikeMapper.deleteByReviewIdAndUserId(reviewId, userId);
+            if (bookReviewLikeMapper.deleteByReviewIdAndUserId(reviewId, userId) != 1) {
+                return ApiResponse.error("点赞状态已变化，请刷新后重试");
+            }
             return ApiResponse.success("已取消点赞", false);
         }
         BookReviewLike like = BookReviewLike.builder()
@@ -194,7 +220,9 @@ public class BookReviewServiceImpl implements BookReviewService {
                 .createTime(LocalDateTime.now())
                 .build();
         try {
-            bookReviewLikeMapper.insert(like);
+            if (bookReviewLikeMapper.insert(like) != 1) {
+                return ApiResponse.error("点赞失败，请重试");
+            }
         } catch (DuplicateKeyException e) {
             return ApiResponse.success("已点赞", true);
         }
@@ -204,13 +232,25 @@ public class BookReviewServiceImpl implements BookReviewService {
     @Override
     @Transactional
     public ApiResponse<Void> reply(Integer reviewId, String content, Integer replyToUserId) {
-        String postingError = contentPostingPolicy.currentUserRejectionReason();
+        BookReview snapshot = reviewId == null ? null : bookReviewMapper.getById(reviewId);
+        if (snapshot == null || !Objects.equals(snapshot.getStatus(), 0)) {
+            return ApiResponse.error("评价不存在或已隐藏");
+        }
+        Map<Integer, User> lockedUsers =
+                lockUsers(CurrentUserContext.userId(), snapshot.getUserId());
+        User currentUser = lockedUsers.get(CurrentUserContext.userId());
+        String postingError = contentPostingPolicy.postingRejectionReason(currentUser);
         if (postingError != null) {
             return ApiResponse.error(postingError);
         }
-        BookReview review = bookReviewMapper.getById(reviewId);
-        if (review == null || !Objects.equals(review.getStatus(), 0)) {
-            return ApiResponse.error("评价不存在或已隐藏");
+        if (lockedUsers.get(snapshot.getUserId()) == null) {
+            return ApiResponse.error("书评作者不存在或账号已删除");
+        }
+        BookReview review = reviewId == null ? null : bookReviewMapper.findByIdForUpdate(reviewId);
+        if (review == null
+                || !Objects.equals(review.getStatus(), 0)
+                || !Objects.equals(review.getUserId(), snapshot.getUserId())) {
+            return ApiResponse.error("评价状态已变化，请刷新后重试");
         }
         if (ContentSanitizer.exceedsLength(content, ContentSanitizer.REVIEW_REPLY_MAX_LENGTH)) {
             return ApiResponse.error("回复内容不能超过500个字符");
@@ -229,14 +269,20 @@ public class BookReviewServiceImpl implements BookReviewService {
                 .content(cleanContent)
                 .createTime(LocalDateTime.now())
                 .build();
-        bookReviewReplyMapper.insert(reply);
+        if (bookReviewReplyMapper.insert(reply) != 1) {
+            return ApiResponse.error("回复发布失败，请重试");
+        }
         return ApiResponse.success("回复成功");
     }
 
     @Override
     @Transactional
     public ApiResponse<Void> report(Integer reviewId, String reason) {
-        BookReview review = bookReviewMapper.getById(reviewId);
+        String accountError = contentPostingPolicy.currentUserAccountRejectionReason();
+        if (accountError != null) {
+            return ApiResponse.error(accountError);
+        }
+        BookReview review = reviewId == null ? null : bookReviewMapper.findByIdForUpdate(reviewId);
         if (review == null || !Objects.equals(review.getStatus(), 0)) {
             return ApiResponse.error("评价不存在或已隐藏");
         }
@@ -264,11 +310,30 @@ public class BookReviewServiceImpl implements BookReviewService {
                 .createTime(LocalDateTime.now())
                 .build();
         try {
-            bookReviewReportMapper.insert(report);
+            if (bookReviewReportMapper.insert(report) != 1) {
+                return ApiResponse.error("举报提交失败，请重试");
+            }
         } catch (DuplicateKeyException e) {
             return ApiResponse.error("你已举报过这条书评");
         }
         return ApiResponse.success("举报已提交，等待管理员审核");
+    }
+
+    private Map<Integer, User> lockUsers(Integer... userIds) {
+        List<Integer> ids = java.util.Arrays.stream(userIds)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+        List<User> users = ids.isEmpty() ? List.of() : userMapper.findByIdsForUpdate(ids);
+        Map<Integer, User> locked = new LinkedHashMap<>();
+        for (Integer id : ids) {
+            locked.put(id, null);
+        }
+        for (User user : users) {
+            locked.put(user.getId(), user);
+        }
+        return locked;
     }
 
     private void fillInteractionInfo(List<BookReviewView> list) {
@@ -283,21 +348,18 @@ public class BookReviewServiceImpl implements BookReviewService {
         Map<Integer, List<BookReviewReplyView>> replyMap = replies == null
                 ? Collections.emptyMap()
                 : replies.stream().collect(Collectors.groupingBy(BookReviewReplyView::getReviewId));
+        Map<Integer, InteractionSummary> likeSummary = summariesByReviewId(
+                bookReviewLikeMapper.summarizeByReviewIds(reviewIds, currentUserId));
+        Map<Integer, InteractionSummary> reportSummary = summariesByReviewId(
+                bookReviewReportMapper.summarizeByReviewIds(reviewIds, currentUserId));
         for (BookReviewView review : list) {
             review.setContent(ContentSanitizer.plainText(review.getContent()));
-            Integer likeCount = bookReviewLikeMapper.countByReviewId(review.getId());
-            review.setLikeCount(likeCount == null ? 0 : likeCount);
-            Integer reportCount = bookReviewReportMapper.countPendingByReviewId(review.getId());
-            review.setReportCount(reportCount == null ? 0 : reportCount);
-            if (currentUserId == null) {
-                review.setLiked(false);
-                review.setReported(false);
-            } else {
-                Integer liked = bookReviewLikeMapper.countByReviewIdAndUserId(review.getId(), currentUserId);
-                review.setLiked(liked != null && liked > 0);
-                Integer reported = bookReviewReportMapper.countByReviewIdAndUserId(review.getId(), currentUserId);
-                review.setReported(reported != null && reported > 0);
-            }
+            InteractionSummary likes = likeSummary.get(review.getId());
+            InteractionSummary reports = reportSummary.get(review.getId());
+            review.setLikeCount(summaryCount(likes));
+            review.setReportCount(summaryCount(reports));
+            review.setLiked(currentUserId != null && viewerInteracted(likes));
+            review.setReported(currentUserId != null && viewerInteracted(reports));
             List<BookReviewReplyView> reviewReplies =
                     replyMap.getOrDefault(review.getId(), Collections.emptyList());
             for (BookReviewReplyView reply : reviewReplies) {
@@ -305,5 +367,26 @@ public class BookReviewServiceImpl implements BookReviewService {
             }
             review.setReplies(reviewReplies);
         }
+    }
+
+    private Map<Integer, InteractionSummary> summariesByReviewId(List<InteractionSummary> summaries) {
+        if (summaries == null || summaries.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return summaries.stream().collect(Collectors.toMap(
+                InteractionSummary::getReviewId,
+                summary -> summary,
+                (left, right) -> left,
+                LinkedHashMap::new));
+    }
+
+    private int summaryCount(InteractionSummary summary) {
+        return summary == null || summary.getTotalCount() == null ? 0 : summary.getTotalCount();
+    }
+
+    private boolean viewerInteracted(InteractionSummary summary) {
+        return summary != null
+                && summary.getViewerCount() != null
+                && summary.getViewerCount() > 0;
     }
 }

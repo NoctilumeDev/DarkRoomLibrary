@@ -120,14 +120,15 @@
         WHERE br.user_id = #{userId}
     </select>
 
-    <!-- 月度借阅统计 -->
-    <select id="monthlyBorrowStats" resultMap="BorrowRecordViewMap">
-        SELECT br.*, u.user_name, b.name AS book_name
+    <!-- 按日期聚合借阅统计，避免把整月明细加载到 JVM -->
+    <select id="dailyBorrowStats" resultMap="DailyCountMap">
+        SELECT CAST(br.borrow_time AS DATE) AS stat_day,
+               COUNT(*) AS stat_count
         FROM borrow_record br
-        LEFT JOIN user u ON br.user_id = u.id
-        LEFT JOIN book b ON br.book_id = b.id
-        WHERE YEAR(br.borrow_time) = #{year} AND MONTH(br.borrow_time) = #{month}
-        ORDER BY br.borrow_time
+        WHERE br.borrow_time &gt;= #{startTime}
+          AND br.borrow_time &lt; #{endTime}
+        GROUP BY CAST(br.borrow_time AS DATE)
+        ORDER BY stat_day ASC
     </select>
 
     <!-- 分页查询借阅记录，关联用户和图书表 -->
@@ -227,6 +228,11 @@
         <result column="book_name" property="bookName"/>
     </resultMap>
 
+    <resultMap id="DailyCountMap" type="org.darkroomlibrary.web.view.DailyCount">
+        <result column="stat_day" property="day"/>
+        <result column="stat_count" property="count"/>
+    </resultMap>
+
     <select id="findDueReminders" resultType="map">
         SELECT br.id          AS recordId,
                br.user_id     AS userId,
@@ -242,6 +248,9 @@
           AND br.due_reminder_sent_time IS NULL
           AND br.due_date &gt;= #{startTime}
           AND br.due_date &lt; #{endTime}
+          AND br.id &gt; #{afterId}
+        ORDER BY br.id ASC
+        LIMIT #{limit}
     </select>
 
 </mapper>

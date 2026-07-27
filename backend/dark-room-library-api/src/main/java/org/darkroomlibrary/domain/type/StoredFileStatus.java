@@ -9,7 +9,8 @@ public enum StoredFileStatus {
 
     TEMPORARY(0),
     BOUND(1),
-    DELETE_PENDING(2);
+    DELETE_PENDING(2),
+    DELETING(3);
 
     private final Integer status;
 }

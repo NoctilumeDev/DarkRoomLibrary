@@ -155,7 +155,7 @@ export default {
       }
 
       try {
-        const { data } = await request.post("user/sendVerifyCode", {
+        const { data } = await request.post("/user/sendVerifyCode", {
           email: this.form.email,
           purpose: "RESET_PASSWORD",
         });

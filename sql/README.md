@@ -57,6 +57,10 @@ pwsh -File .\scripts\setup-e2e-database.ps1 -Reset
 
 ## 注意事项
 
-- 不需要再执行其他增量 SQL。
-- 如果是已有旧库，请先备份，再按实际字段差异手动迁移。
+- 新建数据库不需要再执行其他增量 SQL。
+- 已有旧库请先备份，再按顺序执行：
+  `001-operation-log-event-key.sql`、
+  `002-notification-processing-token.sql`、
+  `003-scheduled-scan-indexes.sql`、
+  `004-book-version.sql`。
 - 脚本使用 `utf8mb4`，建议执行时显式添加 `--default-character-set=utf8mb4`，避免 Windows 终端环境下中文种子数据乱码。

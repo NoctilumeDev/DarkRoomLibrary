@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -52,29 +53,31 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
             return ApiResponse.error("请输入邮箱");
         }
 
-        Long lastTime = verificationCodeStore.getLastSendTime(normalizedEmail).orElse(null);
-        if (lastTime != null && System.currentTimeMillis() - lastTime < RESEND_INTERVAL_MS) {
-            long remainSeconds = (RESEND_INTERVAL_MS - (System.currentTimeMillis() - lastTime)) / 1000;
-            return ApiResponse.error("请" + remainSeconds + "秒后再试");
+        String sendSlotToken = UUID.randomUUID().toString();
+        if (!verificationCodeStore.tryAcquireSendSlot(
+                normalizedEmail, sendSlotToken, RESEND_INTERVAL_MS)) {
+            return ApiResponse.error("请60秒后再试");
         }
 
         long sendCount = verificationCodeStore.incrementDailySendCount(normalizedEmail, millisUntilTomorrow());
         if (sendCount > dailyMaxPerEmail) {
+            verificationCodeStore.releaseSendSlot(normalizedEmail, sendSlotToken);
             return ApiResponse.error("该邮箱今日验证码发送次数已达上限");
         }
 
         String code = String.format("%06d", secureRandom.nextInt(1000000));
         String purposeName = normalizedPurpose.get().name();
         verificationCodeStore.putCode(purposeName, normalizedEmail, code, CODE_EXPIRE_MS);
-        verificationCodeStore.putLastSendTime(normalizedEmail, System.currentTimeMillis(), RESEND_INTERVAL_MS);
         try {
             mailUtil.sendVerificationCode(normalizedEmail, code);
         } catch (IllegalStateException e) {
             verificationCodeStore.removeCode(purposeName, normalizedEmail);
+            verificationCodeStore.releaseSendSlot(normalizedEmail, sendSlotToken);
             log.warn("验证码邮件发送配置缺失: {}", e.getMessage());
             return ApiResponse.error(e.getMessage());
         } catch (Exception e) {
             verificationCodeStore.removeCode(purposeName, normalizedEmail);
+            verificationCodeStore.releaseSendSlot(normalizedEmail, sendSlotToken);
             log.error("验证码邮件发送失败: {}", normalizedEmail, e);
             return ApiResponse.error("邮件发送失败，请稍后重试");
         }
@@ -97,12 +100,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         }
 
         String purposeName = normalizedPurpose.get().name();
-        Optional<String> storedCode = verificationCodeStore.getCode(purposeName, normalizedEmail);
-        if (storedCode.isPresent() && storedCode.get().equals(code)) {
-            verificationCodeStore.removeCode(purposeName, normalizedEmail);
-            return true;
-        }
-        return false;
+        return verificationCodeStore.consumeCode(purposeName, normalizedEmail, code);
     }
 
     @Override

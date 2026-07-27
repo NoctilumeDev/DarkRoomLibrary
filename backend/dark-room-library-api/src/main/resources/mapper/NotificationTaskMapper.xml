@@ -10,12 +10,16 @@
                status,
                retry_count,
                last_error,
+               processing_token,
                next_retry_time,
                create_time,
                update_time
         FROM notification_task
-        WHERE status IN (0, 2, 3)
-          AND (next_retry_time IS NULL OR next_retry_time &lt;= #{now})
+        WHERE (
+            (status IN (0, 2) AND (next_retry_time IS NULL OR next_retry_time &lt;= #{now}))
+            OR
+            (status = 3 AND next_retry_time IS NOT NULL AND next_retry_time &lt;= #{now})
+        )
         ORDER BY id ASC
         LIMIT #{limit}
     </select>
@@ -23,6 +27,7 @@
     <update id="claimForProcessing">
         UPDATE notification_task
         SET status = 3,
+            processing_token = #{processingToken},
             next_retry_time = #{leaseUntil},
             update_time = #{now}
         WHERE id = #{id}
@@ -37,21 +42,25 @@
         UPDATE notification_task
         SET status = 1,
             last_error = NULL,
+            processing_token = NULL,
             next_retry_time = NULL,
             update_time = #{updateTime}
         WHERE id = #{id}
           AND status = 3
+          AND processing_token = #{processingToken}
     </update>
 
     <update id="markFailed">
         UPDATE notification_task
-        SET status = 2,
+        SET status = #{status},
             retry_count = #{retryCount},
             last_error = #{lastError},
+            processing_token = NULL,
             next_retry_time = #{nextRetryTime},
             update_time = #{updateTime}
         WHERE id = #{id}
           AND status = 3
+          AND processing_token = #{processingToken}
     </update>
 
     <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.NotificationTask">
@@ -62,6 +71,7 @@
         <result column="status" property="status"/>
         <result column="retry_count" property="retryCount"/>
         <result column="last_error" property="lastError"/>
+        <result column="processing_token" property="processingToken"/>
         <result column="next_retry_time" property="nextRetryTime"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>

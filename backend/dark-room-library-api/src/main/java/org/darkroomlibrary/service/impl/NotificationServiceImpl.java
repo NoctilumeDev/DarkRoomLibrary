@@ -5,26 +5,31 @@ import org.darkroomlibrary.mapper.NotificationTaskMapper;
 import org.darkroomlibrary.domain.model.NotificationTask;
 import org.darkroomlibrary.service.NotificationService;
 import org.darkroomlibrary.utils.MailUtil;
+import org.darkroomlibrary.utils.TransactionCallbacks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
     private static final int STATUS_PENDING = 0;
+    private static final int STATUS_RETRY = 2;
+    private static final int STATUS_DEAD = 4;
     private static final int PROCESSING_LEASE_MINUTES = 10;
 
     @Value("${middleware.rabbit.notification-routing-key:notification.task}")
     private String notificationRoutingKey;
+
+    @Value("${notification.max-retry-count:8}")
+    private int maxRetryCount;
 
     @Resource
     private NotificationTaskMapper notificationTaskMapper;
@@ -52,7 +57,9 @@ public class NotificationServiceImpl implements NotificationService {
                 .createTime(now)
                 .updateTime(now)
                 .build();
-        notificationTaskMapper.insert(task);
+        if (notificationTaskMapper.insert(task) != 1) {
+            throw new IllegalStateException("通知任务写入失败");
+        }
         publishTaskAfterCommit(task.getId());
     }
 
@@ -62,8 +69,9 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
         LocalDateTime now = LocalDateTime.now();
+        String processingToken = UUID.randomUUID().toString();
         int claimed = notificationTaskMapper.claimForProcessing(
-                taskId, now, now.plusMinutes(PROCESSING_LEASE_MINUTES));
+                taskId, now, now.plusMinutes(PROCESSING_LEASE_MINUTES), processingToken);
         if (claimed == 0) {
             return;
         }
@@ -73,18 +81,33 @@ public class NotificationServiceImpl implements NotificationService {
         }
         try {
             mailUtil.sendSimpleOrThrow(task.getReceiverEmail(), task.getSubject(), task.getContent());
-            notificationTaskMapper.markSent(taskId, LocalDateTime.now());
+            if (notificationTaskMapper.markSent(taskId, processingToken, LocalDateTime.now()) == 0) {
+                log.warn("通知任务发送完成，但处理租约已失效: taskId={}", taskId);
+            }
         } catch (Exception e) {
             int retryCount = task.getRetryCount() == null ? 1 : task.getRetryCount() + 1;
             LocalDateTime failedAt = LocalDateTime.now();
-            notificationTaskMapper.markFailed(
+            boolean terminal = retryCount >= Math.max(1, maxRetryCount);
+            int marked = notificationTaskMapper.markFailed(
                     taskId,
+                    processingToken,
+                    terminal ? STATUS_DEAD : STATUS_RETRY,
                     retryCount,
                     limitError(e.getMessage()),
-                    failedAt.plusMinutes(Math.min(30, retryCount * 5L)),
+                    terminal ? null : failedAt.plusMinutes(Math.min(30, retryCount * 5L)),
                     failedAt);
-            log.warn("通知任务发送失败，等待补偿重试: taskId={}, retryCount={}, error={}",
-                    taskId, retryCount, e.getMessage());
+            if (marked > 0) {
+                if (terminal) {
+                    log.error("通知任务达到最大重试次数，已终止自动重试: taskId={}, retryCount={}, error={}",
+                            taskId, retryCount, e.getMessage());
+                } else {
+                    log.warn("通知任务发送失败，等待补偿重试: taskId={}, retryCount={}, error={}",
+                            taskId, retryCount, e.getMessage());
+                }
+            } else {
+                log.warn("通知任务发送失败，但处理租约已由其他实例接管: taskId={}, error={}",
+                        taskId, e.getMessage());
+            }
         }
     }
 
@@ -104,16 +127,7 @@ public class NotificationServiceImpl implements NotificationService {
                 log.info("MQ不可用，通知任务已进入数据库待补偿: taskId={}", taskId);
             }
         };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    publishTask.run();
-                }
-            });
-            return;
-        }
-        publishTask.run();
+        TransactionCallbacks.afterCommit(publishTask);
     }
 
     private String limitError(String error) {

@@ -54,7 +54,7 @@ public class BookReviewServiceImplTest extends BaseTest {
     @Order(1)
     @DisplayName("新增评价成功")
     void testSaveReviewSuccess() {
-        var user = createTestUser("reviewer01", "评书人", "reviewer@test.com");
+        var user = createTestUser("reviewer01", "评书人", "reviewer@example.test");
         var book = createTestBook("测试图书", "作者名", 5);
         userId = user.getId();
         bookId = book.getId();
@@ -168,7 +168,7 @@ public class BookReviewServiceImplTest extends BaseTest {
     @Order(7)
     @DisplayName("评价举报成功并回显状态")
     void testReportReview() {
-        var reporter = createTestUser("reporter01", "举报人", "reporter@test.com");
+        var reporter = createTestUser("reporter01", "举报人", "reporter@example.test");
         setCurrentUser(reporter.getId(), reporter.getUserRole());
 
         ApiResponse<Void> reportResult = bookReviewService.report(reviewId, "包含不合适内容");
@@ -208,7 +208,7 @@ public class BookReviewServiceImplTest extends BaseTest {
                 .orElseThrow()
                 .getId();
 
-        var admin = createTestUser("review_admin_01", "审核管理员一", "review_admin_01@test.com");
+        var admin = createTestUser("review_admin_01", "审核管理员一", "review_admin_01@example.test");
         setCurrentUser(admin.getId(), UserRole.ADMIN.code());
         ApiResponse<Void> result = bookReviewReportService.ignore(reportId);
         assertEquals(200, result.getCode());
@@ -227,7 +227,7 @@ public class BookReviewServiceImplTest extends BaseTest {
     @Order(9)
     @DisplayName("管理员隐藏被举报书评成功")
     void testHideReportedReview() {
-        var reporter = createTestUser("reporter02", "第二举报人", "reporter2@test.com");
+        var reporter = createTestUser("reporter02", "第二举报人", "reporter2@example.test");
         setCurrentUser(reporter.getId(), reporter.getUserRole());
         ApiResponse<Void> reportResult = bookReviewService.report(reviewId, "需要管理员隐藏");
         assertEquals(200, reportResult.getCode());
@@ -243,7 +243,7 @@ public class BookReviewServiceImplTest extends BaseTest {
                 .orElseThrow()
                 .getId();
 
-        var admin = createTestUser("review_admin_02", "审核管理员二", "review_admin_02@test.com");
+        var admin = createTestUser("review_admin_02", "审核管理员二", "review_admin_02@example.test");
         setCurrentUser(admin.getId(), UserRole.ADMIN.code());
         ApiResponse<Void> hideResult = bookReviewReportService.hideReview(reportId);
         assertEquals(200, hideResult.getCode());
@@ -274,7 +274,7 @@ public class BookReviewServiceImplTest extends BaseTest {
     @Order(10)
     @DisplayName("非管理员删除他人评价被拒绝")
     void testBatchDeleteOtherUserReview() {
-        var otherUser = createTestUser("other001", "其他人", "other@test.com");
+        var otherUser = createTestUser("other001", "其他人", "other@example.test");
         setCurrentUser(otherUser.getId(), otherUser.getUserRole());
 
         ApiResponse<Void> result = bookReviewService.batchDelete(Arrays.asList(reviewId));
@@ -285,7 +285,7 @@ public class BookReviewServiceImplTest extends BaseTest {
     @Order(11)
     @DisplayName("管理员删除评价及关联回复并写入审计日志")
     void testAdminDeleteReviewIsAudited() {
-        var admin = createTestUser("review_admin_03", "审核管理员三", "review_admin_03@test.com");
+        var admin = createTestUser("review_admin_03", "审核管理员三", "review_admin_03@example.test");
         setCurrentUser(admin.getId(), UserRole.ADMIN.code());
 
         ApiResponse<Void> result = bookReviewService.batchDelete(Arrays.asList(reviewId));
@@ -303,7 +303,7 @@ public class BookReviewServiceImplTest extends BaseTest {
     @Order(12)
     @DisplayName("已下架图书不能新增书评")
     void testReviewDeletedBookRejected() {
-        var user = createTestUser("reviewer_deleted", "下架书评读者", "reviewer_deleted@test.com");
+        var user = createTestUser("reviewer_deleted", "下架书评读者", "reviewer_deleted@example.test");
         var book = createTestBook("已下架书评图书", "下架作者", 1);
         bookMapper.softDelete(List.of(book.getId()));
         setCurrentUser(user.getId(), user.getUserRole());
@@ -321,7 +321,7 @@ public class BookReviewServiceImplTest extends BaseTest {
     @Order(13)
     @DisplayName("已禁言读者不能新增书评")
     void testMutedReaderCannotCreateReview() {
-        var user = createTestUser("reviewer_muted", "禁言书评读者", "reviewer_muted@test.com");
+        var user = createTestUser("reviewer_muted", "禁言书评读者", "reviewer_muted@example.test");
         var book = createTestBook("禁言测试图书", "测试作者", 1);
         userMapper.update(org.darkroomlibrary.domain.model.User.builder()
                 .id(user.getId())
@@ -343,8 +343,8 @@ public class BookReviewServiceImplTest extends BaseTest {
     @Order(14)
     @DisplayName("已隐藏书评不能继续点赞回复或举报")
     void testHiddenReviewRejectsInteractions() {
-        var owner = createTestUser("hidden_owner", "隐藏书评作者", "hidden_owner@test.com");
-        var visitor = createTestUser("hidden_visitor", "隐藏书评访客", "hidden_visitor@test.com");
+        var owner = createTestUser("hidden_owner", "隐藏书评作者", "hidden_owner@example.test");
+        var visitor = createTestUser("hidden_visitor", "隐藏书评访客", "hidden_visitor@example.test");
         var book = createTestBook("隐藏互动测试图书", "测试作者", 1);
         org.darkroomlibrary.domain.model.BookReview review =
                 org.darkroomlibrary.domain.model.BookReview.builder()
@@ -364,4 +364,5 @@ public class BookReviewServiceImplTest extends BaseTest {
         assertEquals(400, bookReviewService.report(
                 review.getId(), "不应写入的举报").getCode());
     }
+
 }

@@ -104,7 +104,7 @@ public class ExportServiceImplTest extends BaseTest {
     @Order(6)
     @DisplayName("导出用户-带数据")
     void testExportUsersWithData() throws Exception {
-        createTestUser("exportuser", "导出用户", "export@test.com");
+        createTestUser("exportuser", "导出用户", "export@example.test");
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         UserPageQuery dto = new UserPageQuery();
@@ -130,14 +130,14 @@ public class ExportServiceImplTest extends BaseTest {
     @Order(8)
     @DisplayName("导出用户-普通管理员邮箱脱敏")
     void testExportUsersMasksEmailForAdmin() throws Exception {
-        createTestUser("exportmask001", "导出脱敏用户", "exportmask001@test.com");
+        createTestUser("exportmask001", "导出脱敏用户", "exportmask001@example.test");
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         exportService.exportUsers(response, new UserPageQuery());
 
         Map<Integer, String> row = findExportRow(response, "exportmask001");
         assertNotNull(row);
-        assertEquals("exp***@test.com", row.get(2));
+        assertEquals("exp***@example.test", row.get(2));
     }
 
     @Test
@@ -145,14 +145,14 @@ public class ExportServiceImplTest extends BaseTest {
     @DisplayName("导出用户-超级管理员邮箱完整可见")
     void testExportUsersShowsFullEmailForSuperAdmin() throws Exception {
         setCurrentUser(1, UserRole.SUPER_ADMIN.code());
-        createTestUser("exportfull001", "导出完整用户", "exportfull001@test.com");
+        createTestUser("exportfull001", "导出完整用户", "exportfull001@example.test");
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         exportService.exportUsers(response, new UserPageQuery());
 
         Map<Integer, String> row = findExportRow(response, "exportfull001");
         assertNotNull(row);
-        assertEquals("exportfull001@test.com", row.get(2));
+        assertEquals("exportfull001@example.test", row.get(2));
     }
 
     @Test

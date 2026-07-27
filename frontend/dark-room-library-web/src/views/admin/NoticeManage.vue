@@ -1,243 +1,247 @@
 <template>
-  <el-row class="admin-table-page">
-    <el-row style="padding: 10px">
-      <el-row>
+  <el-row class="admin-table-page notice-manage-page">
+    <el-row class="notice-toolbar">
+      <el-row class="notice-toolbar__controls">
         <span class="top-bar">公告标题</span>
         <el-input
+          v-model="filters.name"
+          class="notice-title-filter"
           size="small"
-          style="width: 188px"
-          v-model="noticeQueryDto.name"
           placeholder="输入标题"
           clearable
-          @clear="handleFilterClear"
-        >
-        </el-input>
+          @clear="applyFilters"
+          @keyup.enter="applyFilters"
+        />
+
         <span class="top-bar">发布时间</span>
         <el-date-picker
+          v-model="publishedRange"
+          class="notice-date-filter"
           size="small"
-          style="margin-left: 10px; width: 220px"
-          v-model="searchTime"
           type="daterange"
           range-separator="至"
           start-placeholder="开始时间"
           end-placeholder="结束时间"
-        >
-        </el-date-picker>
+        />
+
         <el-button
-          size="small"
           class="customer"
-          style="
-            margin-left: 10px;
-            background-color: rgb(235, 237, 245);
-            color: rgb(43, 121, 203);
-            border: none;
-          "
+          size="small"
           type="primary"
-          @click="handleFilter"
-          >立即查询</el-button
+          @click="applyFilters"
         >
+          立即查询
+        </el-button>
         <el-button
-          size="small"
-          style="
-            background-color: rgb(235, 237, 245);
-            color: rgb(43, 121, 203);
-            border: none;
-          "
           class="customer"
-          type="info"
-          @click="addNotice"
-          >新增公告</el-button
-        >
-        <el-button
           size="small"
+          type="info"
+          @click="openCreatePage"
+        >
+          新增公告
+        </el-button>
+        <el-button
           class="customer reset"
-          style="
-            background-color: #f1f1f1;
-            border: none;
-            color: #909399;
-            border: 1px solid #f1f1f1;
-          "
-          type="info"
-          @click="resetQueryCondition"
-          >条件重置</el-button
-        >
-        <el-button
           size="small"
-          class="customer"
-          :style="{
-            marginLeft: '10px',
-            backgroundColor: selectedRows.length ? '#a7535a' : '#F1F1F1',
-            border: 'none',
-            color: selectedRows.length ? '#FFFFFF' : '#909399',
-          }"
-          type="danger"
-          @click="batchDelete()"
-          >批量删除</el-button
+          type="info"
+          @click="resetFilters"
         >
+          条件重置
+        </el-button>
+        <el-button
+          class="customer"
+          size="small"
+          type="danger"
+          :disabled="selectedRows.length === 0"
+          @click="deleteSelected"
+        >
+          批量删除
+        </el-button>
       </el-row>
     </el-row>
-    <el-row style="margin: 10px">
+
+    <el-row class="notice-table-section">
       <el-table
+        v-loading="loading"
+        :data="notices"
         row-key="id"
-        @selection-change="handleSelectionChange"
-        :data="tableData"
-        style="width: 100%"
+        class="notice-table"
+        @selection-change="selectedRows = $event"
       >
-        <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="name" width="508" label="公告"></el-table-column>
-        <el-table-column
-          prop="createTime"
-          width="188"
-          label="发布时间"
-        ></el-table-column>
+        <el-table-column type="selection" width="55" />
+        <el-table-column prop="name" width="508" label="公告" />
+        <el-table-column prop="createTime" width="188" label="发布时间" />
         <el-table-column label="操作">
-          <template #default="scope">
-            <span class="text-button" @click="handleEdit(scope.row)">修改</span>
-            <span class="text-button" @click="handleDelete(scope.row)"
-              >删除</span
-            >
+          <template #default="{ row }">
+            <span class="text-button" @click="openEditPage(row)">修改</span>
+            <span class="text-button" @click="deleteOne(row)">删除</span>
           </template>
         </el-table-column>
       </el-table>
+
       <el-pagination
-        style="margin: 20px 0; float: right"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="currentPage"
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        class="notice-pagination"
         :page-sizes="[8, 20]"
-        :page-size="pageSize"
         layout="total, sizes, prev, pager, next, jumper"
         :total="totalItems"
-      ></el-pagination>
+        @size-change="handlePageSizeChange"
+        @current-change="loadNotices"
+      />
     </el-row>
   </el-row>
 </template>
 
 <script>
+import { toDayRange } from "@/utils/pageQuery.js";
+
+const NOTICE_OPERATION_KEY = "noticeOperation";
+const NOTICE_DRAFT_KEY = "noticeInfo";
+
 export default {
+  name: "NoticeManage",
   data() {
     return {
-      filterText: "",
       currentPage: 1,
       pageSize: 8,
       totalItems: 0,
-      tableData: [],
-      searchTime: [],
+      notices: [],
+      publishedRange: [],
       selectedRows: [],
-      noticeQueryDto: {},
+      filters: {
+        name: "",
+      },
+      loading: false,
     };
   },
   created() {
-    this.fetchFreshData();
+    this.loadNotices();
   },
   methods: {
-    // 公告新增
-    addNotice() {
-      sessionStorage.setItem("noticeOperation", "save");
-      this.$router.push("/createNotice");
+    buildQuery() {
+      return {
+        current: this.currentPage,
+        size: this.pageSize,
+        ...toDayRange(this.publishedRange),
+        name: this.filters.name?.trim() || null,
+      };
     },
-    // 多选框选中
-    handleSelectionChange(selection) {
-      this.selectedRows = selection;
-    },
-    // 批量删除数据
-    async batchDelete() {
-      if (!this.selectedRows.length) {
-        this.$message(`未选中任何数据`);
-        return;
-      }
-      const confirmed = await this.$swalConfirm({
-        title: "删除公告数据",
-        text: `删除后不可恢复，是否继续？`,
-        icon: "warning",
-      });
-      if (confirmed) {
-        try {
-          let ids = this.selectedRows.map((entity) => entity.id);
-          const response = await this.$axios.post(`notice/batchDelete`, ids);
-          if (response.data.code === 200) {
-            this.$swal.fire({
-              title: "删除提示",
-              text: response.data.msg,
-              icon: "success",
-              showConfirmButton: false,
-              timer: 2000,
-            });
-            this.fetchFreshData();
-            return;
-          }
-        } catch (e) {
-          this.$swal.fire({
-            title: "错误提示",
-            text: e,
-            icon: "error",
-            showConfirmButton: false,
-            timer: 2000,
-          });
-          console.error(`公告信息删除异常：`, e);
-        }
-      }
-    },
-    resetQueryCondition() {
-      this.noticeQueryDto = {};
-      this.searchTime = [];
-      this.fetchFreshData();
-    },
-    async fetchFreshData() {
+    async loadNotices() {
+      this.loading = true;
       try {
-        this.tableData = [];
-        let startTime = null;
-        let endTime = null;
-        if (this.searchTime != null && this.searchTime.length === 2) {
-          const [startDate, endDate] = await Promise.all(
-            this.searchTime.map((date) => date.toISOString())
-          );
-          startTime = `${startDate.split("T")[0]}T00:00:00`;
-          endTime = `${endDate.split("T")[0]}T23:59:59`;
+        const response = await this.$axios.post("/notice/query", this.buildQuery());
+        const result = response.data;
+        if (result.code !== 200) {
+          this.$message.error(result.msg || "公告查询失败");
+          return;
         }
-        // 请求参数
-        const params = {
-          current: this.currentPage,
-          size: this.pageSize,
-          startTime: startTime,
-          endTime: endTime,
-          ...this.noticeQueryDto,
-        };
-        const response = await this.$axios.post("notice/query", params);
-        const { data } = response;
-        this.tableData = data.data;
-        this.totalItems = data.total;
+        this.notices = result.data || [];
+        this.totalItems = result.total || 0;
       } catch (error) {
         console.error("查询公告信息异常:", error);
+        this.$message.error(error.response?.data?.msg || "公告查询失败");
+      } finally {
+        this.loading = false;
       }
     },
-    handleFilter() {
+    applyFilters() {
       this.currentPage = 1;
-      this.fetchFreshData();
+      this.loadNotices();
     },
-    handleFilterClear() {
-      this.filterText = "";
-      this.handleFilter();
-    },
-    handleSizeChange(val) {
-      this.pageSize = val;
+    resetFilters() {
+      this.filters = { name: "" };
+      this.publishedRange = [];
       this.currentPage = 1;
-      this.fetchFreshData();
+      this.loadNotices();
     },
-    handleCurrentChange(val) {
-      this.currentPage = val;
-      this.fetchFreshData();
+    handlePageSizeChange() {
+      this.currentPage = 1;
+      this.loadNotices();
     },
-    handleEdit(row) {
-      sessionStorage.setItem("noticeInfo", JSON.stringify(row));
-      sessionStorage.setItem("noticeOperation", "update");
+    openCreatePage() {
+      sessionStorage.removeItem(NOTICE_DRAFT_KEY);
+      sessionStorage.setItem(NOTICE_OPERATION_KEY, "save");
       this.$router.push("/createNotice");
     },
-    handleDelete(row) {
-      this.selectedRows.push(row);
-      this.batchDelete();
+    openEditPage(notice) {
+      sessionStorage.setItem(NOTICE_DRAFT_KEY, JSON.stringify(notice));
+      sessionStorage.setItem(NOTICE_OPERATION_KEY, "update");
+      this.$router.push("/createNotice");
+    },
+    deleteOne(notice) {
+      this.deleteNotices([notice.id]);
+    },
+    deleteSelected() {
+      this.deleteNotices(this.selectedRows.map(({ id }) => id));
+    },
+    async deleteNotices(ids) {
+      if (ids.length === 0) {
+        this.$message.warning("未选中任何数据");
+        return;
+      }
+
+      const confirmed = await this.$swalConfirm({
+        title: ids.length === 1 ? "删除公告" : "批量删除公告",
+        text: "删除后不可恢复，是否继续？",
+        icon: "warning",
+      });
+      if (!confirmed) return;
+
+      try {
+        const response = await this.$axios.post("/notice/batchDelete", ids);
+        const result = response.data;
+        if (result.code !== 200) {
+          this.$message.error(result.msg || "公告删除失败");
+          return;
+        }
+        this.$message.success(result.msg || "公告删除成功");
+        this.selectedRows = [];
+        await this.loadNotices();
+        if (
+          this.notices.length === 0 &&
+          this.currentPage > 1 &&
+          this.totalItems > 0
+        ) {
+          this.currentPage -= 1;
+          await this.loadNotices();
+        }
+      } catch (error) {
+        console.error("删除公告信息异常:", error);
+        this.$message.error(error.response?.data?.msg || "公告删除失败");
+      }
     },
   },
 };
 </script>
-<style scoped lang="scss"></style>
+
+<style scoped lang="scss">
+.notice-toolbar {
+  padding: 10px;
+}
+
+.notice-toolbar__controls {
+  align-items: center;
+}
+
+.notice-title-filter {
+  width: 188px;
+}
+
+.notice-toolbar__controls :deep(.notice-date-filter) {
+  width: 220px;
+}
+
+.notice-table-section {
+  margin: 10px;
+}
+
+.notice-table {
+  width: 100%;
+}
+
+.notice-pagination {
+  margin: 20px 0;
+  margin-left: auto;
+}
+</style>

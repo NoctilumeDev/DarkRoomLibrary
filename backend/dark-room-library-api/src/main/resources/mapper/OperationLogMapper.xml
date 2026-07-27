@@ -39,6 +39,7 @@
     <!-- ==================== 结果映射 ==================== -->
     <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.OperationLog">
         <id column="id" property="id"/>
+        <result column="event_key" property="eventKey"/>
         <result column="user_id" property="userId"/>
         <result column="user_name" property="userName"/>
         <result column="operation" property="operation"/>

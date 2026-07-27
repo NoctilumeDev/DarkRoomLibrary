@@ -2,6 +2,21 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.darkroomlibrary.mapper.StoredFileMapper">
 
+    <sql id="storedFileColumns">
+        sf.file_name,
+        sf.original_name,
+        sf.extension,
+        sf.content_type,
+        sf.file_size,
+        sf.uploader_id,
+        sf.status,
+        sf.ref_type,
+        sf.ref_id,
+        sf.create_time,
+        sf.bind_time,
+        sf.update_time
+    </sql>
+
     <sql id="queryWhere">
         <if test="fileName != null and fileName != ''">
             AND sf.file_name LIKE concat('%', #{fileName}, '%')
@@ -24,7 +39,9 @@
     </sql>
 
     <select id="query" resultMap="StoredFileViewMap">
-        SELECT sf.*, u.user_name AS uploader_name
+        SELECT
+            <include refid="storedFileColumns"/>,
+            u.user_name AS uploader_name
         FROM stored_file sf
         LEFT JOIN user u ON u.id = sf.uploader_id
         <where>
@@ -45,9 +62,12 @@
     </select>
 
     <select id="findByReference" resultMap="StoredFileMap">
-        SELECT *
-        FROM stored_file
-        WHERE ref_type = #{refType} AND ref_id = #{refId} AND status = 1
+        SELECT
+            <include refid="storedFileColumns"/>
+        FROM stored_file sf
+        WHERE sf.ref_type = #{refType}
+          AND sf.ref_id = #{refId}
+          AND sf.status = 1
     </select>
 
     <update id="bind">
@@ -74,13 +94,41 @@
         <foreach collection="fileNames" item="fileName" open="(" separator="," close=")">
             #{fileName}
         </foreach>
+          AND status = 1
+    </update>
+
+    <update id="claimUnboundForDeletion">
+        UPDATE stored_file
+        SET status = 3,
+            ref_type = NULL,
+            ref_id = NULL,
+            update_time = #{now}
+        WHERE file_name = #{fileName}
+          AND status IN (0, 2)
+    </update>
+
+    <update id="claimForCleanup">
+        UPDATE stored_file
+        SET status = 3,
+            ref_type = NULL,
+            ref_id = NULL,
+            update_time = #{now}
+        WHERE file_name = #{fileName}
+          AND (
+            status = 2
+            OR (status = 0 AND create_time &lt; #{temporaryCutoff})
+            OR (status = 3 AND update_time &lt; #{deletingLeaseCutoff})
+          )
     </update>
 
     <select id="findCleanupCandidates" resultMap="StoredFileMap">
-        SELECT *
-        FROM stored_file
-        WHERE status = 2 OR (status = 0 AND create_time &lt; #{temporaryCutoff})
-        ORDER BY status DESC, create_time ASC
+        SELECT
+            <include refid="storedFileColumns"/>
+        FROM stored_file sf
+        WHERE sf.status = 2
+           OR (sf.status = 0 AND sf.create_time &lt; #{temporaryCutoff})
+           OR (sf.status = 3 AND sf.update_time &lt; #{deletingLeaseCutoff})
+        ORDER BY sf.status DESC, sf.update_time ASC, sf.create_time ASC
         LIMIT #{limit}
     </select>
 
@@ -93,7 +141,8 @@
     </select>
 
     <select id="findUserBusinessFiles" resultMap="StoredFileMap">
-        SELECT sf.*
+        SELECT
+            <include refid="storedFileColumns"/>
         FROM stored_file sf
         WHERE sf.status = 1
           AND (

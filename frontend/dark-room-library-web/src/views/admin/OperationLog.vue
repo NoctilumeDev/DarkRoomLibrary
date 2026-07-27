@@ -36,11 +36,6 @@
         <el-button
           size="small"
           class="customer"
-          style="
-            background-color: rgb(235, 237, 245);
-            color: rgb(43, 121, 203);
-            border: none;
-          "
           type="primary"
           @click="handleFilter"
           >立即查询</el-button
@@ -48,7 +43,6 @@
         <el-button
           size="small"
           class="customer reset"
-          style="background-color: #f1f1f1; border: none; color: #909399"
           type="info"
           @click="resetCondition"
           >条件重置</el-button
@@ -126,6 +120,8 @@
 </template>
 
 <script>
+import { toDayRange } from "@/utils/pageQuery.js";
+
 export default {
   data() {
     return {
@@ -145,20 +141,10 @@ export default {
     async fetchData() {
       this.loading = true;
       try {
-        let startTime = null;
-        let endTime = null;
-        if (this.searchTime != null && this.searchTime.length === 2) {
-          const [startDate, endDate] = await Promise.all(
-            this.searchTime.map((date) => date.toISOString())
-          );
-          startTime = startDate.split("T")[0] + "T00:00:00";
-          endTime = endDate.split("T")[0] + "T23:59:59";
-        }
         const params = {
           current: this.currentPage,
           size: this.pageSize,
-          startTime: startTime,
-          endTime: endTime,
+          ...toDayRange(this.searchTime),
           ...this.queryDto,
         };
         const response = await this.$axios.post("/operationLog/query", params);

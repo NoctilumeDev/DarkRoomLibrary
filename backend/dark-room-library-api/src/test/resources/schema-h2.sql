@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 
 CREATE TABLE IF NOT EXISTS `book` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `version` INT NOT NULL DEFAULT 0,
     `name` VARCHAR(100) NOT NULL,
     `author` VARCHAR(100) NOT NULL,
     `isbn` VARCHAR(30) DEFAULT '',
@@ -135,6 +136,7 @@ CREATE TABLE IF NOT EXISTS `notification_task` (
     `status` TINYINT DEFAULT 0,
     `retry_count` INT DEFAULT 0,
     `last_error` VARCHAR(500),
+    `processing_token` VARCHAR(64),
     `next_retry_time` DATETIME,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -142,13 +144,15 @@ CREATE TABLE IF NOT EXISTS `notification_task` (
 
 CREATE TABLE IF NOT EXISTS `operation_log` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `event_key` VARCHAR(64),
     `user_id` INT,
     `user_name` VARCHAR(50),
     `operation` VARCHAR(100) NOT NULL,
     `target` VARCHAR(255),
     `detail` VARCHAR(1000),
     `ip` VARCHAR(50),
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_operation_log_event_key` (`event_key`)
 );
 
 CREATE TABLE IF NOT EXISTS `notice` (
@@ -228,3 +232,10 @@ CREATE TABLE IF NOT EXISTS `stored_file` (
     `bind_time` DATETIME,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS `idx_due_reminder_scan`
+    ON `borrow_record` (`status`, `due_reminder_sent_time`, `due_date`);
+CREATE INDEX IF NOT EXISTS `idx_status_notify_book`
+    ON `book_reservation` (`status`, `notify_time`, `book_id`);
+CREATE INDEX IF NOT EXISTS `idx_status_update`
+    ON `stored_file` (`status`, `update_time`);

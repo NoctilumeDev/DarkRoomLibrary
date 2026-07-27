@@ -143,7 +143,7 @@ export default {
       }
 
       try {
-        const { data } = await request.post("user/sendVerifyCode", {
+        const { data } = await request.post("/user/sendVerifyCode", {
           email: this.email,
           purpose: "REGISTER",
         });
@@ -197,7 +197,7 @@ export default {
 
       this.loading = true;
       try {
-        const { data } = await request.post("user/register", {
+        const { data } = await request.post("/user/register", {
           userAccount: this.account,
           userPwd: this.password,
           userName: this.name,

@@ -3,11 +3,15 @@ package org.darkroomlibrary.service.impl;
 import org.darkroomlibrary.context.CurrentUserContext;
 import org.darkroomlibrary.mapper.BookMapper;
 import org.darkroomlibrary.mapper.BookFavoriteMapper;
+import org.darkroomlibrary.mapper.UserMapper;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
 import org.darkroomlibrary.web.dto.query.BookFavoritePageQuery;
+import org.darkroomlibrary.domain.type.AccountStatus;
+import org.darkroomlibrary.domain.type.UserRole;
 import org.darkroomlibrary.domain.model.Book;
 import org.darkroomlibrary.domain.model.BookFavorite;
+import org.darkroomlibrary.domain.model.User;
 import org.darkroomlibrary.web.view.BookFavoriteView;
 import org.darkroomlibrary.service.BookFavoriteService;
 import org.springframework.dao.DuplicateKeyException;
@@ -17,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 图书收藏服务实现
@@ -30,6 +35,9 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
     @Resource
     private BookMapper bookMapper;
 
+    @Resource
+    private UserMapper userMapper;
+
     @Override
     @Transactional
     public ApiResponse<Void> addFavorite(Integer bookId) {
@@ -37,7 +45,15 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
         if (userId == null) {
             return ApiResponse.error("身份认证失败，请先登录");
         }
-        Book book = bookId == null ? null : bookMapper.getById(bookId);
+        User user = userMapper.findByIdForUpdate(userId);
+        if (user == null
+                || !Objects.equals(user.getAccountStatus(), AccountStatus.NORMAL.code())
+                || Boolean.TRUE.equals(user.getIsLogin())
+                || !Objects.equals(user.getUserRole(), CurrentUserContext.roleCode())
+                || !Objects.equals(user.getUserRole(), UserRole.READER.code())) {
+            return ApiResponse.error("当前账号状态不允许收藏图书");
+        }
+        Book book = bookId == null ? null : bookMapper.findByIdForUpdate(bookId);
         if (book == null || Boolean.TRUE.equals(book.getIsDeleted())) {
             return ApiResponse.error("图书不存在或已下架");
         }
@@ -51,7 +67,9 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
                 .createTime(LocalDateTime.now())
                 .build();
         try {
-            bookFavoriteMapper.insert(favorite);
+            if (bookFavoriteMapper.insert(favorite) != 1) {
+                return ApiResponse.error("收藏失败，请重试");
+            }
         } catch (DuplicateKeyException e) {
             return ApiResponse.error("已收藏该图书");
         }

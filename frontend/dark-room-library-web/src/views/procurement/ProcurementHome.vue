@@ -18,14 +18,15 @@
 <script>
 import ProfileDialog from "@/components/ProfileDialog.vue";
 import { clearAuthSession } from "@/utils/storage";
+import { USER_ROLE } from "@/utils/userRoles.js";
 
 export default {
   name: "ProcurementHome",
   components: { ProfileDialog },
   data() { return { profileVisible: false, userInfo: { id: null, role: null, name: "", email: "", url: "" } }; },
   computed: {
-    roleLabel() { return this.userInfo.role === 4 ? "物流" : "采购"; },
-    roleSeal() { return this.userInfo.role === 4 ? "运" : "筹"; },
+    roleLabel() { return this.userInfo.role === USER_ROLE.LOGISTICS ? "物流" : "采购"; },
+    roleSeal() { return this.userInfo.role === USER_ROLE.LOGISTICS ? "运" : "筹"; },
   },
   created() { this.loadAuth(); },
   methods: {
@@ -43,7 +44,6 @@ export default {
 };
 </script>
 
-<style src="@/assets/css/admin-system.scss" lang="scss"></style>
 <style scoped lang="scss">
 .staff-shell {
   --admin-text: #2d2923;

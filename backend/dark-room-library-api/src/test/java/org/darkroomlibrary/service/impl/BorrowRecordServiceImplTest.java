@@ -62,7 +62,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         testUser = createTestUser(
                 "borrowtest" + suffix,
                 "借阅测试用户" + suffix,
-                "borrow" + suffix + "@test.com");
+                "borrow" + suffix + "@example.test");
         testBook = createTestBook("测试图书-借阅-" + suffix, "测试作者", 3);
         setCurrentUser(testUser.getId(), testUser.getUserRole());
     }
@@ -131,7 +131,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @DisplayName("还书成功 - 按时归还")
     void testReturnBookSuccess() {
         Book returnBook = createTestBook("归还测试图书", "归还作者", 5);
-        User returnUser = createTestUser("returnuser", "归还用户", "return@test.com");
+        User returnUser = createTestUser("returnuser", "归还用户", "return@example.test");
         setCurrentUser(returnUser.getId(), returnUser.getUserRole());
 
         // 先借书
@@ -157,7 +157,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @DisplayName("还书成功 - 逾期归还（有罚款）")
     void testReturnBookOverdue() {
         Book overdueBook = createTestBook("逾期测试图书", "逾期作者", 5);
-        User overdueUser = createTestUser("overdueuser", "逾期用户", "overdue@test.com");
+        User overdueUser = createTestUser("overdueuser", "逾期用户", "overdue@example.test");
         setCurrentUser(overdueUser.getId(), overdueUser.getUserRole());
 
         // 创建一条逾期借阅记录（应还日期在过去）
@@ -185,7 +185,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @Order(9)
     @DisplayName("还书失败 - 非本人记录")
     void testReturnBookNotOwn() {
-        User otherUser = createTestUser("otheruser", "其他用户", "other@test.com");
+        User otherUser = createTestUser("otheruser", "其他用户", "other@example.test");
         Book otherBook = createTestBook("其他图书", "其他作者", 5);
         setCurrentUser(otherUser.getId(), otherUser.getUserRole());
         borrowRecordService.borrow(otherBook.getId());
@@ -199,7 +199,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         Integer recordId = ownedRecords.get(0).getId();
 
         // 切换到另一个用户
-        User anotherUser = createTestUser("anotheruser", "另一个用户", "another@test.com");
+        User anotherUser = createTestUser("anotheruser", "另一个用户", "another@example.test");
         setCurrentUser(anotherUser.getId(), anotherUser.getUserRole());
 
         ApiResponse<Void> result = borrowRecordService.returnBook(recordId);
@@ -211,7 +211,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @Order(10)
     @DisplayName("还书成功 - 管理员可代用户归还")
     void testAdminCanReturnOtherUserRecord() {
-        User owner = createTestUser("adminreturnowner", "代还用户", "adminreturnowner@test.com");
+        User owner = createTestUser("adminreturnowner", "代还用户", "adminreturnowner@example.test");
         Book book = createTestBook("管理员代还测试图书", "管理员代还作者", 5);
         setCurrentUser(owner.getId(), owner.getUserRole());
         borrowRecordService.borrow(book.getId());
@@ -225,7 +225,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         assertNotNull(records);
         assertFalse(records.isEmpty());
 
-        User admin = createTestUser("adminreturner", "管理员代还", "adminreturner@test.com");
+        User admin = createTestUser("adminreturner", "管理员代还", "adminreturner@example.test");
         setCurrentUser(admin.getId(), UserRole.ADMIN.code());
 
         ApiResponse<Void> result = borrowRecordService.returnBook(records.get(0).getId());
@@ -237,12 +237,12 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @Order(11)
     @DisplayName("查询隔离 - 普通用户不能按 userId 查询他人借阅记录")
     void testReaderCannotQueryOtherUserRecords() {
-        User owner = createTestUser("borrowowner", "借阅记录拥有者", "borrowowner@test.com");
+        User owner = createTestUser("borrowowner", "借阅记录拥有者", "borrowowner@example.test");
         Book ownerBook = createTestBook("隔离测试图书", "隔离作者", 5);
         setCurrentUser(owner.getId(), owner.getUserRole());
         borrowRecordService.borrow(ownerBook.getId());
 
-        User reader = createTestUser("borrowreader", "借阅查询用户", "borrowreader@test.com");
+        User reader = createTestUser("borrowreader", "借阅查询用户", "borrowreader@example.test");
         setCurrentUser(reader.getId(), reader.getUserRole());
 
         BorrowRecordPageQuery queryDto = new BorrowRecordPageQuery();
@@ -260,7 +260,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         Book singleCopyBook = createTestBook("concurrent-borrow-book", "concurrent-author", 1);
         List<User> users = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            users.add(createTestUser("concurrent_borrow_" + i, "Concurrent User " + i, "concurrent" + i + "@test.com"));
+            users.add(createTestUser("concurrent_borrow_" + i, "Concurrent User " + i, "concurrent" + i + "@example.test"));
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(users.size());
@@ -305,7 +305,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @Order(13)
     @DisplayName("Renew - allowed once inside due-date window")
     void testRenewSuccessInsideWindow() {
-        User renewUser = createTestUser("renewuser", "Renew User", "renew@test.com");
+        User renewUser = createTestUser("renewuser", "Renew User", "renew@example.test");
         Book renewBook = createTestBook("renew-book", "renew-author", 2);
         LocalDateTime dueDate = LocalDateTime.now().plusDays(2);
         BorrowRecord record = createTestBorrowRecord(renewUser.getId(), renewBook.getId(), dueDate);
@@ -324,8 +324,8 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @Order(14)
     @DisplayName("Renew - blocked when reservation queue exists")
     void testRenewBlockedWhenReservationExists() {
-        User renewUser = createTestUser("renewblocked", "Renew Blocked", "renewblocked@test.com");
-        User reserveUser = createTestUser("renewreserve", "Renew Reserve", "renewreserve@test.com");
+        User renewUser = createTestUser("renewblocked", "Renew Blocked", "renewblocked@example.test");
+        User reserveUser = createTestUser("renewreserve", "Renew Reserve", "renewreserve@example.test");
         Book renewBook = createTestBook("renew-block-book", "renew-block-author", 2);
         BorrowRecord record = createTestBorrowRecord(renewUser.getId(), renewBook.getId(), LocalDateTime.now().plusDays(2));
         bookReservationMapper.insert(BookReservation.builder()
@@ -348,8 +348,8 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @Order(15)
     @DisplayName("Return book - notifies earliest reservation without RabbitMQ")
     void testReturnBookNotifiesReservationWithMqFallback() {
-        User borrower = createTestUser("returnfallback", "Return Fallback", "returnfallback@test.com");
-        User reserveUser = createTestUser("reservefallback", "Reserve Fallback", "reservefallback@test.com");
+        User borrower = createTestUser("returnfallback", "Return Fallback", "returnfallback@example.test");
+        User reserveUser = createTestUser("reservefallback", "Reserve Fallback", "reservefallback@example.test");
         Book reservedBook = createTestBook("reservation-fallback-book", "reservation-fallback-author", 1);
         setCurrentUser(borrower.getId(), borrower.getUserRole());
         assertEquals(200, borrowRecordService.borrow(reservedBook.getId()).getCode());
@@ -387,8 +387,8 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @Order(16)
     @DisplayName("Borrow - reservation queue blocks others and marks notified reservation borrowed")
     void testBorrowRespectsNotifiedReservationQueue() {
-        User notifiedUser = createTestUser("notifiedborrower", "Notified Borrower", "notifiedborrower@test.com");
-        User otherUser = createTestUser("queueintruder", "Queue Intruder", "queueintruder@test.com");
+        User notifiedUser = createTestUser("notifiedborrower", "Notified Borrower", "notifiedborrower@example.test");
+        User otherUser = createTestUser("queueintruder", "Queue Intruder", "queueintruder@example.test");
         Book reservedBook = createTestBook("reserved-borrow-book", "reserved-borrow-author", 1);
         BookReservation reservation = BookReservation.builder()
                 .userId(notifiedUser.getId())
@@ -420,7 +420,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
     @DisplayName("Due reminder - creates one notification task and marks record reminded")
     void testDueReminderCreatesSingleNotificationTask() {
         String suffix = String.valueOf(System.nanoTime());
-        User borrower = createTestUser("reminder" + suffix, "Reminder User", "reminder" + suffix + "@test.com");
+        User borrower = createTestUser("reminder" + suffix, "Reminder User", "reminder" + suffix + "@example.test");
         Book book = createTestBook("due-reminder-book-" + suffix, "reminder-author", 1);
         BorrowRecord record = createTestBorrowRecord(
                 borrower.getId(),
@@ -435,7 +435,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         List<NotificationTask> tasks = notificationTaskMapper.selectList(
                 new QueryWrapper<NotificationTask>()
                         .eq("receiver_email", borrower.getUserEmail())
-                        .eq("subject", "【暗室图书馆】还书提醒")
+                        .eq("subject", "【暗室藏书】还书提醒")
         );
 
         assertNotNull(updated.getDueReminderSentTime());
@@ -451,7 +451,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         User user = createTestUser(
                 "borrow_limit_race_" + suffix,
                 "Borrow Limit Race",
-                "borrow-limit-race-" + suffix + "@test.com"
+                "borrow-limit-race-" + suffix + "@example.test"
         );
         for (int i = 0; i < 4; i++) {
             Book activeBook = createTestBook("active-limit-book-" + suffix + "-" + i, "limit-author", 1);
@@ -490,7 +490,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         User user = createTestUser(
                 "borrow_duplicate_race_" + suffix,
                 "Borrow Duplicate Race",
-                "borrow-duplicate-race-" + suffix + "@test.com"
+                "borrow-duplicate-race-" + suffix + "@example.test"
         );
         Book book = createTestBook("duplicate-race-book-" + suffix, "race-author", 2);
 
@@ -523,7 +523,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         User user = createTestUser(
                 "borrow_unique_" + suffix,
                 "Borrow Unique",
-                "borrow-unique-" + suffix + "@test.com"
+                "borrow-unique-" + suffix + "@example.test"
         );
         Book book = createTestBook("borrow-unique-book-" + suffix, "unique-author", 2);
         createTestBorrowRecord(user.getId(), book.getId(), LocalDateTime.now().plusDays(30));
@@ -547,7 +547,7 @@ public class BorrowRecordServiceImplTest extends BaseTest {
         User user = createTestUser(
                 "renew_race_" + suffix,
                 "Renew Race",
-                "renew-race-" + suffix + "@test.com"
+                "renew-race-" + suffix + "@example.test"
         );
         Book book = createTestBook("renew-race-book-" + suffix, "renew-race-author", 1);
         LocalDateTime originalDueDate = LocalDateTime.now().plusDays(2);

@@ -18,10 +18,11 @@
         </if>
     </sql>
 
-    <update id="expireNotifiedBefore">
+    <update id="expireNotifiedByBookIdBefore">
         UPDATE book_reservation
         SET status = 4
-        WHERE status = 3
+        WHERE book_id = #{bookId}
+          AND status = 3
           AND notify_time IS NOT NULL
           AND notify_time &lt; #{cutoff}
     </update>
@@ -86,12 +87,34 @@
     </select>
 
     <select id="findExpiredNotifiedBookIds" resultType="integer">
-        SELECT book_id
+        SELECT DISTINCT book_id
         FROM book_reservation
         WHERE status = 3
           AND notify_time IS NOT NULL
           AND notify_time &lt; #{cutoff}
-        ORDER BY notify_time ASC, id ASC
+        ORDER BY book_id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findBooksNeedingNotification" resultType="integer">
+        SELECT b.id
+        FROM book b
+        WHERE b.is_deleted = 0
+          AND b.available_count &gt; 0
+          AND EXISTS (
+              SELECT 1
+              FROM book_reservation waiting
+              WHERE waiting.book_id = b.id
+                AND waiting.status = 0
+          )
+          AND b.available_count &gt; (
+              SELECT COUNT(*)
+              FROM book_reservation notified
+              WHERE notified.book_id = b.id
+                AND notified.status = 3
+          )
+        ORDER BY b.id ASC
+        LIMIT #{limit}
     </select>
 
     <select id="findNotifiedByBookIdAndUserId" resultMap="BaseResultMap">
@@ -127,11 +150,25 @@
           AND status = 0
     </update>
 
+    <update id="expireWaiting">
+        UPDATE book_reservation
+        SET status = 4
+        WHERE id = #{id}
+          AND status = 0
+    </update>
+
     <select id="countActiveByBookId" resultType="int">
         SELECT COUNT(*)
         FROM book_reservation br
         WHERE br.book_id = #{bookId}
           AND br.status IN (0, 3)
+    </select>
+
+    <select id="countNotifiedByBookId" resultType="int">
+        SELECT COUNT(*)
+        FROM book_reservation br
+        WHERE br.book_id = #{bookId}
+          AND br.status = 3
     </select>
 
     <select id="countActiveByUserId" resultType="int">
@@ -140,6 +177,31 @@
         WHERE br.user_id = #{userId}
           AND br.status IN (0, 3)
     </select>
+
+    <select id="countActiveByUserIds" resultType="int">
+        SELECT COUNT(*)
+        FROM book_reservation br
+        WHERE br.status IN (0, 3)
+          AND br.user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </select>
+
+    <select id="findActiveBookIdsByUserId" resultType="integer">
+        SELECT DISTINCT br.book_id
+        FROM book_reservation br
+        WHERE br.user_id = #{userId}
+          AND br.status IN (0, 3)
+        ORDER BY br.book_id ASC
+    </select>
+
+    <update id="releaseActiveByUserId">
+        UPDATE book_reservation
+        SET status = 4
+        WHERE user_id = #{userId}
+          AND status IN (0, 3)
+    </update>
 
     <select id="countActiveByBookIds" resultType="int">
         SELECT COUNT(*)

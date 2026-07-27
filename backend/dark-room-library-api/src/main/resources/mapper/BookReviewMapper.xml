@@ -16,6 +16,24 @@
         </if>
     </sql>
 
+    <select id="findByIdForUpdate" resultMap="BaseResultMap">
+        SELECT br.*
+        FROM book_review br
+        WHERE br.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="findByIdsForUpdate" resultMap="BaseResultMap">
+        SELECT br.*
+        FROM book_review br
+        WHERE br.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY br.id
+        FOR UPDATE
+    </select>
+
     <!-- ==================== 查询操作 ==================== -->
     <!-- 分页查询（关联用户和图书） -->
     <select id="query" resultMap="BookReviewViewMap">

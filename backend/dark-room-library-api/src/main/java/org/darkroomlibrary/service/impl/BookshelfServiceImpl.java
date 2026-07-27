@@ -1,5 +1,6 @@
 package org.darkroomlibrary.service.impl;
 
+import org.darkroomlibrary.mapper.BookMapper;
 import org.darkroomlibrary.mapper.BookshelfMapper;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
@@ -10,6 +11,7 @@ import org.darkroomlibrary.utils.IdListUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
@@ -24,6 +26,9 @@ public class BookshelfServiceImpl implements BookshelfService {
     @Resource
     private BookshelfMapper bookshelfMapper;
 
+    @Resource
+    private BookMapper bookMapper;
+
     @Override
     @Transactional
     public ApiResponse<Void> save(Bookshelf bookshelf) {
@@ -37,7 +42,9 @@ public class BookshelfServiceImpl implements BookshelfService {
         normalizeText(bookshelf);
         bookshelf.setCreateTime(LocalDateTime.now());
         try {
-            bookshelfMapper.insert(bookshelf);
+            if (bookshelfMapper.insert(bookshelf) != 1) {
+                return ApiResponse.error("书架新增失败，请重试");
+            }
         } catch (DuplicateKeyException e) {
             return ApiResponse.error("书架名称已存在");
         }
@@ -51,12 +58,14 @@ public class BookshelfServiceImpl implements BookshelfService {
         if (validationError != null) {
             return ApiResponse.error(validationError);
         }
-        if (bookshelfMapper.getById(bookshelf.getId()) == null) {
+        if (bookshelfMapper.findByIdForUpdate(bookshelf.getId()) == null) {
             return ApiResponse.error("书架不存在");
         }
         normalizeText(bookshelf);
         try {
-            bookshelfMapper.update(bookshelf);
+            if (bookshelfMapper.update(bookshelf) == 0) {
+                return ApiResponse.error("书架状态已变化，请刷新后重试");
+            }
         } catch (DuplicateKeyException e) {
             return ApiResponse.error("书架名称已存在");
         }
@@ -70,10 +79,19 @@ public class BookshelfServiceImpl implements BookshelfService {
         if (normalizedIds.isEmpty()) {
             return ApiResponse.error("请选择要删除的书架");
         }
-        if (bookshelfMapper.selectByIds(normalizedIds).size() != normalizedIds.size()) {
+        if (IdListUtils.exceedsBatchLimit(normalizedIds)) {
+            return ApiResponse.error("单次最多删除" + IdListUtils.MAX_BATCH_SIZE + "个书架");
+        }
+        if (bookshelfMapper.findByIdsForUpdate(normalizedIds).size() != normalizedIds.size()) {
             return ApiResponse.error("部分书架不存在");
         }
-        bookshelfMapper.batchDelete(normalizedIds);
+        if (bookMapper.countByBookshelfIds(normalizedIds) > 0) {
+            return ApiResponse.error("书架仍被图书使用，请先调整相关图书");
+        }
+        if (bookshelfMapper.batchDelete(normalizedIds) != normalizedIds.size()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ApiResponse.error("书架状态已变化，请刷新后重试");
+        }
         return ApiResponse.success("删除书架成功");
     }
 

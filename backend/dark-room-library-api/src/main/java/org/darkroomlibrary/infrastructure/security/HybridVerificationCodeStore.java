@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class HybridVerificationCodeStore implements VerificationCodeStore {
@@ -21,32 +22,56 @@ public class HybridVerificationCodeStore implements VerificationCodeStore {
     private CacheService cacheService;
 
     private final Map<String, CodeEntry> codeMap = new ConcurrentHashMap<>();
-    private final Map<String, CountEntry> lastSendTime = new ConcurrentHashMap<>();
+    private final Map<String, SlotEntry> sendSlots = new ConcurrentHashMap<>();
     private final Map<String, CountEntry> dailySendCount = new ConcurrentHashMap<>();
 
     @Override
     public void putCode(String purpose, String email, String code, long ttlMillis) {
         String key = codeKey(purpose, email);
-        codeMap.put(key, new CodeEntry(code, System.currentTimeMillis() + ttlMillis));
-        cacheService.setString(CODE_PREFIX + key, code, Duration.ofMillis(ttlMillis));
+        boolean storedInRedis = cacheService.setString(
+                CODE_PREFIX + key,
+                code,
+                Duration.ofMillis(ttlMillis)
+        );
+        if (storedInRedis) {
+            codeMap.remove(key);
+        } else {
+            // Prevent an older Redis-backed code from becoming valid again after recovery.
+            cacheService.delete(CODE_PREFIX + key);
+            codeMap.put(key, new CodeEntry(code, System.currentTimeMillis() + ttlMillis));
+        }
     }
 
     @Override
-    public Optional<String> getCode(String purpose, String email) {
+    public boolean consumeCode(String purpose, String email, String expectedCode) {
         String key = codeKey(purpose, email);
-        Optional<String> redisValue = cacheService.getString(CODE_PREFIX + key);
-        if (redisValue.isPresent()) {
-            return redisValue;
+        if (codeMap.containsKey(key)) {
+            return consumeLocalCode(key, expectedCode);
         }
-        CodeEntry entry = codeMap.get(key);
-        if (entry == null) {
-            return Optional.empty();
+        Optional<Boolean> redisResult = cacheService.compareAndDelete(
+                CODE_PREFIX + key,
+                expectedCode
+        );
+        if (redisResult.isPresent()) {
+            return redisResult.get();
         }
-        if (System.currentTimeMillis() > entry.expireTime) {
-            codeMap.remove(key);
-            return Optional.empty();
-        }
-        return Optional.of(entry.code);
+        return consumeLocalCode(key, expectedCode);
+    }
+
+    private boolean consumeLocalCode(String key, String expectedCode) {
+        AtomicBoolean consumed = new AtomicBoolean(false);
+        long now = System.currentTimeMillis();
+        codeMap.computeIfPresent(key, (ignored, entry) -> {
+            if (now > entry.expireTime) {
+                return null;
+            }
+            if (entry.code.equals(expectedCode)) {
+                consumed.set(true);
+                return null;
+            }
+            return entry;
+        });
+        return consumed.get();
     }
 
     @Override
@@ -57,30 +82,40 @@ public class HybridVerificationCodeStore implements VerificationCodeStore {
     }
 
     @Override
-    public Optional<Long> getLastSendTime(String email) {
-        Optional<String> redisValue = cacheService.getString(LAST_SEND_PREFIX + email);
-        if (redisValue.isPresent()) {
-            try {
-                return Optional.of(Long.parseLong(redisValue.get()));
-            } catch (NumberFormatException ignored) {
-                return Optional.empty();
+    public boolean tryAcquireSendSlot(String email, String token, long ttlMillis) {
+        long now = System.currentTimeMillis();
+        SlotEntry local = sendSlots.get(email);
+        if (local != null && now <= local.expireTime) {
+            return false;
+        }
+
+        Optional<Boolean> redisResult = cacheService.setIfAbsent(
+                LAST_SEND_PREFIX + email,
+                token,
+                Duration.ofMillis(ttlMillis));
+        if (redisResult.isPresent()) {
+            if (redisResult.get()) {
+                sendSlots.put(email, new SlotEntry(token, now + ttlMillis));
             }
+            return redisResult.get();
         }
-        CountEntry entry = lastSendTime.get(email);
-        if (entry == null) {
-            return Optional.empty();
-        }
-        if (System.currentTimeMillis() > entry.expireTime) {
-            lastSendTime.remove(email);
-            return Optional.empty();
-        }
-        return Optional.of(entry.count);
+
+        AtomicBoolean acquired = new AtomicBoolean(false);
+        sendSlots.compute(email, (ignored, entry) -> {
+            if (entry != null && now <= entry.expireTime) {
+                return entry;
+            }
+            acquired.set(true);
+            return new SlotEntry(token, now + ttlMillis);
+        });
+        return acquired.get();
     }
 
     @Override
-    public void putLastSendTime(String email, long timestamp, long ttlMillis) {
-        lastSendTime.put(email, new CountEntry(timestamp, System.currentTimeMillis() + ttlMillis));
-        cacheService.setString(LAST_SEND_PREFIX + email, String.valueOf(timestamp), Duration.ofMillis(ttlMillis));
+    public void releaseSendSlot(String email, String token) {
+        cacheService.compareAndDelete(LAST_SEND_PREFIX + email, token);
+        sendSlots.computeIfPresent(email,
+                (ignored, entry) -> entry.token.equals(token) ? null : entry);
     }
 
     @Override
@@ -101,7 +136,7 @@ public class HybridVerificationCodeStore implements VerificationCodeStore {
     public void clearExpired() {
         long now = System.currentTimeMillis();
         codeMap.entrySet().removeIf(entry -> now > entry.getValue().expireTime);
-        lastSendTime.entrySet().removeIf(entry -> now > entry.getValue().expireTime);
+        sendSlots.entrySet().removeIf(entry -> now > entry.getValue().expireTime);
         dailySendCount.entrySet().removeIf(entry -> now > entry.getValue().expireTime);
     }
 
@@ -125,6 +160,16 @@ public class HybridVerificationCodeStore implements VerificationCodeStore {
 
         CountEntry(long count, long expireTime) {
             this.count = count;
+            this.expireTime = expireTime;
+        }
+    }
+
+    private static class SlotEntry {
+        final String token;
+        final long expireTime;
+
+        SlotEntry(String token, long expireTime) {
+            this.token = token;
             this.expireTime = expireTime;
         }
     }

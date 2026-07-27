@@ -28,13 +28,15 @@ public class NotificationTask {
     private String content;
 
     /**
-     * 0:待发送, 1:已发送, 2:发送失败, 3:发送中
+     * 0:待发送, 1:已发送, 2:等待重试, 3:发送中, 4:终止重试
      */
     private Integer status;
 
     private Integer retryCount;
 
     private String lastError;
+
+    private String processingToken;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime nextRetryTime;

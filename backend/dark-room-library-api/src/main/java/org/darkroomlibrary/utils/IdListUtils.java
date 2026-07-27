@@ -5,6 +5,8 @@ import java.util.Objects;
 
 public final class IdListUtils {
 
+    public static final int MAX_BATCH_SIZE = 200;
+
     private IdListUtils() {
     }
 
@@ -17,5 +19,9 @@ public final class IdListUtils {
                 .distinct()
                 .sorted()
                 .toList();
+    }
+
+    public static boolean exceedsBatchLimit(List<Integer> ids) {
+        return ids != null && ids.size() > MAX_BATCH_SIZE;
     }
 }

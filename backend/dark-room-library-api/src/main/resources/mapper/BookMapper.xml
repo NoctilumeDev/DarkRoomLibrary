@@ -27,9 +27,27 @@
     </sql>
 
     <!-- ==================== 更新操作 ==================== -->
+    <update id="updateManaged">
+        UPDATE book
+        SET name = #{name},
+            author = #{author},
+            isbn = #{isbn},
+            publisher = #{publisher},
+            category = #{category},
+            total_count = #{totalCount},
+            available_count = #{availableCount},
+            cover = #{cover},
+            description = #{description},
+            bookshelf_id = #{bookshelfId},
+            version = version + 1
+        WHERE id = #{id}
+          AND version = #{version}
+    </update>
+
     <update id="decreaseAvailableCount">
         UPDATE book
         SET available_count = available_count - 1
+            , version = version + 1
         WHERE id = #{id}
           AND is_deleted = 0
           AND available_count &gt; 0
@@ -38,6 +56,7 @@
     <update id="increaseAvailableCount">
         UPDATE book
         SET available_count = available_count + 1
+            , version = version + 1
         WHERE id = #{id}
           AND is_deleted = 0
           AND available_count &lt; total_count
@@ -46,7 +65,8 @@
     <update id="increaseStock">
         UPDATE book
         SET total_count = total_count + #{count},
-            available_count = available_count + #{count}
+            available_count = available_count + #{count},
+            version = version + 1
         WHERE id = #{id}
           AND is_deleted = 0
           AND #{count} &gt; 0
@@ -54,19 +74,26 @@
 
     <update id="updateCategoryName">
         UPDATE book
-        SET category = #{newName}
+        SET category = #{newName},
+            version = version + 1
         WHERE category = #{oldName}
     </update>
 
     <update id="softDelete" parameterType="list">
-        UPDATE book SET is_deleted = 1 WHERE id IN
+        UPDATE book
+        SET is_deleted = 1,
+            version = version + 1
+        WHERE id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
     </update>
 
     <update id="restore" parameterType="list">
-        UPDATE book SET is_deleted = 0 WHERE id IN
+        UPDATE book
+        SET is_deleted = 0,
+            version = version + 1
+        WHERE id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
@@ -97,6 +124,15 @@
         WHERE category IN
         <foreach collection="categories" item="category" open="(" separator="," close=")">
             #{category}
+        </foreach>
+    </select>
+
+    <select id="countByBookshelfIds" resultType="int">
+        SELECT COUNT(*)
+        FROM book
+        WHERE bookshelf_id IN
+        <foreach collection="bookshelfIds" item="bookshelfId" open="(" separator="," close=")">
+            #{bookshelfId}
         </foreach>
     </select>
 
@@ -141,9 +177,20 @@
         ORDER BY bookCount DESC
     </select>
 
+    <select id="dailyCreateStats" resultMap="DailyCountMap">
+        SELECT CAST(b.create_time AS DATE) AS stat_day,
+               COUNT(*) AS stat_count
+        FROM book b
+        WHERE b.is_deleted = 0
+          AND b.create_time BETWEEN #{startTime} AND #{endTime}
+        GROUP BY CAST(b.create_time AS DATE)
+        ORDER BY stat_day ASC
+    </select>
+
     <!-- ==================== 结果映射 ==================== -->
     <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.Book">
         <id column="id" property="id"/>
+        <result column="version" property="version"/>
         <result column="name" property="name"/>
         <result column="author" property="author"/>
         <result column="isbn" property="isbn"/>
@@ -156,6 +203,11 @@
         <result column="create_time" property="createTime"/>
         <result column="is_deleted" property="isDeleted"/>
         <result column="bookshelf_id" property="bookshelfId"/>
+    </resultMap>
+
+    <resultMap id="DailyCountMap" type="org.darkroomlibrary.web.view.DailyCount">
+        <result column="stat_day" property="day"/>
+        <result column="stat_count" property="count"/>
     </resultMap>
 
 </mapper>

@@ -1,9 +1,11 @@
+import { USER_ROLE } from "@/utils/userRoles.js";
+
 const ROLE_HOME = Object.freeze({
-  0: "/admin",
-  1: "/admin",
-  2: "/user",
-  3: "/procurement",
-  4: "/procurement",
+  [USER_ROLE.SUPER_ADMIN]: "/admin",
+  [USER_ROLE.ADMIN]: "/admin",
+  [USER_ROLE.READER]: "/user",
+  [USER_ROLE.ACQUISITIONS]: "/procurement",
+  [USER_ROLE.LOGISTICS]: "/procurement",
 });
 
 export function resolveRoleHome(role) {

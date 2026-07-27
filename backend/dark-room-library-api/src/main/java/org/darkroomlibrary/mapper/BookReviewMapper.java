@@ -16,6 +16,10 @@ public interface BookReviewMapper extends BaseMapper<BookReview> {
     default int update(BookReview entity) { return updateById(entity); }
     default int batchDelete(List<Integer> ids) { return deleteByIds(ids); }
 
+    BookReview findByIdForUpdate(@Param("id") Integer id);
+
+    List<BookReview> findByIdsForUpdate(@Param("ids") List<Integer> ids);
+
     List<BookReviewView> query(BookReviewPageQuery dto);
 
     Integer queryCount(BookReviewPageQuery dto);

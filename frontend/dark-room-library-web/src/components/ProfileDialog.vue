@@ -60,16 +60,6 @@
       <el-button @click="close">取消</el-button>
       <el-button
         class="profile-save-button"
-        style="
-          --el-button-text-color: #fffdf7;
-          --el-button-bg-color: var(--seal, var(--workbench-seal, #91483e));
-          --el-button-border-color: var(--seal, var(--workbench-seal, #91483e));
-          --el-button-hover-text-color: #fffdf7;
-          --el-button-hover-bg-color: #793b34;
-          --el-button-hover-border-color: #793b34;
-          --el-button-active-bg-color: #65312c;
-          --el-button-active-border-color: #65312c;
-        "
         @click="save"
       >
         保存修改
@@ -81,6 +71,7 @@
 <script>
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
 import { clearAuthSession, getToken } from "@/utils/storage";
+import { USER_ROLE } from "@/utils/userRoles.js";
 
 export default {
   name: "ProfileDialog",
@@ -110,10 +101,15 @@ export default {
     },
     uploadHeaders() {
       const token = getToken();
-      return token ? { token } : {};
+      return token
+        ? {
+            Authorization: `Bearer ${token}`,
+            token,
+          }
+        : {};
     },
     canCancelAccount() {
-      return this.userInfo?.role === 2;
+      return this.userInfo?.role === USER_ROLE.READER;
     },
   },
   watch: {
@@ -260,7 +256,7 @@ export default {
   margin-top: 18px;
   padding: 14px;
   border: 1px solid rgba(191, 76, 65, 0.28);
-  border-radius: 8px;
+  border-radius: var(--radius-surface, 6px);
   background: rgba(191, 76, 65, 0.06);
 
   strong,
@@ -281,7 +277,18 @@ export default {
   }
 }
 
-:deep(.profile-save-button.el-button.is-disabled) {
+:global(.profile-save-button.el-button) {
+  --el-button-text-color: #fffdf7;
+  --el-button-bg-color: var(--seal, var(--workbench-seal, var(--tone-seal)));
+  --el-button-border-color: var(--seal, var(--workbench-seal, var(--tone-seal)));
+  --el-button-hover-text-color: #fffdf7;
+  --el-button-hover-bg-color: var(--tone-seal-deep);
+  --el-button-hover-border-color: var(--tone-seal-deep);
+  --el-button-active-bg-color: color-mix(in srgb, var(--tone-seal-deep) 84%, black);
+  --el-button-active-border-color: color-mix(in srgb, var(--tone-seal-deep) 84%, black);
+}
+
+:global(.profile-save-button.el-button.is-disabled) {
   color: rgba(255, 253, 247, 0.72);
   border-color: var(--paper-ink-faint, #777970);
   background: var(--paper-ink-faint, #777970);

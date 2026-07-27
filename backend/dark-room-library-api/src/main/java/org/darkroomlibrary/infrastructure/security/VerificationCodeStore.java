@@ -6,13 +6,13 @@ public interface VerificationCodeStore {
 
     void putCode(String purpose, String email, String code, long ttlMillis);
 
-    Optional<String> getCode(String purpose, String email);
+    boolean consumeCode(String purpose, String email, String expectedCode);
 
     void removeCode(String purpose, String email);
 
-    Optional<Long> getLastSendTime(String email);
+    boolean tryAcquireSendSlot(String email, String token, long ttlMillis);
 
-    void putLastSendTime(String email, long timestamp, long ttlMillis);
+    void releaseSendSlot(String email, String token);
 
     long incrementDailySendCount(String email, long ttlMillis);
 

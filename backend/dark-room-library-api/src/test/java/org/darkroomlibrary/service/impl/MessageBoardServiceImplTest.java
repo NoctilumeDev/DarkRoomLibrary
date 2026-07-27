@@ -36,7 +36,7 @@ class MessageBoardServiceImplTest extends BaseTest {
         testUser = createTestUser(
                 "messageuser" + userIndex,
                 "留言测试用户" + userIndex,
-                "message" + userIndex + "@test.com"
+                "message" + userIndex + "@example.test"
         );
         setCurrentUser(testUser.getId(), testUser.getUserRole());
     }

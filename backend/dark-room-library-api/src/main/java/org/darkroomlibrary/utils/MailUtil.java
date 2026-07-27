@@ -32,7 +32,7 @@ public class MailUtil {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(to);
-        message.setSubject("【图书管理系统】邮箱验证码");
+        message.setSubject("【暗室藏书】邮箱验证码");
         message.setText("您的验证码是：" + code + "，有效期为5分钟，请勿泄露给他人。");
         // 验证码发送失败必须抛出异常，调用方不应给用户"已发送"的假提示
         mailSender.send(message);

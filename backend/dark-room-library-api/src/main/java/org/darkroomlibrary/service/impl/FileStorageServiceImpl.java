@@ -12,13 +12,15 @@ import org.darkroomlibrary.domain.model.StoredFile;
 import org.darkroomlibrary.web.view.StoredFileView;
 import org.darkroomlibrary.service.FileStorageService;
 import org.darkroomlibrary.utils.FileIdGenerator;
+import org.darkroomlibrary.utils.TransactionCallbacks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ContentDisposition;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.Resource;
@@ -50,6 +52,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     private static final long MB = 1024L * 1024L;
     private static final int CLEANUP_BATCH_SIZE = 200;
+    private static final int DELETION_LEASE_MINUTES = 10;
     private static final Pattern SAFE_FILE_NAME =
             Pattern.compile("^[a-fA-F0-9]{32}\\.[a-z0-9]{2,5}$");
     private static final Pattern FILE_NAME_IN_URL =
@@ -93,6 +96,9 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Resource
     private StoredFileMapper storedFileMapper;
+
+    @Resource
+    private PlatformTransactionManager transactionManager;
 
     @Override
     public ApiResponse<String> upload(MultipartFile multipartFile) {
@@ -142,7 +148,9 @@ public class FileStorageServiceImpl implements FileStorageService {
                     .createTime(now)
                     .updateTime(now)
                     .build();
-            storedFileMapper.insert(storedFile);
+            if (storedFileMapper.insert(storedFile) != 1) {
+                throw new IllegalStateException("文件元数据写入失败");
+            }
             String endpoint = rule.publicPreview ? "/file/public" : "/file/download";
             return ApiResponse.success("上传成功", apiPrefix + endpoint + "?fileName=" + fileName);
         } catch (Exception e) {
@@ -298,18 +306,27 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (Objects.equals(storedFile.getStatus(), StoredFileStatus.BOUND.getStatus())) {
             return ApiResponse.error("文件仍被业务引用，不能直接删除");
         }
-        return deleteStoredFile(storedFile)
+        StoredFile claimed = claimUnboundForDeletion(fileName, LocalDateTime.now());
+        if (claimed == null) {
+            return ApiResponse.error("文件状态已变化，请刷新后重试");
+        }
+        return deleteStoredFile(claimed)
                 ? ApiResponse.success("文件已删除")
                 : ApiResponse.error("文件删除失败，已保留待重试记录");
     }
 
     @Override
     public ApiResponse<Map<String, Object>> cleanupNow() {
-        LocalDateTime cutoff = LocalDateTime.now().minusHours(temporaryRetentionHours);
-        List<StoredFile> candidates = storedFileMapper.findCleanupCandidates(cutoff, CLEANUP_BATCH_SIZE);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime cutoff = now.minusHours(temporaryRetentionHours);
+        LocalDateTime deletingLeaseCutoff = now.minusMinutes(DELETION_LEASE_MINUTES);
+        List<StoredFile> candidates = storedFileMapper.findCleanupCandidates(
+                cutoff, deletingLeaseCutoff, CLEANUP_BATCH_SIZE);
         int metadataDeleted = 0;
         for (StoredFile candidate : candidates) {
-            if (deleteStoredFile(candidate)) {
+            StoredFile claimed = claimForCleanup(
+                    candidate.getFileName(), cutoff, deletingLeaseCutoff, LocalDateTime.now());
+            if (claimed != null && deleteStoredFile(claimed)) {
                 metadataDeleted++;
             }
         }
@@ -345,6 +362,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         result.put("metadataDeleted", metadataDeleted);
         result.put("diskOrphansDeleted", diskOrphansDeleted);
         result.put("temporaryRetentionHours", temporaryRetentionHours);
+        result.put("deletionLeaseMinutes", DELETION_LEASE_MINUTES);
         return ApiResponse.success(result);
     }
 
@@ -374,29 +392,22 @@ public class FileStorageServiceImpl implements FileStorageService {
             return;
         }
         List<String> names = files.stream().map(StoredFile::getFileName).collect(Collectors.toList());
-        storedFileMapper.markDeletePending(names, LocalDateTime.now());
+        if (storedFileMapper.markDeletePending(names, LocalDateTime.now()) != names.size()) {
+            throw new IllegalStateException("文件引用状态已变化");
+        }
         for (String fileName : names) {
-            runAfterCommit(() -> {
-                StoredFile pending = storedFileMapper.selectById(fileName);
-                if (pending != null
-                        && Objects.equals(pending.getStatus(), StoredFileStatus.DELETE_PENDING.getStatus())) {
-                    deleteStoredFile(pending);
+            TransactionCallbacks.afterCommit(() -> {
+                LocalDateTime now = LocalDateTime.now();
+                StoredFile claimed = claimForCleanup(
+                        fileName,
+                        now.minusHours(temporaryRetentionHours),
+                        now.minusMinutes(DELETION_LEASE_MINUTES),
+                        now);
+                if (claimed != null) {
+                    deleteStoredFile(claimed);
                 }
             });
         }
-    }
-
-    private void runAfterCommit(Runnable task) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            task.run();
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                task.run();
-            }
-        });
     }
 
     private boolean deleteStoredFile(StoredFile storedFile) {
@@ -405,13 +416,63 @@ public class FileStorageServiceImpl implements FileStorageService {
             if (target != null) {
                 Files.deleteIfExists(target);
             }
-            storedFileMapper.deleteById(storedFile.getFileName());
-            return true;
+            return deleteMetadataInNewTransaction(storedFile.getFileName());
         } catch (Exception e) {
             log.warn("文件删除失败，等待下次重试: fileName={}, error={}",
                     storedFile.getFileName(), e.getMessage());
             return false;
         }
+    }
+
+    private StoredFile claimUnboundForDeletion(String fileName, LocalDateTime now) {
+        TransactionTemplate transactionTemplate = requiresNewTransactionTemplate();
+        return transactionTemplate.execute(status -> {
+            if (storedFileMapper.claimUnboundForDeletion(fileName, now) == 0) {
+                return null;
+            }
+            StoredFile claimed = storedFileMapper.selectById(fileName);
+            if (claimed == null
+                    || !Objects.equals(claimed.getStatus(), StoredFileStatus.DELETING.getStatus())) {
+                status.setRollbackOnly();
+                return null;
+            }
+            return claimed;
+        });
+    }
+
+    private StoredFile claimForCleanup(String fileName,
+                                       LocalDateTime temporaryCutoff,
+                                       LocalDateTime deletingLeaseCutoff,
+                                       LocalDateTime now) {
+        TransactionTemplate transactionTemplate = requiresNewTransactionTemplate();
+        return transactionTemplate.execute(status -> {
+            if (storedFileMapper.claimForCleanup(
+                    fileName, temporaryCutoff, deletingLeaseCutoff, now) == 0) {
+                return null;
+            }
+            StoredFile claimed = storedFileMapper.selectById(fileName);
+            if (claimed == null
+                    || !Objects.equals(claimed.getStatus(), StoredFileStatus.DELETING.getStatus())) {
+                status.setRollbackOnly();
+                return null;
+            }
+            return claimed;
+        });
+    }
+
+    private boolean deleteMetadataInNewTransaction(String fileName) {
+        TransactionTemplate transactionTemplate = requiresNewTransactionTemplate();
+        Boolean deleted = transactionTemplate.execute(status -> {
+            int affected = storedFileMapper.deleteById(fileName);
+            return affected == 1 || storedFileMapper.selectById(fileName) == null;
+        });
+        return Boolean.TRUE.equals(deleted);
+    }
+
+    private TransactionTemplate requiresNewTransactionTemplate() {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return transactionTemplate;
     }
 
     private boolean isPubliclyAccessible(StoredFile storedFile, FileRule rule) {
@@ -421,11 +482,11 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (storedFile == null) {
             return false;
         }
-        if (Objects.equals(storedFile.getStatus(), StoredFileStatus.DELETE_PENDING.getStatus())) {
-            return false;
-        }
         if (Objects.equals(storedFile.getStatus(), StoredFileStatus.TEMPORARY.getStatus())) {
             return true;
+        }
+        if (!Objects.equals(storedFile.getStatus(), StoredFileStatus.BOUND.getStatus())) {
+            return false;
         }
         FileReferenceType refType = FileReferenceType.fromValue(storedFile.getRefType());
         return refType != null && refType.isPublicAccess();
@@ -435,15 +496,15 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (storedFile == null) {
             return false;
         }
-        if (Objects.equals(storedFile.getStatus(), StoredFileStatus.DELETE_PENDING.getStatus())) {
+        Integer userId = CurrentUserContext.userId();
+        if (Objects.equals(storedFile.getStatus(), StoredFileStatus.TEMPORARY.getStatus())) {
+            return Objects.equals(storedFile.getUploaderId(), userId);
+        }
+        if (!Objects.equals(storedFile.getStatus(), StoredFileStatus.BOUND.getStatus())) {
             return false;
         }
         if (CurrentUserContext.isAdministrator()) {
             return true;
-        }
-        Integer userId = CurrentUserContext.userId();
-        if (Objects.equals(storedFile.getStatus(), StoredFileStatus.TEMPORARY.getStatus())) {
-            return Objects.equals(storedFile.getUploaderId(), userId);
         }
         if (FileReferenceType.MESSAGE_ATTACHMENT.getValue().equals(storedFile.getRefType())) {
             UserRole role = UserRole.fromCode(CurrentUserContext.roleCode()).orElse(null);

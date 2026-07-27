@@ -1,3 +1,5 @@
+import jwtDecode from "jwt-decode";
+
 const SESSION_KEYS = Object.freeze({
   token: "token",
   userProfile: "userInfo",
@@ -49,6 +51,22 @@ export function setToken(token) {
 
 export function getUserProfile() {
   return readJson(SESSION_KEYS.userProfile);
+}
+
+export function getSessionUserRole() {
+  const profile = getUserProfile();
+  if (profile && profile.role !== null && profile.role !== undefined) {
+    return Number(profile.role);
+  }
+
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const role = jwtDecode(token)?.role;
+    return role === null || role === undefined ? null : Number(role);
+  } catch {
+    return null;
+  }
 }
 
 export function setUserProfile(profile) {

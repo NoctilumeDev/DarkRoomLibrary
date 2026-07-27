@@ -13,7 +13,7 @@ import jakarta.annotation.Resource;
 import java.lang.reflect.Method;
 
 /**
- * 操作日志切面，自动记录管理员的增删改操作
+ * 操作日志切面，自动记录受角色保护的写操作。
  */
 @Slf4j
 @Aspect
@@ -54,7 +54,10 @@ public class OperationLogAspect {
         return methodName.startsWith("save") || methodName.startsWith("insert")
                 || methodName.startsWith("update") || methodName.startsWith("batchDelete")
                 || methodName.startsWith("delete") || methodName.startsWith("borrow")
-                || methodName.startsWith("return");
+                || methodName.startsWith("return") || methodName.startsWith("restore")
+                || methodName.startsWith("reserve") || methodName.startsWith("cancel")
+                || methodName.startsWith("renew") || methodName.startsWith("reply")
+                || methodName.startsWith("report") || methodName.startsWith("cleanup");
     }
 
     private boolean isRoleProtected(RequireRole protector) {
@@ -67,6 +70,13 @@ public class OperationLogAspect {
         if (methodName.startsWith("batchDelete") || methodName.startsWith("delete")) return "删除";
         if (methodName.startsWith("borrow")) return "借阅";
         if (methodName.startsWith("return")) return "归还";
+        if (methodName.startsWith("restore")) return "恢复";
+        if (methodName.startsWith("reserve")) return "预约";
+        if (methodName.startsWith("cancel")) return "取消";
+        if (methodName.startsWith("renew")) return "续借";
+        if (methodName.startsWith("reply")) return "回复";
+        if (methodName.startsWith("report")) return "举报";
+        if (methodName.startsWith("cleanup")) return "清理";
         return methodName;
     }
 }

@@ -1,15 +1,22 @@
 package org.darkroomlibrary.interceptor;
 
 import org.darkroomlibrary.context.CurrentUserContext;
+import org.darkroomlibrary.infrastructure.cache.CacheService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class RateLimitInterceptorTest {
 
@@ -70,13 +77,32 @@ class RateLimitInterceptorTest {
                 new MockHttpServletResponse(), new Object()));
     }
 
+    @Test
+    void appliesDistributedCountWhenRedisIsAvailable() throws Exception {
+        CacheService cacheService = mock(CacheService.class);
+        when(cacheService.increment(anyString(), any())).thenReturn(Optional.of(3L));
+        RateLimitInterceptor interceptor = new RateLimitInterceptor(
+                false,
+                2,
+                3,
+                cacheService,
+                new ObjectMapper());
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(request("10.0.0.1", null), response, new Object()));
+        assertEquals(429, response.getStatus());
+    }
+
     private RateLimitInterceptor interceptor(boolean trustForwardedHeaders,
                                              int anonymousLimit,
                                              int authenticatedLimit) {
+        CacheService cacheService = mock(CacheService.class);
+        when(cacheService.increment(anyString(), any())).thenReturn(Optional.empty());
         return new RateLimitInterceptor(
                 trustForwardedHeaders,
                 anonymousLimit,
                 authenticatedLimit,
+                cacheService,
                 new ObjectMapper());
     }
 

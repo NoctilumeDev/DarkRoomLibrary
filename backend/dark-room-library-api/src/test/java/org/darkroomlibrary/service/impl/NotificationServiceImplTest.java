@@ -43,28 +43,30 @@ class NotificationServiceImplTest {
         ReflectionTestUtils.setField(service, "notificationTaskMapper", notificationTaskMapper);
         ReflectionTestUtils.setField(service, "domainEventPublisher", domainEventPublisher);
         ReflectionTestUtils.setField(service, "mailUtil", mailUtil);
+        ReflectionTestUtils.setField(service, "maxRetryCount", 8);
     }
 
     @Test
     @DisplayName("同一通知任务只有领取成功的消费者会发送")
     void processTaskSendsOnlyAfterAtomicClaim() {
         NotificationTask task = pendingTask();
-        when(notificationTaskMapper.claimForProcessing(eq(7), any(), any()))
+        when(notificationTaskMapper.claimForProcessing(eq(7), any(), any(), any()))
                 .thenReturn(1, 0);
         when(notificationTaskMapper.getById(7)).thenReturn(task);
+        when(notificationTaskMapper.markSent(eq(7), any(), any())).thenReturn(1);
 
         service.processTask(7);
         service.processTask(7);
 
         verify(mailUtil, times(1))
                 .sendSimpleOrThrow(task.getReceiverEmail(), task.getSubject(), task.getContent());
-        verify(notificationTaskMapper, times(1)).markSent(eq(7), any());
+        verify(notificationTaskMapper, times(1)).markSent(eq(7), any(), any());
     }
 
     @Test
     @DisplayName("未领取到任务时不会读取或发送邮件")
     void processTaskSkipsWhenClaimFails() {
-        when(notificationTaskMapper.claimForProcessing(eq(8), any(), any())).thenReturn(0);
+        when(notificationTaskMapper.claimForProcessing(eq(8), any(), any(), any())).thenReturn(0);
 
         service.processTask(8);
 
@@ -77,8 +79,10 @@ class NotificationServiceImplTest {
     void processTaskSchedulesRetryAfterFailure() {
         NotificationTask task = pendingTask();
         task.setRetryCount(2);
-        when(notificationTaskMapper.claimForProcessing(eq(9), any(), any())).thenReturn(1);
+        when(notificationTaskMapper.claimForProcessing(eq(9), any(), any(), any())).thenReturn(1);
         when(notificationTaskMapper.getById(9)).thenReturn(task);
+        when(notificationTaskMapper.markFailed(
+                eq(9), any(), eq(2), eq(3), eq("mail unavailable"), any(), any())).thenReturn(1);
         doThrow(new IllegalStateException("mail unavailable"))
                 .when(mailUtil)
                 .sendSimpleOrThrow(task.getReceiverEmail(), task.getSubject(), task.getContent());
@@ -86,8 +90,29 @@ class NotificationServiceImplTest {
         service.processTask(9);
 
         verify(notificationTaskMapper).markFailed(
-                eq(9), eq(3), eq("mail unavailable"), any(LocalDateTime.class), any(LocalDateTime.class));
-        verify(notificationTaskMapper, never()).markSent(eq(9), any());
+                eq(9), any(), eq(2), eq(3), eq("mail unavailable"),
+                any(LocalDateTime.class), any(LocalDateTime.class));
+        verify(notificationTaskMapper, never()).markSent(eq(9), any(), any());
+    }
+
+    @Test
+    @DisplayName("达到最大重试次数后进入终止状态")
+    void processTaskStopsAfterMaximumRetries() {
+        NotificationTask task = pendingTask();
+        task.setRetryCount(7);
+        when(notificationTaskMapper.claimForProcessing(eq(10), any(), any(), any())).thenReturn(1);
+        when(notificationTaskMapper.getById(10)).thenReturn(task);
+        when(notificationTaskMapper.markFailed(
+                eq(10), any(), eq(4), eq(8), eq("mail unavailable"), eq(null), any())).thenReturn(1);
+        doThrow(new IllegalStateException("mail unavailable"))
+                .when(mailUtil)
+                .sendSimpleOrThrow(task.getReceiverEmail(), task.getSubject(), task.getContent());
+
+        service.processTask(10);
+
+        verify(notificationTaskMapper).markFailed(
+                eq(10), any(), eq(4), eq(8), eq("mail unavailable"),
+                eq(null), any(LocalDateTime.class));
     }
 
     private NotificationTask pendingTask() {

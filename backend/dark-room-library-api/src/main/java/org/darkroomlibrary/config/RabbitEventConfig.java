@@ -23,17 +23,20 @@ public class RabbitEventConfig {
     @Value("${middleware.rabbit.exchange:dark.room.library.events}")
     private String exchangeName;
 
-    @Value("${middleware.rabbit.operation-log-routing-key:operation.log}")
-    private String operationLogRoutingKey;
-
     @Value("${middleware.rabbit.notification-routing-key:notification.task}")
     private String notificationRoutingKey;
 
     @Value("${middleware.rabbit.book-returned-routing-key:book.returned}")
     private String bookReturnedRoutingKey;
 
+    @Value("${middleware.rabbit.notification-task-queue:dark.room.library.notification-task}")
+    private String notificationTaskQueueName;
+
+    @Value("${middleware.rabbit.book-returned-queue:dark.room.library.book-returned}")
+    private String bookReturnedQueueName;
+
     @Bean
-    public DirectExchange bookManageExchange() {
+    public DirectExchange domainEventExchange() {
         return new DirectExchange(exchangeName, true, false);
     }
 
@@ -58,32 +61,22 @@ public class RabbitEventConfig {
     }
 
     @Bean
-    public Queue operationLogQueue() {
-        return new Queue("book.manage.operation-log", true);
-    }
-
-    @Bean
     public Queue notificationTaskQueue() {
-        return new Queue("book.manage.notification-task", true);
+        return new Queue(notificationTaskQueueName, true);
     }
 
     @Bean
     public Queue bookReturnedQueue() {
-        return new Queue("book.manage.book-returned", true);
+        return new Queue(bookReturnedQueueName, true);
     }
 
     @Bean
-    public Binding operationLogBinding(Queue operationLogQueue, DirectExchange bookManageExchange) {
-        return BindingBuilder.bind(operationLogQueue).to(bookManageExchange).with(operationLogRoutingKey);
+    public Binding notificationTaskBinding(Queue notificationTaskQueue, DirectExchange domainEventExchange) {
+        return BindingBuilder.bind(notificationTaskQueue).to(domainEventExchange).with(notificationRoutingKey);
     }
 
     @Bean
-    public Binding notificationTaskBinding(Queue notificationTaskQueue, DirectExchange bookManageExchange) {
-        return BindingBuilder.bind(notificationTaskQueue).to(bookManageExchange).with(notificationRoutingKey);
-    }
-
-    @Bean
-    public Binding bookReturnedBinding(Queue bookReturnedQueue, DirectExchange bookManageExchange) {
-        return BindingBuilder.bind(bookReturnedQueue).to(bookManageExchange).with(bookReturnedRoutingKey);
+    public Binding bookReturnedBinding(Queue bookReturnedQueue, DirectExchange domainEventExchange) {
+        return BindingBuilder.bind(bookReturnedQueue).to(domainEventExchange).with(bookReturnedRoutingKey);
     }
 }

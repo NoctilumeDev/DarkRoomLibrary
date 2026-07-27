@@ -5,6 +5,7 @@ import org.darkroomlibrary.domain.model.MessageBoard;
 import org.darkroomlibrary.web.view.MessageBoardView;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -14,6 +15,10 @@ public interface MessageBoardMapper extends BaseMapper<MessageBoard> {
     default MessageBoard getById(Integer id) { return selectById(id); }
     default int update(MessageBoard entity) { return updateById(entity); }
     default int batchDelete(List<Integer> ids) { return deleteByIds(ids); }
+
+    MessageBoard findByIdForUpdate(@Param("id") Integer id);
+
+    List<MessageBoard> findByIdsForUpdate(@Param("ids") List<Integer> ids);
 
     List<MessageBoardView> query(MessageBoardPageQuery dto);
 

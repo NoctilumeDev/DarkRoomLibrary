@@ -198,7 +198,7 @@ export default {
     },
     async tokenCheckLoad() {
       try {
-        const res = await request.get("user/auth");
+        const res = await request.get("/user/auth");
         if (res.data.code !== 200) {
           this.$message.error(res.data.msg || "认证信息已失效。");
           this.$router.push("/login");
@@ -223,7 +223,6 @@ export default {
 };
 </script>
 
-<style src="@/assets/css/admin-system.scss" lang="scss"></style>
 <style scoped lang="scss">
 .paper-header {
   position: sticky;

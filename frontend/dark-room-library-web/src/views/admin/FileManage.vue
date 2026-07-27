@@ -22,6 +22,7 @@
         <el-option label="临时" :value="0" />
         <el-option label="已绑定" :value="1" />
         <el-option label="待删除" :value="2" />
+        <el-option label="删除中" :value="3" />
       </el-select>
       <el-select v-model="queryForm.refType" placeholder="引用类型" clearable>
         <el-option label="图书封面" value="book_cover" />
@@ -167,6 +168,7 @@ export default {
         0: { label: "临时", type: "warning" },
         1: { label: "已绑定", type: "success" },
         2: { label: "待删除", type: "danger" },
+        3: { label: "删除中", type: "info" },
       }[status] || { label: "未知", type: "info" };
     },
     refTypeName(type) {

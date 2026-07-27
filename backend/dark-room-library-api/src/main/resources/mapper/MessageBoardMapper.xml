@@ -15,6 +15,24 @@
         </if>
     </sql>
 
+    <select id="findByIdForUpdate" resultMap="BaseResultMap">
+        SELECT mb.*
+        FROM message_board mb
+        WHERE mb.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="findByIdsForUpdate" resultMap="BaseResultMap">
+        SELECT mb.*
+        FROM message_board mb
+        WHERE mb.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY mb.id
+        FOR UPDATE
+    </select>
+
     <!-- ==================== 查询操作 ==================== -->
     <!-- 分页查询（关联用户） -->
     <select id="query" resultMap="MessageBoardViewMap">

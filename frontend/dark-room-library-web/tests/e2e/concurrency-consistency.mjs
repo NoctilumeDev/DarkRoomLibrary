@@ -149,7 +149,7 @@ async function createBook(rootToken, name, totalCount, availableCount) {
       author: "Concurrency Lab",
       isbn: "",
       publisher: "Dark Room Test Press",
-      category: "Test",
+      category: "文学",
       totalCount,
       availableCount,
       description: "Real HTTP and MySQL concurrency fixture.",
@@ -171,6 +171,25 @@ async function getBook(rootToken, name) {
     { current: 1, size: 10, name },
     `query book ${name}`
   );
+}
+
+function staleBookEditPayload(book) {
+  return {
+    id: book.id,
+    version: book.version,
+    name: book.name,
+    author: book.author,
+    isbn: book.isbn || "",
+    publisher: book.publisher || "",
+    category: book.category,
+    totalCount: book.totalCount,
+    availableCount: book.availableCount,
+    originalTotalCount: book.totalCount,
+    originalAvailableCount: book.availableCount,
+    cover: book.cover || "",
+    description: `${book.description || ""} stale-edit-check`,
+    bookshelfId: book.bookshelfId,
+  };
 }
 
 async function queryBorrows(rootToken, query) {
@@ -539,6 +558,32 @@ async function runProcurementRace(
       Boolean(warehoused.stockApplied) &&
       Number(warehoused.logisticsStatus) === 3,
     `procurement warehouse invariant failed: ${JSON.stringify(warehouseSummary)}`
+  );
+
+  const staleEditResult = await apiRequest(rootToken, "/book/update", {
+    method: "PUT",
+    body: staleBookEditPayload(before),
+  });
+  const afterStaleEdit = await getBook(rootToken, bookName);
+  const staleEditSummary = recordScenario(
+    "stale-book-edit-after-procurement",
+    [staleEditResult],
+    {
+      expectedSuccesses: 0,
+      totalCountBeforeProcurement: before.totalCount,
+      totalCountAfterProcurement: after.totalCount,
+      totalCountAfterStaleEdit: afterStaleEdit.totalCount,
+      availableCountAfterProcurement: after.availableCount,
+      availableCountAfterStaleEdit: afterStaleEdit.availableCount,
+    }
+  );
+  assert(
+    staleEditSummary.successes === 0 &&
+      Number(afterStaleEdit.totalCount) === Number(after.totalCount) &&
+      Number(afterStaleEdit.availableCount) === Number(after.availableCount),
+    `stale book edit overwrote procurement stock: ${JSON.stringify(
+      staleEditSummary
+    )}`
   );
 
   requireSuccess(

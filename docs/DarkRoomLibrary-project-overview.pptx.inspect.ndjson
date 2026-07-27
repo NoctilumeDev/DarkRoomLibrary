@@ -1,4 +1,4 @@
-{"kind":"deck","id":"pr/wkjhf4","name":"Deck"}
+{"kind":"deck","id":"pr/vpsu5u","name":"Deck"}
 {"kind":"layout","layoutId":"/ppt/slideMasters/slideMaster1.xml","name":"","type":"master"}
 {"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout1.xml","name":"Title Slide","type":"title"}
 {"kind":"slide","id":"sl/y90nupkv","slide":1,"title":"SPRING BOOT 3 × VUE 3 + VITE","textShapes":5}
@@ -9,8 +9,8 @@
 {"kind":"textbox","id":"sh/ts7md4r2","slide":1,"name":"矩形 5","text":"一套把借阅、互动、采购、审计与降级真正连起来的图书管理系统","textPreview":"一套把借阅、互动、采购、审计与降级真正连起来的图书管理系统","textChars":29,"textLines":1,"bbox":[108,306,710,72]}
 {"kind":"textbox","id":"sh/sryl4zqx","slide":1,"name":"矩形 6","text":"项目介绍 · 2026.07","textPreview":"项目介绍 · 2026.07","textChars":14,"textLines":1,"bbox":[108,406,320,26]}
 {"kind":"textbox","id":"sh/fu94fe98","slide":1,"name":"矩形 7","text":"DRL","textPreview":"DRL","textChars":3,"textLines":1,"bbox":[1110,622,90,38]}
-{"kind":"image","id":"im/7mp0jixo","slide":1,"name":"图片 8","geometry":"rect","alt":"暗室藏书读者首页夜间主题","bbox":[0,0,1280,720]}
-{"kind":"notes","id":"nt/y90nupkv","slide":1,"text":"开场先说明：这是大二短学期作业提交后的暑假独立重构版本。它从教师提供但来源和许可证未知的未完成脚手架起步，现在覆盖借阅、归还、预约、采购补货、内容审核、系统审计和中间件降级。截图使用当前 Vue 3 + Vite 前端和固定的项目演示数据生成。\n\n[Sources]\n- Local screenshot: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n- Project history: docs/project-history.md and NOTICE.md.\n[/Sources]"}
+{"kind":"image","id":"im/7mp0jixo","slide":1,"name":"图片 8","bbox":[0,0,1280,720]}
+{"kind":"notes","id":"nt/y90nupkv","slide":1,"text":"开场先说明：项目想法始于 2026 年 5 月；7 月短学期提供了集中实现机会，课程提交后继续在暑假独立重构。早期课程版本很简单，当前公开基线已统一为 Vue 3 + Vite 和 Spring Boot 3，并覆盖借阅、归还、预约、采购补货、内容审核、系统审计和中间件降级。Git 在项目中途引入，因此仓库从审查后的公开基线开始；截图使用当前前端和固定的虚构演示数据生成。\n\n[Sources]\n- Local screenshot: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n- Project history: docs/project-history.md.\n[/Sources]"}
 {"kind":"slide","id":"sl/hwbqtkby","slide":2,"title":"01 · WHAT IT IS","textShapes":15}
 {"kind":"textbox","id":"sh/9072xkry","slide":2,"name":"矩形 1","text":"01 · WHAT IT IS","textPreview":"01 · WHAT IT IS","textChars":15,"textLines":1,"bbox":[72,42,460,24]}
 {"kind":"textbox","id":"sh/ozy1ofad","slide":2,"name":"slide-2-title","text":"它不止管理书，还管理一条完整链路","textPreview":"它不止管理书，还管理一条完整链路","textChars":16,"textLines":1,"bbox":[72,76,1136,62]}
@@ -33,7 +33,7 @@
 {"kind":"shape","id":"sh/t8byxkn2","slide":2,"name":"圆角矩形 19","bbox":[568,180,638,450]}
 {"kind":"textbox","id":"sh/s72xofmh","slide":2,"name":"矩形 20","text":"一句话理解","textPreview":"一句话理解","textChars":5,"textLines":1,"bbox":[76,572,150,22]}
 {"kind":"textbox","id":"sh/76twva5c","slide":2,"name":"矩形 21","text":"让一本书从“被发现”到“被归还、被补货、被审计”都有明确去处。","textPreview":"让一本书从“被发现”到“被归还、被补货、被审计”都有明确去处。","textChars":31,"textLines":1,"bbox":[76,596,470,50]}
-{"kind":"image","id":"im/do3yp03u","slide":2,"name":"图片 41","geometry":"rect","alt":"暗室藏书管理端数据总览","bbox":[628.3,186,517.41,438]}
+{"kind":"image","id":"im/do3yp03u","slide":2,"name":"图片 41","bbox":[628.3,186,517.41,438]}
 {"kind":"notes","id":"nt/hwbqtkby","slide":2,"text":"给非技术观众一个最简单的定义：系统处理的是书的完整生命周期，而不是数据库里的一行记录。四条链路分别对应读者使用、社区互动、馆藏供应和系统治理。\n\n[Sources]\n- Local screenshot: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n[/Sources]"}
 {"kind":"slide","id":"sl/ofy9wn61","slide":3,"title":"02 · PEOPLE","textShapes":12}
 {"kind":"textbox","id":"sh/cza94vmx","slide":3,"name":"矩形 1","text":"02 · PEOPLE","textPreview":"02 · PEOPLE","textChars":11,"textLines":1,"bbox":[72,42,460,24]}
@@ -47,10 +47,10 @@
 {"kind":"textbox","id":"sh/n2l4fq98","slide":3,"name":"圆角矩形 9","text":"采购员\n认领采购\n连接物流","textPreview":"采购员 | 认领采购 | 连接物流","textChars":13,"textLines":3,"bbox":[544,230,182,146]}
 {"kind":"textbox","id":"sh/m1c3mlsn","slide":3,"name":"圆角矩形 10","text":"物流员\n运输到馆\n完成入库","textPreview":"物流员 | 运输到馆 | 完成入库","textChars":13,"textLines":3,"bbox":[778,230,182,146]}
 {"kind":"textbox","id":"sh/943mhgre","slide":3,"name":"圆角矩形 11","text":"超级管理员\n全局控制\n审计与授权","textPreview":"超级管理员 | 全局控制 | 审计与授权","textChars":16,"textLines":3,"bbox":[1012,230,182,146]}
-{"kind":"shape","id":"sh/q5oval43","slide":3,"name":"直接箭头连接符 29","bbox":[258,303,52,0]}
-{"kind":"shape","id":"sh/d8zul0nu","slide":3,"name":"直接箭头连接符 30","bbox":[492,303,52,0]}
-{"kind":"shape","id":"sh/s7qdcvm9","slide":3,"name":"直接箭头连接符 31","bbox":[726,303,52,0]}
-{"kind":"shape","id":"sh/b21wva58","slide":3,"name":"直接箭头连接符 32","bbox":[960,303,52,0]}
+{"kind":"shape","id":"sh/vm5grypc","slide":3,"name":"直接箭头连接符 29","bbox":[258,303,52,0]}
+{"kind":"shape","id":"sh/gnexk36x","slide":3,"name":"直接箭头连接符 30","bbox":[492,303,52,0]}
+{"kind":"shape","id":"sh/honyt87i","slide":3,"name":"直接箭头连接符 31","bbox":[726,303,52,0]}
+{"kind":"shape","id":"sh/apsf6pon","slide":3,"name":"直接箭头连接符 32","bbox":[960,303,52,0]}
 {"kind":"shape","id":"sh/x8nml0ra","slide":3,"name":"圆角矩形 15","bbox":[76,438,1120,112]}
 {"kind":"textbox","id":"sh/w7ulsvqp","slide":3,"name":"矩形 16","text":"馆务协调权限不是第六类角色","textPreview":"馆务协调权限不是第六类角色","textChars":13,"textLines":1,"bbox":[102,463,350,30]}
 {"kind":"textbox","id":"sh/ja54na9g","slide":3,"name":"矩形 17","text":"它是超级管理员授予普通管理员的协调能力：可以跨管理员处理采购事项，但仍不能触碰文件治理、完整导出和超级管理员权限。","textPreview":"它是超级管理员授予普通管理员的协调能力：可以跨管理员处理采购事项，但仍不能触碰文件治理、完整导出和超级管理员权限。","textChars":57,"textLines":1,"bbox":[466,455,690,64]}
@@ -72,7 +72,7 @@
 {"kind":"textbox","id":"sh/x8vaxsfe","slide":4,"name":"矩形 14","text":"交流","textPreview":"交流","textChars":2,"textLines":1,"bbox":[842,488,92,28]}
 {"kind":"textbox","id":"sh/a5kr2xg3","slide":4,"name":"矩形 15","text":"留言附件、书评、点赞与回复","textPreview":"留言附件、书评、点赞与回复","textChars":13,"textLines":1,"bbox":[936,489,276,48]}
 {"kind":"textbox","id":"sh/v6tsv2xo","slide":4,"name":"矩形 16","text":"夜间沉浸 / 白天清朗","textPreview":"夜间沉浸 / 白天清朗","textChars":11,"textLines":1,"bbox":[842,590,330,28]}
-{"kind":"image","id":"im/b6xofahg","slide":4,"name":"图片 24","geometry":"rect","alt":"暗室藏书读者端馆藏检索与虚构书目","bbox":[72,184,716,436]}
+{"kind":"image","id":"im/b6xofahg","slide":4,"name":"图片 24","bbox":[72,184,716,436]}
 {"kind":"notes","id":"nt/jyx0ra1s","slide":4,"text":"读者端不是传统左侧菜单后台。首次进入保留暗室与灯火意象，登录后仍提供明确的找书、借阅、收藏和留言入口。书名、作者、评论和封面均使用项目专用的虚构演示数据。\n\n[Sources]\n- Local screenshot: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n[/Sources]"}
 {"kind":"slide","id":"sl/i107q5of","slide":5,"title":"04 · CORE TRANSACTION","textShapes":19}
 {"kind":"textbox","id":"sh/dgbulwnm","slide":5,"name":"矩形 1","text":"04 · CORE TRANSACTION","textPreview":"04 · CORE TRANSACTION","textChars":21,"textLines":1,"bbox":[72,42,460,24]}
@@ -97,9 +97,9 @@
 {"kind":"textbox","id":"sh/gfi5grih","slide":5,"name":"矩形 20","text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[952,254,42,34]}
 {"kind":"textbox","id":"sh/fe94nm1w","slide":5,"name":"矩形 21","text":"写借阅记录","textPreview":"写借阅记录","textChars":5,"textLines":1,"bbox":[954,301,188,30]}
 {"kind":"textbox","id":"sh/ud0ne10b","slide":5,"name":"矩形 22","text":"同一事务提交","textPreview":"同一事务提交","textChars":6,"textLines":1,"bbox":[954,343,188,28]}
-{"kind":"shape","id":"sh/twfmtw7q","slide":5,"name":"直接箭头连接符 50","bbox":[308,315,58,0]}
-{"kind":"shape","id":"sh/8v650rq5","slide":5,"name":"直接箭头连接符 51","bbox":[592,315,58,0]}
-{"kind":"shape","id":"sh/vyx4v6pg","slide":5,"name":"直接箭头连接符 52","bbox":[876,315,58,0]}
+{"kind":"shape","id":"sh/1sn6hknq","slide":5,"name":"直接箭头连接符 50","bbox":[308,315,58,0]}
+{"kind":"shape","id":"sh/0re5of65","slide":5,"name":"直接箭头连接符 51","bbox":[592,315,58,0]}
+{"kind":"shape","id":"sh/rmlobq5o","slide":5,"name":"直接箭头连接符 52","bbox":[876,315,58,0]}
 {"kind":"shape","id":"sh/3i94r61s","slide":5,"name":"圆角矩形 25","bbox":[82,460,1078,104]}
 {"kind":"textbox","id":"sh/2h0ni107","slide":5,"name":"矩形 26","text":"UPDATE book SET available_num = available_num - 1 WHERE id = ? AND available_num > 0","textPreview":"UPDATE book SET available_num = available_num - 1 WHERE id = ? AND available_num > 0","textChars":84,"textLines":1,"bbox":[112,485,1018,30]}
 {"kind":"textbox","id":"sh/5o7mhcju","slide":5,"name":"矩形 27","text":"多个读者同时抢最后一本时，只有一条更新会成功；失败请求不会产生借阅记录。","textPreview":"多个读者同时抢最后一本时，只有一条更新会成功；失败请求不会产生借阅记录。","textChars":36,"textLines":1,"bbox":[150,526,940,26]}
@@ -139,7 +139,7 @@
 {"kind":"textbox","id":"sh/n6x0fqlo","slide":7,"name":"矩形 13","text":"治理","textPreview":"治理","textChars":2,"textLines":1,"bbox":[84,448,100,32]}
 {"kind":"textbox","id":"sh/25ojml43","slide":7,"name":"矩形 14","text":"举报 · 隐藏 · 忽略 · 审计","textPreview":"举报 · 隐藏 · 忽略 · 审计","textChars":17,"textLines":1,"bbox":[84,485,310,28]}
 {"kind":"shape","id":"sh/p8fih03e","slide":7,"name":"圆角矩形 15","bbox":[438,178,760,454]}
-{"kind":"image","id":"im/j2xwvyhk","slide":7,"name":"图片 31","geometry":"rect","alt":"暗室藏书书评、回复与互动页面","bbox":[444,184,748,442]}
+{"kind":"image","id":"im/j2xwvyhk","slide":7,"name":"图片 31","bbox":[444,184,748,442]}
 {"kind":"notes","id":"nt/gnmp4jqx","slide":7,"text":"读者可以查看最新或最热书评、点赞、取消点赞、回复和举报。管理员在内容审核中选择隐藏违规内容或忽略无效举报，这些操作会进入审计日志。演示评论和用户名均为重新编写的虚构内容。\n\n[Sources]\n- Local screenshot: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n[/Sources]"}
 {"kind":"slide","id":"sl/fu1gfa1s","slide":8,"title":"07 · SUPPLY CHAIN","textShapes":12}
 {"kind":"textbox","id":"sh/18byd4zy","slide":8,"name":"矩形 1","text":"07 · SUPPLY CHAIN","textPreview":"07 · SUPPLY CHAIN","textChars":17,"textLines":1,"bbox":[72,42,460,24]}
@@ -153,13 +153,13 @@
 {"kind":"textbox","id":"sh/o7ydoret","slide":8,"name":"圆角矩形 9","text":"采购员\n认领 / 下单","textPreview":"采购员 | 认领 / 下单","textChars":11,"textLines":2,"bbox":[78,298,186,76]}
 {"kind":"textbox","id":"sh/98rehwve","slide":8,"name":"圆角矩形 10","text":"物流员\n运输 / 到馆","textPreview":"物流员 | 运输 / 到馆","textChars":11,"textLines":2,"bbox":[78,402,186,76]}
 {"kind":"textbox","id":"sh/m5gvmhwn","slide":8,"name":"圆角矩形 11","text":"系统\n入库补库存","textPreview":"系统 | 入库补库存","textChars":8,"textLines":2,"bbox":[78,506,186,76]}
-{"kind":"shape","id":"sh/ob21036t","slide":8,"name":"直接箭头连接符 30","bbox":[171,270,0,28]}
-{"kind":"shape","id":"sh/natkry58","slide":8,"name":"直接箭头连接符 31","bbox":[171,374,0,28]}
-{"kind":"shape","id":"sh/m90jyto3","slide":8,"name":"直接箭头连接符 32","bbox":[171,478,0,28]}
+{"kind":"shape","id":"sh/d0by14ry","slide":8,"name":"直接箭头连接符 30","bbox":[171,270,0,28]}
+{"kind":"shape","id":"sh/e1kfu9sj","slide":8,"name":"直接箭头连接符 31","bbox":[171,374,0,28]}
+{"kind":"shape","id":"sh/f2tg3e94","slide":8,"name":"直接箭头连接符 32","bbox":[171,478,0,28]}
 {"kind":"textbox","id":"sh/ehgvihwr","slide":8,"name":"矩形 15","text":"通信隔离","textPreview":"通信隔离","textChars":4,"textLines":1,"bbox":[308,220,170,28]}
 {"kind":"textbox","id":"sh/zipwbmdc","slide":8,"name":"矩形 16","text":"管理员 ↔ 采购员\n\n采购员 ↔ 物流员\n\n物流员不能直接调度管理员","textPreview":"管理员 ↔ 采购员 |  | 采购员 ↔ 物流员 |  | 物流员不能直接调度管理员","textChars":34,"textLines":5,"bbox":[308,260,204,178]}
 {"kind":"textbox","id":"sh/kfixwbe1","slide":8,"name":"矩形 17","text":"每次状态变化记录操作者、时间、前后状态和备注；重复入库不会重复增加库存。","textPreview":"每次状态变化记录操作者、时间、前后状态和备注；重复入库不会重复增加库存。","textChars":36,"textLines":1,"bbox":[78,594,436,54]}
-{"kind":"image","id":"im/w76lgzit","slide":8,"name":"图片 25","geometry":"rect","alt":"暗室藏书物流员工作台","bbox":[544,178.24,654,465.52]}
+{"kind":"image","id":"im/1of6lsvq","slide":8,"name":"图片 25","bbox":[544,178.24,654,465.52]}
 {"kind":"notes","id":"nt/fu1gfa1s","slide":8,"text":"采购闭环从低库存开始：管理员提出需求，采购员认领并推进，物流员只处理分配给自己的任务。入库状态触发库存补充，状态条件防止重复入库。超级管理员可以查看全局记录。\n\n[Sources]\n- Local screenshot: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n[/Sources]"}
 {"kind":"slide","id":"sl/udsvah03","slide":9,"title":"08 · AUTHORITY","textShapes":13}
 {"kind":"textbox","id":"sh/1cfmhgne","slide":9,"name":"矩形 1","text":"08 · AUTHORITY","textPreview":"08 · AUTHORITY","textChars":14,"textLines":1,"bbox":[72,42,460,24]}
@@ -177,7 +177,7 @@
 {"kind":"textbox","id":"sh/cnu1kzyd","slide":9,"name":"矩形 13","text":"可跨管理员协调采购，但没有超级管理员专权","textPreview":"可跨管理员协调采购，但没有超级管理员专权","textChars":20,"textLines":1,"bbox":[836,442,350,54]}
 {"kind":"textbox","id":"sh/do3id4fy","slide":9,"name":"矩形 14","text":"岗位人员","textPreview":"岗位人员","textChars":4,"textLines":1,"bbox":[836,513,330,26]}
 {"kind":"textbox","id":"sh/qlcjipgn","slide":9,"name":"矩形 15","text":"采购员与物流员只能访问自己的任务和通信","textPreview":"采购员与物流员只能访问自己的任务和通信","textChars":19,"textLines":1,"bbox":[836,547,350,54]}
-{"kind":"image","id":"im/s76psvu9","slide":9,"name":"图片 23","geometry":"rect","alt":"暗室藏书超级管理员用户与权限管理","bbox":[115.27,185,629.46,438]}
+{"kind":"image","id":"im/s76psvu9","slide":9,"name":"图片 23","bbox":[115.27,185,629.46,438]}
 {"kind":"notes","id":"nt/udsvah03","slide":9,"text":"这里强调纵深防护。前端隐藏菜单只是体验层；后端权限 AOP 判断角色和馆务协调权限，Service 继续判断目标用户、订单和文件的数据范围。用户名唯一约束、资料校验和敏感导出过滤共同守住边界。\n\n[Sources]\n- Local screenshot: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n[/Sources]"}
 {"kind":"slide","id":"sl/m90b6t0r","slide":10,"title":"09 · ARCHITECTURE","textShapes":18}
 {"kind":"textbox","id":"sh/xc3mho32","slide":10,"name":"矩形 1","text":"09 · ARCHITECTURE","textPreview":"09 · ARCHITECTURE","textChars":17,"textLines":1,"bbox":[72,42,460,24]}
@@ -201,10 +201,10 @@
 {"kind":"shape","id":"sh/xwnupgvy","slide":10,"name":"圆角矩形 19","bbox":[86,536,700,66]}
 {"kind":"textbox","id":"sh/wvetgbud","slide":10,"name":"矩形 20","text":"MySQL 最终事实","textPreview":"MySQL 最终事实","textChars":10,"textLines":1,"bbox":[112,549,250,28]}
 {"kind":"textbox","id":"sh/bu5cnqd8","slide":10,"name":"矩形 21","text":"19 张表 / 外键 / 唯一约束 / 审计","textPreview":"19 张表 / 外键 / 唯一约束 / 审计","textChars":22,"textLines":1,"bbox":[354,551,406,28]}
-{"kind":"shape","id":"sh/twva583q","slide":10,"name":"直接箭头连接符 50","bbox":[436,250,0,22]}
-{"kind":"shape","id":"sh/svm9c3m5","slide":10,"name":"直接箭头连接符 51","bbox":[436,338,0,22]}
-{"kind":"shape","id":"sh/fyds7ilw","slide":10,"name":"直接箭头连接符 52","bbox":[436,426,0,22]}
-{"kind":"shape","id":"sh/ex4bed4b","slide":10,"name":"直接箭头连接符 53","bbox":[436,514,0,22]}
+{"kind":"shape","id":"sh/5ovi9czi","slide":10,"name":"直接箭头连接符 50","bbox":[436,250,0,22]}
+{"kind":"shape","id":"sh/knmhg7id","slide":10,"name":"直接箭头连接符 51","bbox":[436,338,0,22]}
+{"kind":"shape","id":"sh/vitg3ihg","slide":10,"name":"直接箭头连接符 52","bbox":[436,426,0,22]}
+{"kind":"shape","id":"sh/ahkzad0v","slide":10,"name":"直接箭头连接符 53","bbox":[436,514,0,22]}
 {"kind":"shape","id":"sh/jypcrqd4","slide":10,"name":"圆角矩形 25","bbox":[848,212,342,292]}
 {"kind":"textbox","id":"sh/yxgbilcj","slide":10,"name":"矩形 26","text":"基础设施适配层","textPreview":"基础设施适配层","textChars":7,"textLines":1,"bbox":[878,238,286,34]}
 {"kind":"textbox","id":"sh/1o3ahwvq","slide":10,"name":"矩形 27","text":"Redis 缓存\n\nRabbitMQ 事件\n\n邮件与补偿任务\n\n文件存储与定时清理","textPreview":"Redis 缓存 |  | RabbitMQ 事件 |  | 邮件与补偿任务 |  | 文件存储与定时清理","textChars":41,"textLines":7,"bbox":[884,292,274,178]}
@@ -250,16 +250,16 @@
 {"kind":"textbox","id":"sh/b6d4f2lc","slide":12,"name":"圆角矩形 7","text":"Redis 正常\n验证码 TTL · 登录风控 · 查询缓存","textPreview":"Redis 正常 | 验证码 TTL · 登录风控 · 查询缓存","textChars":30,"textLines":2,"bbox":[78,206,316,108]}
 {"kind":"textbox","id":"sh/a543mx4r","slide":12,"name":"圆角矩形 8","text":"Redis 故障\n内存验证码 · 内存计数 · 直接查 MySQL","textPreview":"Redis 故障 | 内存验证码 · 内存计数 · 直接查 MySQL","textChars":33,"textLines":2,"bbox":[482,206,336,108]}
 {"kind":"textbox","id":"sh/wvupgz6t","slide":12,"name":"圆角矩形 9","text":"核心登录与查询继续","textPreview":"核心登录与查询继续","textChars":9,"textLines":1,"bbox":[906,226,276,68]}
-{"kind":"shape","id":"sh/69s3elw3","slide":12,"name":"直接箭头连接符 27","bbox":[394,260,88,0]}
-{"kind":"shape","id":"sh/7a1k7qdo","slide":12,"name":"直接箭头连接符 28","bbox":[818,260,88,0]}
-{"kind":"textbox","id":"sh/atc7epon","slide":12,"name":"圆角矩形 11","text":"RabbitMQ 正常\n日志与通知异步消费","textPreview":"RabbitMQ 正常 | 日志与通知异步消费","textChars":21,"textLines":2,"bbox":[78,394,316,108]}
-{"kind":"textbox","id":"sh/bulo7u58","slide":12,"name":"圆角矩形 12","text":"RabbitMQ / 邮件故障\n日志同步写库 · 通知写补偿表","textPreview":"RabbitMQ / 邮件故障 | 日志同步写库 · 通知写补偿表","textChars":31,"textLines":2,"bbox":[482,394,336,108]}
+{"kind":"shape","id":"sh/q58zuxkj","slide":12,"name":"直接箭头连接符 27","bbox":[394,260,88,0]}
+{"kind":"shape","id":"sh/r6h0n214","slide":12,"name":"直接箭头连接符 28","bbox":[818,260,88,0]}
+{"kind":"textbox","id":"sh/atc7epon","slide":12,"name":"圆角矩形 11","text":"RabbitMQ 正常\n预约事件 · 通知异步消费","textPreview":"RabbitMQ 正常 | 预约事件 · 通知异步消费","textChars":25,"textLines":2,"bbox":[78,394,316,108]}
+{"kind":"textbox","id":"sh/bulo7u58","slide":12,"name":"圆角矩形 12","text":"RabbitMQ / 邮件故障\n核心事务完成 · 通知任务补偿","textPreview":"RabbitMQ / 邮件故障 | 核心事务完成 · 通知任务补偿","textChars":31,"textLines":2,"bbox":[482,394,336,108]}
 {"kind":"textbox","id":"sh/orapcf6h","slide":12,"name":"圆角矩形 13","text":"借还与预约事务成功","textPreview":"借还与预约事务成功","textChars":9,"textLines":1,"bbox":[906,414,276,68]}
-{"kind":"shape","id":"sh/m1gni9wv","slide":12,"name":"直接箭头连接符 32","bbox":[394,448,88,0]}
-{"kind":"shape","id":"sh/l076p4fa","slide":12,"name":"直接箭头连接符 33","bbox":[818,448,88,0]}
+{"kind":"shape","id":"sh/zu10r21g","slide":12,"name":"直接箭头连接符 32","bbox":[394,448,88,0]}
+{"kind":"shape","id":"sh/0va10721","slide":12,"name":"直接箭头连接符 33","bbox":[818,448,88,0]}
 {"kind":"shape","id":"sh/nq1o3a5w","slide":12,"name":"圆角矩形 16","bbox":[78,564,1104,60]}
 {"kind":"textbox","id":"sh/0nap8f6l","slide":12,"name":"矩形 17","text":"原则：消息通知可以晚到，但库存、借阅记录和权限判断不能失真。","textPreview":"原则：消息通知可以晚到，但库存、借阅记录和权限判断不能失真。","textChars":30,"textLines":1,"bbox":[118,581,1024,28]}
-{"kind":"notes","id":"nt/8f2psfyx","slide":12,"text":"Redis 不可用时，验证码和登录失败计数切到本机内存，缓存查询直接访问数据库。RabbitMQ 不可用时，操作日志同步写库，通知进入补偿表。邮件失败只保留待重试任务，不回滚借还和预约。"}
+{"kind":"notes","id":"nt/8f2psfyx","slide":12,"text":"Redis 不可用时，验证码和登录失败计数切到本机内存，缓存查询直接访问数据库；Redis 恢复前会先回放删除意图，避免旧验证码或登录锁定键重新生效。RabbitMQ 不可用时，借还、预约等 MySQL 核心事务仍可提交，通知任务保留在数据库中并由定时任务补偿。操作审计不依赖 RabbitMQ，而是在业务提交后通过独立事务尽力写入；进程恰好在两次提交之间崩溃时，可能少一条审计记录。邮件失败只保留待重试任务，不回滚借还和预约。\n\n[Sources]\n- Architecture review: docs/architecture-review.md.\n- Verification report: docs/verification-report.md.\n[/Sources]"}
 {"kind":"slide","id":"sl/hgzapcr6","slide":13,"title":"12 · SAFETY","textShapes":16}
 {"kind":"textbox","id":"sh/q50nydsj","slide":13,"name":"矩形 1","text":"12 · SAFETY","textPreview":"12 · SAFETY","textChars":11,"textLines":1,"bbox":[72,42,460,24]}
 {"kind":"textbox","id":"sh/bq9orito","slide":13,"name":"slide-13-title","text":"安全不是一个登录框，而是一组连续边界","textPreview":"安全不是一个登录框，而是一组连续边界","textChars":18,"textLines":1,"bbox":[72,76,1136,62]}
@@ -279,7 +279,7 @@
 {"kind":"textbox","id":"sh/6l4fu547","slide":13,"name":"矩形 16","text":"角色变化 · 内容审核 · 采购物流 · 文件清理留痕","textPreview":"角色变化 · 内容审核 · 采购物流 · 文件清理留痕","textChars":27,"textLines":1,"bbox":[178,521,456,46]}
 {"kind":"shape","id":"sh/lkvy103m","slide":13,"name":"圆角矩形 17","bbox":[682,176,516,462]}
 {"kind":"textbox","id":"sh/kjmxsfm1","slide":13,"name":"矩形 18","text":"动态提示让隐性规则变得可见","textPreview":"动态提示让隐性规则变得可见","textChars":13,"textLines":1,"bbox":[748,604,384,24]}
-{"kind":"image","id":"im/3adgzm9w","slide":13,"name":"图片 36","geometry":"rect","alt":"暗室藏书注册页密码与验证码提示","bbox":[688,211.18,504,391.65]}
+{"kind":"image","id":"im/3adgzm9w","slide":13,"name":"图片 36","bbox":[688,211.18,504,391.65]}
 {"kind":"notes","id":"nt/hgzapcr6","slide":13,"text":"注册页面在输入密码时动态显示规则，后端仍会再次验证密码强度。文件上传同时检查扩展名、MIME、大小和文件头，HTML 只能下载，私有附件需要登录和数据权限。\n\n[Sources]\n- Local screenshot: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n[/Sources]"}
 {"kind":"slide","id":"sl/6lsnupw7","slide":14,"title":"13 · INTERFACE","textShapes":10}
 {"kind":"textbox","id":"sh/xc7eds76","slide":14,"name":"矩形 1","text":"13 · INTERFACE","textPreview":"13 · INTERFACE","textChars":14,"textLines":1,"bbox":[72,42,460,24]}
@@ -295,8 +295,8 @@
 {"kind":"textbox","id":"sh/b2507exs","slide":14,"name":"矩形 12","text":"管理端","textPreview":"管理端","textChars":3,"textLines":1,"bbox":[680,606,110,28]}
 {"kind":"textbox","id":"sh/kre1k3y9","slide":14,"name":"矩形 13","text":"顶部导航、宣纸/竹简主题、清晰表格与图表","textPreview":"顶部导航、宣纸/竹简主题、清晰表格与图表","textChars":20,"textLines":1,"bbox":[790,608,390,26]}
 {"kind":"textbox","id":"sh/ls7idofu","slide":14,"name":"矩形 14","text":"Vite 8 · 86 路由零异常","textPreview":"Vite 8 · 86 路由零异常","textChars":17,"textLines":1,"bbox":[510,650,260,22]}
-{"kind":"image","id":"im/dsjux0jm","slide":14,"name":"图片 22","geometry":"rect","alt":"暗室藏书个人资料弹窗与封蜡红保存按钮","bbox":[74,184,536,392]}
-{"kind":"image","id":"im/srad4v21","slide":14,"name":"图片 24","geometry":"rect","alt":"暗室藏书管理端统计看板","bbox":[775.33,184,325.35,392]}
+{"kind":"image","id":"im/dsjux0jm","slide":14,"name":"图片 22","bbox":[74,184,536,392]}
+{"kind":"image","id":"im/srad4v21","slide":14,"name":"图片 24","bbox":[775.33,184,325.35,392]}
 {"kind":"notes","id":"nt/6lsnupw7","slide":14,"text":"读者端强调进入和阅读的氛围，但核心按钮保持清楚；个人资料弹窗沿用登录页的纸面底色、提示语和输入逻辑，保存按钮使用封蜡红。管理端优先信息密度和长期操作。最终浏览器诊断覆盖 86 个路由，没有 Console、页面、网络或横向溢出异常。\n\n[Sources]\n- Local screenshots: tests/e2e/docs-screenshots.mjs, generated 2026-07-26.\n- Browser evidence: docs/verification-report.md.\n[/Sources]"}
 {"kind":"slide","id":"sl/vaxsvy10","slide":15,"title":"14 · EVIDENCE","textShapes":18}
 {"kind":"textbox","id":"sh/547mhg3m","slide":15,"name":"矩形 1","text":"14 · EVIDENCE","textPreview":"14 · EVIDENCE","textChars":13,"textLines":1,"bbox":[72,42,460,24]}
@@ -305,9 +305,9 @@
 {"kind":"shape","id":"sh/65gnqlk7","slide":15,"name":"直接连接符 4","bbox":[72,681,1136,0]}
 {"kind":"textbox","id":"sh/t87ml0ji","slide":15,"name":"矩形 5","text":"DARKROOM LIBRARY · PROJECT OVERVIEW","textPreview":"DARKROOM LIBRARY · PROJECT OVERVIEW","textChars":35,"textLines":1,"bbox":[72,688,420,18]}
 {"kind":"textbox","id":"sh/s7y5sv2x","slide":15,"name":"矩形 6","text":"15","textPreview":"15","textChars":2,"textLines":1,"bbox":[1150,687,58,18]}
-{"kind":"textbox","id":"sh/na5476l8","slide":15,"name":"矩形 7","text":"165","textPreview":"165","textChars":3,"textLines":1,"bbox":[76,190,220,82]}
+{"kind":"textbox","id":"sh/na5476l8","slide":15,"name":"矩形 7","text":"225","textPreview":"225","textChars":3,"textLines":1,"bbox":[76,190,220,82]}
 {"kind":"textbox","id":"sh/m9c3e1kn","slide":15,"name":"矩形 8","text":"后端测试","textPreview":"后端测试","textChars":4,"textLines":1,"bbox":[76,280,220,28]}
-{"kind":"textbox","id":"sh/wrm9kvep","slide":15,"name":"矩形 9","text":"26","textPreview":"26","textChars":2,"textLines":1,"bbox":[360,190,220,82]}
+{"kind":"textbox","id":"sh/wrm9kvep","slide":15,"name":"矩形 9","text":"31","textPreview":"31","textChars":2,"textLines":1,"bbox":[360,190,220,82]}
 {"kind":"textbox","id":"sh/hsvat0fa","slide":15,"name":"矩形 10","text":"前端单元测试","textPreview":"前端单元测试","textChars":6,"textLines":1,"bbox":[360,280,220,28]}
 {"kind":"textbox","id":"sh/upkrilwj","slide":15,"name":"矩形 11","text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[644,190,220,82]}
 {"kind":"textbox","id":"sh/vqdsrqx4","slide":15,"name":"矩形 12","text":"角色 E2E 身份","textPreview":"角色 E2E 身份","textChars":9,"textLines":1,"bbox":[644,280,220,28]}
@@ -318,9 +318,9 @@
 {"kind":"textbox","id":"sh/0z29cbyh","slide":15,"name":"矩形 17","text":"• 库存为 1 的并发抢借\n• 五角色权限绕过\n• 文件类型与下载权限\n• 预约、续借、罚款和重复入库\n• 输入净化、导出字段与审计日志","textPreview":"• 库存为 1 的并发抢借 | • 五角色权限绕过 | • 文件类型与下载权限 | • 预约、续借、罚款和重复入库 | • 输入净化、导出字段与审计日志","textChars":68,"textLines":5,"bbox":[104,430,454,132]}
 {"kind":"shape","id":"sh/l0bqlgf2","slide":15,"name":"圆角矩形 18","bbox":[654,356,530,228]}
 {"kind":"textbox","id":"sh/1kjyt83e","slide":15,"name":"矩形 19","text":"真实环境还验证了","textPreview":"真实环境还验证了","textChars":8,"textLines":1,"bbox":[684,382,300,30]}
-{"kind":"textbox","id":"sh/gjax03m9","slide":15,"name":"矩形 20","text":"Redis TTL 与 RabbitMQ 消费链路实测\n五角色完成 75 次真实 API 响应\n19 场景 / 392 请求，最大 P95 99 ms\n86 路由 Console / Network / 页面错误为 0\nESLint / Vite build / npm audit 全部通过","textPreview":"Redis TTL 与 RabbitMQ 消费链路实测 | 五角色完成 75 次真实 API 响应 | 19 场景 / 392 请求，最大 P95 99 ms | 86 路由 Console / Network / 页面错误为 0 | ESLint / Vite build...","textChars":146,"textLines":5,"bbox":[684,430,450,132]}
-{"kind":"textbox","id":"sh/fi1grylo","slide":15,"name":"矩形 21","text":"验证日期：2026-07-26","textPreview":"验证日期：2026-07-26","textChars":15,"textLines":1,"bbox":[926,622,260,20]}
-{"kind":"notes","id":"nt/vaxsvy10","slide":15,"text":"数字来自 2026-07-26 最终干净回归：后端 165 项、前端 26 项全部通过；五角色完成 75 次真实 API 响应；并发一致性覆盖 19 个场景和 392 次请求，最大 P95 为 99 ms；浏览器完成 86 个路由检查；27 个外键关系、领域不变量、Redis TTL 和 RabbitMQ 消费全部通过。\n\n[Sources]\n- Definitive regression: runtime/final-regression-20260726-1007/definitive/regression-summary.json.\n- Database integrity: runtime/final-regression-20260726-1007/definitive/database-integrity.json.\n[/Sources]"}
+{"kind":"textbox","id":"sh/gjax03m9","slide":15,"name":"矩形 20","text":"Redis TTL、故障恢复与队列消费通过\n五角色完成 75 次真实 API 响应\n单实例：20 场景 / 393 请求 / P95 146 ms\n双实例：6 场景 / 125 请求 / P95 121 ms\n86 路由 / 248 API / 浏览器异常为 0","textPreview":"Redis TTL、故障恢复与队列消费通过 | 五角色完成 75 次真实 API 响应 | 单实例：20 场景 / 393 请求 / P95 146 ms | 双实例：6 场景 / 125 请求 / P95 121 ms | 86 路由 / 248 API / 浏览器异常为 0","textChars":131,"textLines":5,"bbox":[684,430,450,132]}
+{"kind":"textbox","id":"sh/fi1grylo","slide":15,"name":"矩形 21","text":"验证日期：2026-07-27","textPreview":"验证日期：2026-07-27","textChars":15,"textLines":1,"bbox":[926,622,260,20]}
+{"kind":"notes","id":"nt/vaxsvy10","slide":15,"text":"数字来自 2026-07-27 最终干净回归：后端 225 项、前端 31 项全部通过；五角色完成 75 次真实 API 响应；单实例并发一致性覆盖 20 个场景和 393 次请求，最大场景 P95 为 146 ms；双实例覆盖 6 个场景和 125 次请求，最大场景 P95 为 121 ms；浏览器完成 86 个路由检查、248 次 API 响应和 3968 次总网络响应。27 个外键关系、领域不变量、Redis TTL、Redis/RabbitMQ 故障恢复与队列消费均通过。最终并发套件保留 2 条发送到虚构 .local 地址的可补偿通知任务，用于验证邮件失败恢复路径。当前数字是正确性证据，不是容量基准；双实例证据不包含共享文件存储。\n\n[Sources]\n- Verification summary: docs/verification-report.md.\n- Single-instance concurrency: frontend/dark-room-library-web/test-results/concurrency/report.json.\n- Multi-instance concurrency: frontend/dark-room-library-web/test-results/multi-instance/report.json.\n- Browser diagnostics: frontend/dark-room-library-web/test-results/browser-diagnostics/report.json.\n[/Sources]"}
 {"kind":"slide","id":"sl/gny5sjyp","slide":16,"title":"15 · DELIVERY","textShapes":19}
 {"kind":"textbox","id":"sh/8z2h8bq1","slide":16,"name":"矩形 1","text":"15 · DELIVERY","textPreview":"15 · DELIVERY","textChars":13,"textLines":1,"bbox":[72,42,460,24]}
 {"kind":"textbox","id":"sh/9kby1g7m","slide":16,"name":"slide-16-title","text":"一个新手也能在四步内把系统跑起来","textPreview":"一个新手也能在四步内把系统跑起来","textChars":16,"textLines":1,"bbox":[72,76,1136,62]}
@@ -344,9 +344,9 @@
 {"kind":"textbox","id":"sh/7qp0zepo","slide":16,"name":"矩形 20","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[950,238,66,34]}
 {"kind":"textbox","id":"sh/8by18jq9","slide":16,"name":"矩形 21","text":"打开浏览器","textPreview":"打开浏览器","textChars":5,"textLines":1,"bbox":[950,294,188,34]}
 {"kind":"textbox","id":"sh/9c7i1o7u","slide":16,"name":"矩形 22","text":"http://localhost:5175","textPreview":"http://localhost:5175","textChars":21,"textLines":1,"bbox":[950,350,188,54]}
-{"kind":"shape","id":"sh/knal8ju1","slide":16,"name":"直接箭头连接符 50","bbox":[308,321,52,0]}
-{"kind":"shape","id":"sh/l8jm1obm","slide":16,"name":"直接箭头连接符 51","bbox":[592,321,52,0]}
-{"kind":"shape","id":"sh/ihcnitsf","slide":16,"name":"直接箭头连接符 52","bbox":[876,321,52,0]}
+{"kind":"shape","id":"sh/0ri9s7it","slide":16,"name":"直接箭头连接符 50","bbox":[308,321,52,0]}
+{"kind":"shape","id":"sh/1sra1cje","slide":16,"name":"直接箭头连接符 51","bbox":[592,321,52,0]}
+{"kind":"shape","id":"sh/yl4b2h0r","slide":16,"name":"直接箭头连接符 52","bbox":[876,321,52,0]}
 {"kind":"shape","id":"sh/kne14jqd","slide":16,"name":"圆角矩形 25","bbox":[76,494,1100,112]}
 {"kind":"textbox","id":"sh/lo7ixo7y","slide":16,"name":"矩形 26","text":"演示账号通过本地环境变量配置，密码不进入公开材料","textPreview":"演示账号通过本地环境变量配置，密码不进入公开材料","textChars":24,"textLines":1,"bbox":[106,518,470,28]}
 {"kind":"textbox","id":"sh/ih0jedob","slide":16,"name":"矩形 27","text":"首次登录后立即改密；邮件、Redis、RabbitMQ 按需通过环境变量开启。","textPreview":"首次登录后立即改密；邮件、Redis、RabbitMQ 按需通过环境变量开启。","textChars":39,"textLines":1,"bbox":[106,558,830,26]}
@@ -375,7 +375,7 @@
 {"kind":"shape","id":"sh/ny5876xc","slide":17,"name":"直接连接符 21","bbox":[82,598,1084,0]}
 {"kind":"shape","id":"sh/mxw7e1gr","slide":17,"name":"圆角矩形 22","bbox":[82,610,1084,36]}
 {"kind":"textbox","id":"sh/lwnq5gf6","slide":17,"name":"矩形 23","text":"复杂度和叙事都必须服从可验证的事实。","textPreview":"复杂度和叙事都必须服从可验证的事实。","textChars":18,"textLines":1,"bbox":[120,618,1008,20]}
-{"kind":"notes","id":"nt/14bup87q","slide":17,"text":"这页说明系统级取舍。项目已经完成 Vue 3 + Vite 和 Spring Boot 3 迁移，因此不再保留旧脚手架双轨；同时不伪造课程阶段和暑假早期的 Git 提交。脚手架来源和许可证未知的事实会在 README、NOTICE 和项目沿革中公开保留。\n\n[Sources]\n- Project history: docs/project-history.md.\n- Licensing boundary: NOTICE.md.\n[/Sources]"}
+{"kind":"notes","id":"nt/14bup87q","slide":17,"text":"这页说明系统级取舍。当前代码已经统一为 Vue 3 + Vite 和 Spring Boot 3，并保留模块化单体与单库本地事务；不为了叙事拆微服务，也不在没有收益时强上 TCC 或 Elasticsearch。若未来真正拆分跨服务流程，再引入 transactional outbox、幂等消费和显式补偿。Git 在项目中途加入，因此首次提交明确标记为审查后的公开基线，不伪造课程阶段和暑假早期的提交。\n\n[Sources]\n- Architecture review: docs/architecture-review.md.\n- Project history: docs/project-history.md.\n[/Sources]"}
 {"kind":"slide","id":"sl/y5wne50z","slide":18,"title":"暗室藏书","textShapes":9}
 {"kind":"shape","id":"sh/wrelszu9","slide":18,"name":"矩形 1","bbox":[0,0,1280,14]}
 {"kind":"textbox","id":"sh/hsn2l4bu","slide":18,"name":"矩形 2","text":"暗室藏书","textPreview":"暗室藏书","textChars":4,"textLines":1,"bbox":[82,82,430,64]}
@@ -388,4 +388,4 @@
 {"kind":"textbox","id":"sh/fapkr6pw","slide":18,"name":"椭圆 9","text":"DRL\n完","textPreview":"DRL | 完","textChars":5,"textLines":2,"bbox":[1000,188,150,150]}
 {"kind":"textbox","id":"sh/upg3i18r","slide":18,"name":"矩形 10","text":"一套能运行、能解释、能维护，也诚实说明来路的系统","textPreview":"一套能运行、能解释、能维护，也诚实说明来路的系统","textChars":24,"textLines":1,"bbox":[82,552,620,34]}
 {"kind":"textbox","id":"sh/1cr2tg72","slide":18,"name":"矩形 11","text":"DarkRoomLibrary · 2026","textPreview":"DarkRoomLibrary · 2026","textChars":22,"textLines":1,"bbox":[82,624,340,24]}
-{"kind":"notes","id":"nt/y5wne50z","slide":18,"text":"结尾回到开场：项目的亮点不是罗列 Controller 或数据表，而是业务、权限、数据和基础设施都能形成闭环，同时对脚手架来源、许可证和 Git 历史保持诚实。现在它可以运行、测试、解释和交付。\n\n[Sources]\n- Project documentation: README.md, NOTICE.md, docs/project-history.md, docs/verification-report.md.\n[/Sources]"}
+{"kind":"notes","id":"nt/y5wne50z","slide":18,"text":"结尾回到开场：项目的价值不是罗列 Controller 或数据表，而是业务、权限、数据和基础设施形成闭环；一致性边界、降级限制和测试证据都公开写清。当前版本可以运行、测试、解释和交付，历史说明只记录真实发生的中途 Git 采用、课程实现机会和暑假重构。\n\n[Sources]\n- Project documentation: README.md, docs/project-history.md, docs/architecture-review.md, docs/verification-report.md.\n[/Sources]"}

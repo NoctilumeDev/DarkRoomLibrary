@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.TransactionStatus;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,8 +30,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.springframework.transaction.PlatformTransactionManager;
 
 class FileStorageServiceImplTest {
 
@@ -51,6 +54,9 @@ class FileStorageServiceImplTest {
         ReflectionTestUtils.setField(service, "uploadDir", tempDir.toString());
         ReflectionTestUtils.setField(service, "temporaryRetentionHours", 24L);
         ReflectionTestUtils.setField(service, "storedFileMapper", mapper);
+        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
+        ReflectionTestUtils.setField(service, "transactionManager", transactionManager);
         CurrentUserContext.bind(7, 2);
     }
 
@@ -81,7 +87,11 @@ class FileStorageServiceImplTest {
     void deletesUnboundFileFromMetadataAndDisk() throws Exception {
         Files.write(tempDir.resolve(FILE_NAME), new byte[]{1, 2, 3});
         StoredFile temporary = temporaryFile(7);
-        when(mapper.selectById(FILE_NAME)).thenReturn(temporary);
+        StoredFile deleting = temporaryFile(7);
+        deleting.setStatus(StoredFileStatus.DELETING.getStatus());
+        when(mapper.selectById(FILE_NAME)).thenReturn(temporary, deleting);
+        when(mapper.claimUnboundForDeletion(eq(FILE_NAME), any())).thenReturn(1);
+        when(mapper.deleteById(FILE_NAME)).thenReturn(1);
 
         ApiResponse<Void> result = service.deleteUnbound(FILE_NAME);
 
@@ -91,11 +101,38 @@ class FileStorageServiceImplTest {
     }
 
     @Test
+    void doesNotDeleteFileThatWasBoundConcurrently() throws Exception {
+        Files.write(tempDir.resolve(FILE_NAME), new byte[]{1, 2, 3});
+        when(mapper.selectById(FILE_NAME)).thenReturn(temporaryFile(7));
+        when(mapper.claimUnboundForDeletion(eq(FILE_NAME), any())).thenReturn(0);
+
+        ApiResponse<Void> result = service.deleteUnbound(FILE_NAME);
+
+        assertEquals(400, result.getCode());
+        assertTrue(Files.exists(tempDir.resolve(FILE_NAME)));
+        verify(mapper, never()).deleteById(FILE_NAME);
+    }
+
+    @Test
+    void cleanupSkipsTemporaryFileThatWasBoundConcurrently() throws Exception {
+        Files.write(tempDir.resolve(FILE_NAME), new byte[]{1, 2, 3});
+        StoredFile candidate = temporaryFile(7);
+        when(mapper.findCleanupCandidates(any(), any(), eq(200))).thenReturn(List.of(candidate));
+        when(mapper.claimForCleanup(eq(FILE_NAME), any(), any(), any())).thenReturn(0);
+
+        ApiResponse<java.util.Map<String, Object>> result = service.cleanupNow();
+
+        assertEquals(0, result.getData().get("metadataDeleted"));
+        assertTrue(Files.exists(tempDir.resolve(FILE_NAME)));
+        verify(mapper, never()).deleteById(FILE_NAME);
+    }
+
+    @Test
     void cleanupRemovesOldUntrackedDiskFile() throws Exception {
         Path orphan = tempDir.resolve(FILE_NAME);
         Files.write(orphan, new byte[]{1, 2, 3});
         Files.setLastModifiedTime(orphan, FileTime.from(Instant.now().minusSeconds(48 * 3600)));
-        when(mapper.findCleanupCandidates(any(), eq(200))).thenReturn(Collections.emptyList());
+        when(mapper.findCleanupCandidates(any(), any(), eq(200))).thenReturn(Collections.emptyList());
         when(mapper.selectById(FILE_NAME)).thenReturn(null);
         when(mapper.countLegacyReferences(FILE_NAME)).thenReturn(0);
 

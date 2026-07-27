@@ -1,11 +1,11 @@
-$dialog-muted: rgb(107, 106, 106);
+$dialog-muted: var(--admin-ink-muted, var(--paper-ink-faint, #6b6a6a));
 
 .theme-tag {
   margin-right: 5px;
   padding: 3px 10px;
-  border-radius: 3px;
-  color: #1c1c1c;
-  background-color: rgb(237, 235, 235);
+  border-radius: var(--radius-compact, 3px);
+  color: var(--admin-ink, var(--paper-ink, #292a27));
+  background-color: var(--admin-paper-wash, var(--paper-soft, #e4e5e1));
   font-size: 12px;
 }
 
