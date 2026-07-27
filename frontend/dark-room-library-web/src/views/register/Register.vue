@@ -24,7 +24,9 @@
           </el-form-item>
           <el-form-item label="联系邮箱">
             <el-input v-model.trim="email" size="large" placeholder="输入常用邮箱" autocomplete="email" />
-            <small class="field-help">用于验证码、预约到货与借阅到期提醒。</small>
+            <small class="field-help">
+              用于验证码与借阅提醒；同一邮箱最多关联 3 个账号，系统不会显示关联账号信息。
+            </small>
           </el-form-item>
           <el-form-item label="邮箱验证码">
             <div class="inline-row">

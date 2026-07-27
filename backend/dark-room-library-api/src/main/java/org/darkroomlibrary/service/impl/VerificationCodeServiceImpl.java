@@ -15,6 +15,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -113,7 +114,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         if (email == null || email.trim().isEmpty()) {
             return null;
         }
-        return email.trim().toLowerCase();
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private long millisUntilTomorrow() {

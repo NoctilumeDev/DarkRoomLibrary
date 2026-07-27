@@ -3,6 +3,7 @@ package org.darkroomlibrary.controller;
 import org.darkroomlibrary.aop.NormalizePageQuery;
 import org.darkroomlibrary.aop.RequireRole;
 import org.darkroomlibrary.domain.type.UserRole;
+import org.darkroomlibrary.domain.type.VerificationCodePurpose;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
 import org.darkroomlibrary.web.dto.query.UserPageQuery;
@@ -72,6 +73,16 @@ public class UserController {
     @PostMapping(value = "/sendVerifyCode")
     public ApiResponse<String> sendVerifyCode(@Valid @RequestBody SendVerificationCodeDto dto) {
         return userService.sendVerifyCode(dto.getEmail(), dto.getPurpose());
+    }
+
+    /**
+     * 发送联系邮箱换绑验证码
+     */
+    @RequireRole
+    @PostMapping(value = "/sendEmailChangeCode")
+    public ApiResponse<String> sendEmailChangeCode(@Valid @RequestBody SendVerificationCodeDto dto) {
+        return userService.sendVerifyCode(
+                dto.getEmail(), VerificationCodePurpose.CHANGE_EMAIL.name());
     }
 
     /**

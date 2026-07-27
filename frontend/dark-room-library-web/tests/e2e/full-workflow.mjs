@@ -223,11 +223,35 @@ async function waitForSwalToClose(page) {
   }
 }
 
+async function findUserRow(page, account) {
+  const nextButton = page.locator(".user-pagination .btn-next");
+  for (let pageIndex = 0; pageIndex < 100; pageIndex += 1) {
+    const row = page
+      .locator(".el-table__row")
+      .filter({ hasText: account })
+      .first();
+    if (await row.count()) return row;
+    if (await nextButton.isDisabled()) break;
+
+    const refreshed = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        matchesApiPath(response, "/user/query")
+    );
+    await nextButton.click();
+    await refreshed;
+  }
+  throw new Error(`User ${account} is not visible on any user-management page`);
+}
+
 async function runReaderBorrowReturn(browser, tokens, report) {
   const session = await openAuthenticatedPage(browser, tokens.reader, "reader workflow", report);
   const { page } = session;
   try {
-    await page.goto(`${baseUrl}/#/bookSearch`, { waitUntil: "networkidle" });
+    await page.goto(
+      `${baseUrl}/#/bookSearch?name=${encodeURIComponent(bookName)}`,
+      { waitUntil: "networkidle" }
+    );
     const card = page.locator(".book-card").filter({ hasText: bookName }).first();
     await card.waitFor();
     const cover = card.locator(".cover img");
@@ -316,11 +340,7 @@ async function runReaderBorrowReturn(browser, tokens, report) {
 
 async function setCoordinatorFlag(page, enabled) {
   await page.goto(`${baseUrl}/#/userManage`, { waitUntil: "networkidle" });
-  const row = page
-    .locator(".el-table__row")
-    .filter({ hasText: accounts.coordinator.account })
-    .first();
-  await row.waitFor();
+  const row = await findUserRow(page, accounts.coordinator.account);
   await row.getByText("编辑", { exact: true }).click();
   const dialog = page.locator(".admin-editor-dialog--user");
   await dialog.waitFor();

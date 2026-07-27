@@ -48,6 +48,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import jakarta.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,9 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private UserEmailQuotaService userEmailQuotaService;
 
     @Resource
     private VerificationCodeService verificationCodeService;
@@ -102,9 +106,9 @@ public class UserServiceImpl implements UserService {
         if (userRegisterDTO.getVerificationCode() == null || userRegisterDTO.getVerificationCode().isEmpty()) {
             return ApiResponse.error("请输入邮箱验证码");
         }
-        String conflict = validateNewUser(userRegisterDTO);
-        if (conflict != null) {
-            return ApiResponse.error(conflict);
+        String invalidInput = validateRegistrationInput(userRegisterDTO);
+        if (invalidInput != null) {
+            return ApiResponse.error(invalidInput);
         }
         if (!verificationCodeService.verify(
                 userRegisterDTO.getUserEmail(),
@@ -198,15 +202,37 @@ public class UserServiceImpl implements UserService {
         if (conflict != null) {
             return ApiResponse.error(conflict);
         }
+        String requestedEmail = userUpdateDTO.getUserEmail() == null
+                ? null
+                : userEmailQuotaService.normalize(userUpdateDTO.getUserEmail());
+        boolean emailChanged = requestedEmail != null
+                && !Objects.equals(
+                        userEmailQuotaService.normalize(existing.getUserEmail()), requestedEmail);
+        if (emailChanged) {
+            if (userUpdateDTO.getVerificationCode() == null
+                    || userUpdateDTO.getVerificationCode().isBlank()) {
+                return ApiResponse.error("请输入新邮箱验证码");
+            }
+            if (!verificationCodeService.verify(
+                    requestedEmail,
+                    VerificationCodePurpose.CHANGE_EMAIL.name(),
+                    userUpdateDTO.getVerificationCode())) {
+                return ApiResponse.error("验证码错误或已过期");
+            }
+            if (!userEmailQuotaService.moveAccount(existing.getUserEmail(), requestedEmail)) {
+                return ApiResponse.error(UserEmailQuotaService.LIMIT_MESSAGE);
+            }
+        }
         User updateEntity = User.builder()
                 .id(userId)
                 .userName(trimToNull(userUpdateDTO.getUserName()))
                 .userAccount(userUpdateDTO.getUserAccount())
                 .userAvatar(userUpdateDTO.getUserAvatar())
-                .userEmail(trimToNull(userUpdateDTO.getUserEmail()))
+                .userEmail(requestedEmail)
                 .build();
         try {
             if (userMapper.update(updateEntity) != 1) {
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                 return ApiResponse.error("用户状态已变化，请刷新后重试");
             }
         } catch (DuplicateKeyException e) {
@@ -243,6 +269,7 @@ public class UserServiceImpl implements UserService {
         Integer currentUserId = CurrentUserContext.userId();
         Integer currentRoleId = CurrentUserContext.roleCode();
         boolean currentIsSuperAdmin = Objects.equals(currentRoleId, UserRole.SUPER_ADMIN.code());
+        List<User> targets = new ArrayList<>(normalizedIds.size());
 
         for (Integer id : normalizedIds) {
             if (Objects.equals(id, currentUserId)) {
@@ -256,6 +283,7 @@ public class UserServiceImpl implements UserService {
                     && !Objects.equals(target.getUserRole(), UserRole.READER.code())) {
                 return ApiResponse.error("普通管理员只能删除读者账号");
             }
+            targets.add(target);
         }
         if (borrowRecordMapper.countByUserIds(normalizedIds) > 0) {
             return ApiResponse.error("存在借阅历史，不能删除用户；可改为冻结账号");
@@ -267,6 +295,8 @@ public class UserServiceImpl implements UserService {
             return ApiResponse.error("用户仍参与进行中的采购单，不能删除；可改为冻结账号");
         }
 
+        userEmailQuotaService.releaseAccounts(
+                targets.stream().map(User::getUserEmail).collect(Collectors.toList()));
         fileStorageService.releaseUserBusinessFiles(normalizedIds);
         if (userMapper.batchDelete(normalizedIds) != normalizedIds.size()) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
@@ -447,6 +477,13 @@ public class UserServiceImpl implements UserService {
         if (conflict != null) {
             return ApiResponse.error(conflict);
         }
+        String requestedEmail = dto.getUserEmail() == null
+                ? null
+                : userEmailQuotaService.normalize(dto.getUserEmail());
+        if (requestedEmail != null
+                && !userEmailQuotaService.moveAccount(target.getUserEmail(), requestedEmail)) {
+            return ApiResponse.error(UserEmailQuotaService.LIMIT_MESSAGE);
+        }
 
         User updateEntity = User.builder()
                 .id(dto.getId())
@@ -454,7 +491,7 @@ public class UserServiceImpl implements UserService {
                 .userAccount(dto.getUserAccount())
                 .userPwd(passwordResetRequested ? encoder.encode(dto.getUserPwd()) : null)
                 .userAvatar(dto.getUserAvatar())
-                .userEmail(trimToNull(dto.getUserEmail()))
+                .userEmail(requestedEmail)
                 .isLogin(dto.getIsLogin())
                 .accountStatus(resolveAccountStatusByLoginFlag(dto.getIsLogin()))
                 .isWord(dto.getIsWord())
@@ -463,6 +500,7 @@ public class UserServiceImpl implements UserService {
                 .build();
         try {
             if (userMapper.update(updateEntity) != 1) {
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                 return ApiResponse.error("用户状态已变化，请刷新后重试");
             }
         } catch (DuplicateKeyException e) {
@@ -561,6 +599,12 @@ public class UserServiceImpl implements UserService {
         String codePurpose = (purpose == null || purpose.trim().isEmpty())
                 ? VerificationCodePurpose.REGISTER.name()
                 : purpose;
+        if (VerificationCodePurpose.from(codePurpose)
+                .filter(value -> value == VerificationCodePurpose.CHANGE_EMAIL)
+                .isPresent()
+                && CurrentUserContext.userId() == null) {
+            return ApiResponse.error("身份认证异常，请先登录");
+        }
         return verificationCodeService.sendCode(email, codePurpose);
     }
 
@@ -699,6 +743,7 @@ public class UserServiceImpl implements UserService {
         if (conflict != null) {
             return ApiResponse.error(conflict);
         }
+        String normalizedEmail = userEmailQuotaService.normalize(dto.getUserEmail());
 
         User saveEntity = User.builder()
                 .userRole(role)
@@ -707,14 +752,18 @@ public class UserServiceImpl implements UserService {
                 .userAccount(dto.getUserAccount())
                 .userAvatar(dto.getUserAvatar())
                 .userPwd(encoder.encode(dto.getUserPwd()))
-                .userEmail(dto.getUserEmail().trim())
+                .userEmail(normalizedEmail)
                 .createTime(LocalDateTime.now())
                 .accountStatus(AccountStatus.NORMAL.code())
                 .isLogin(LoginStatus.ACTIVE.disabled())
                 .isWord(MuteStatus.ACTIVE.muted())
                 .build();
+        if (!userEmailQuotaService.reserveNewAccount(normalizedEmail)) {
+            return ApiResponse.error(UserEmailQuotaService.LIMIT_MESSAGE);
+        }
         try {
             if (userMapper.insert(saveEntity) != 1) {
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                 return ApiResponse.error("用户创建失败，请重试");
             }
         } catch (DuplicateKeyException e) {
@@ -739,6 +788,19 @@ public class UserServiceImpl implements UserService {
         }
         if (userMapper.getByActive(User.builder().userAccount(dto.getUserAccount()).build()) != null) {
             return "账号不可用";
+        }
+        if (userEmailQuotaService.normalize(dto.getUserEmail()) == null) {
+            return "邮箱不能为空";
+        }
+        return null;
+    }
+
+    private String validateRegistrationInput(UserRegisterDto dto) {
+        if (!PasswordValidator.isValid(dto.getUserPwd())) {
+            return PasswordValidator.getRequirement();
+        }
+        if (userEmailQuotaService.normalize(dto.getUserEmail()) == null) {
+            return "邮箱不能为空";
         }
         return null;
     }

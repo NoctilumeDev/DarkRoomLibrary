@@ -49,6 +49,37 @@
         maxlength="100"
         autocomplete="email"
       />
+      <small class="profile-email-help">
+        同一邮箱最多关联 3 个账号；系统不会显示关联数量或账号信息。
+      </small>
+
+      <template v-if="emailChanged && !demoMode">
+        <label>新邮箱验证码</label>
+        <div class="email-code-row">
+          <el-input
+            v-model.trim="verificationCode"
+            size="large"
+            placeholder="6 位验证码"
+            maxlength="6"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+          />
+          <el-button
+            class="email-code-button"
+            size="large"
+            :loading="codeSending"
+            :disabled="codeCountdown > 0"
+            @click="sendEmailChangeCode"
+          >
+            {{ codeCountdown > 0 ? `${codeCountdown} 秒后重发` : "发送验证码" }}
+          </el-button>
+        </div>
+        <small class="profile-email-help">验证通过后才会检查并更新邮箱关联名额。</small>
+      </template>
+
+      <small v-else-if="emailChanged" class="profile-email-help">
+        在线演示仅在当前浏览器会话中修改，不发送真实邮件。
+      </small>
 
       <div v-if="canCancelAccount" class="danger-zone">
         <div>
@@ -65,6 +96,7 @@
       <el-button @click="close">取消</el-button>
       <el-button
         class="profile-save-button"
+        :loading="saving"
         @click="save"
       >
         保存修改
@@ -101,6 +133,12 @@ export default {
         name: "",
         email: "",
       },
+      originalEmail: "",
+      verificationCode: "",
+      codeCountdown: 0,
+      countdownTimer: null,
+      codeSending: false,
+      saving: false,
     };
   },
   computed: {
@@ -122,23 +160,66 @@ export default {
     canCancelAccount() {
       return this.userInfo?.role === USER_ROLE.READER;
     },
+    emailChanged() {
+      return this.normalizeEmail(this.form.email) !== this.normalizeEmail(this.originalEmail);
+    },
   },
   watch: {
     userInfo: {
       immediate: true,
       deep: true,
       handler(value) {
-        this.form = {
-          url: value?.url || "",
-          name: value?.name || "",
-          email: value?.email || "",
-        };
+        this.syncForm(value);
       },
     },
+    modelValue(open) {
+      if (open) this.syncForm(this.userInfo);
+      else this.resetEmailVerification();
+    },
+    "form.email"(value, previous) {
+      if (this.normalizeEmail(value) !== this.normalizeEmail(previous)) {
+        this.resetEmailVerification();
+      }
+    },
+  },
+  beforeUnmount() {
+    this.stopCountdown();
   },
   methods: {
     close() {
+      this.resetEmailVerification();
       this.$emit("update:modelValue", false);
+    },
+    normalizeEmail(email) {
+      return String(email || "").trim().toLowerCase();
+    },
+    syncForm(value) {
+      this.form = {
+        url: value?.url || "",
+        name: value?.name || "",
+        email: value?.email || "",
+      };
+      this.originalEmail = value?.email || "";
+      this.resetEmailVerification();
+    },
+    stopCountdown() {
+      if (this.countdownTimer) {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+      }
+      this.codeCountdown = 0;
+    },
+    resetEmailVerification() {
+      this.verificationCode = "";
+      this.stopCountdown();
+    },
+    startCountdown() {
+      this.stopCountdown();
+      this.codeCountdown = 60;
+      this.countdownTimer = setInterval(() => {
+        this.codeCountdown -= 1;
+        if (this.codeCountdown <= 0) this.stopCountdown();
+      }, 1000);
     },
     getAvatarUrl(url) {
       return resolveFileUrl(url);
@@ -151,12 +232,54 @@ export default {
       this.form.url = res.data;
       this.$message.success("头像上传成功。");
     },
+    async sendEmailChangeCode() {
+      const email = this.normalizeEmail(this.form.email);
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        this.$message.warning("请先输入正确的新邮箱地址。");
+        return;
+      }
+      if (!this.emailChanged) {
+        this.$message.info("联系邮箱没有变化。");
+        return;
+      }
+
+      this.codeSending = true;
+      try {
+        const response = await this.$axios.post("/user/sendEmailChangeCode", { email });
+        if (response.data.code === 200) {
+          this.$message.success("验证码已发送，请查收新邮箱。");
+          this.startCountdown();
+        } else {
+          this.$message.error(response.data.msg || "验证码发送失败。");
+        }
+      } catch (error) {
+        console.error("发送换绑邮箱验证码失败:", error);
+        this.$message.error("发送失败，请稍后重试。");
+      } finally {
+        this.codeSending = false;
+      }
+    },
     async save() {
+      if (
+        !this.form.email ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email)
+      ) {
+        this.$message.warning("邮箱格式不正确。");
+        return;
+      }
+      if (this.emailChanged && !this.demoMode && !/^\d{6}$/.test(this.verificationCode)) {
+        this.$message.warning("请输入新邮箱收到的 6 位验证码。");
+        return;
+      }
+
+      this.saving = true;
       try {
         const response = await this.$axios.put("/user/update", {
           userAvatar: this.form.url,
           userName: this.form.name,
           userEmail: this.form.email,
+          verificationCode:
+            this.emailChanged && !this.demoMode ? this.verificationCode : undefined,
         });
         if (response.data.code === 200) {
           this.$message.success(response.data.msg || "个人资料已更新。");
@@ -168,6 +291,8 @@ export default {
       } catch (error) {
         console.error("保存个人资料失败:", error);
         this.$message.error("保存失败，请稍后重试。");
+      } finally {
+        this.saving = false;
       }
     },
     async cancelAccount() {
@@ -246,6 +371,26 @@ export default {
   line-height: 1.6;
 }
 
+.profile-email-help {
+  color: #7d6c5b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.email-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  gap: 10px;
+}
+
+:global(.email-code-button.el-button) {
+  --el-button-text-color: var(--seal, var(--workbench-seal, var(--tone-seal)));
+  --el-button-border-color: color-mix(in srgb, var(--tone-seal) 42%, transparent);
+  --el-button-hover-text-color: var(--tone-seal-deep);
+  --el-button-hover-border-color: var(--tone-seal-deep);
+  --el-button-hover-bg-color: color-mix(in srgb, var(--tone-seal) 8%, transparent);
+}
+
 .avatar-uploader {
   width: 86px;
 }
@@ -318,6 +463,15 @@ export default {
 }
 
 @media (max-width: 480px) {
+  .email-code-row {
+    grid-template-columns: 1fr;
+
+    :deep(.el-button) {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+
   .danger-zone {
     align-items: stretch;
     flex-direction: column;
