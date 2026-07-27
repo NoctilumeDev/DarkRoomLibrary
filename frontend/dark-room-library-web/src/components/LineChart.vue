@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import { loadEcharts } from "@/utils/echarts.js";
+import { loadLineEcharts } from "@/utils/echarts.js";
 import {
   ADMIN_THEME_EVENT,
   getAdminChartTheme,
@@ -94,7 +94,7 @@ export default {
     async renderChart() {
       const chartElement = this.$refs.chart;
       if (!chartElement) return;
-      const echarts = await loadEcharts();
+      const echarts = await loadLineEcharts();
       if (this.$refs.chart !== chartElement) return;
       const theme = getAdminChartTheme(this.$el);
       if (!this.chart) this.chart = echarts.init(chartElement);

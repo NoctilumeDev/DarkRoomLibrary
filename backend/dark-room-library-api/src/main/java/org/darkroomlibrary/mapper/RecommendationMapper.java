@@ -41,6 +41,9 @@ public interface RecommendationMapper {
 
     int insertEvent(RecommendationEvent event);
 
+    List<Integer> findDismissedBookIds(@Param("userId") Integer userId,
+                                       @Param("since") LocalDateTime since);
+
     int deleteBatchesByUser(@Param("userId") Integer userId);
 
     int deleteItemsByUser(@Param("userId") Integer userId);

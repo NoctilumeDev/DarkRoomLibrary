@@ -93,6 +93,41 @@ function mockPayload(url, role) {
       returnedBorrows: 764,
     });
   }
+  if (url.includes("/statistics/monthlyBorrow/")) {
+    return success([
+      { day: 1, count: 3 },
+      { day: 7, count: 8 },
+      { day: 14, count: 5 },
+      { day: 21, count: 11 },
+      { day: 28, count: 7 },
+    ]);
+  }
+  if (url.includes("/statistics/hotBooks")) {
+    return success({ books: [
+      { bookName: "暗室藏书", borrowCount: 26 },
+      { bookName: "雾灯索引", borrowCount: 19 },
+      { bookName: "归架之前", borrowCount: 14 },
+    ] });
+  }
+  if (url.includes("/statistics/lowStock")) {
+    return success({ books: [
+      { id: 1, bookName: "雾灯索引", availableCount: 1 },
+      { id: 2, bookName: "归架之前", availableCount: 2 },
+    ] });
+  }
+  if (url.includes("/statistics/overdueUsers")) {
+    return success([
+      { userId: 102, userName: "砚灯拾页", overdueCount: 1, totalFine: 2.5 },
+    ]);
+  }
+  if (url.includes("/statistics/collectionAnalysis")) {
+    return success({ categories: [
+      { category: "文学", totalCount: 138 },
+      { category: "历史", totalCount: 92 },
+      { category: "科学", totalCount: 84 },
+      { category: "艺术", totalCount: 72 },
+    ] });
+  }
   if (url.includes("/category/queryAll")) {
     return success([
       { id: 1, name: "文学" },
@@ -101,6 +136,45 @@ function mockPayload(url, role) {
       { id: 4, name: "哲学" },
       { id: 5, name: "艺术" },
     ]);
+  }
+  if (url.includes("/recommendation/feed")) {
+    return success({
+      mode: "HYBRID",
+      personalized: true,
+      enabled: true,
+      signalCount: 3,
+      generatedAt: "2026-07-27 23:58:00",
+      privacyNotice: "只使用你主动留下的收藏、借阅与评分，不记录无关浏览行为。",
+      items: [
+        {
+          itemId: 8101,
+          bookId: 1,
+          name: "暗室藏书",
+          author: "岑夜录",
+          cover: "/demo-media/dark-room-library-cover.webp",
+          sourceType: "CONTENT",
+          reason: "沿着你收藏的文学书签，灯下又出现了它。",
+        },
+        {
+          itemId: 8102,
+          bookId: 2,
+          name: "雾灯索引",
+          author: "江雾衡",
+          cover: "",
+          sourceType: "COLLABORATIVE",
+          reason: "收藏过《归架之前》的读者，也常留下这本。",
+        },
+        {
+          itemId: 8103,
+          bookId: 3,
+          name: "归架之前",
+          author: "闻归舟",
+          cover: "",
+          sourceType: "DISCOVERY",
+          reason: "它与已有书签稍远，留作一次偶然相遇。",
+        },
+      ],
+    });
   }
   if (url.includes("/book/query")) {
     return success(
@@ -255,6 +329,20 @@ try {
     0,
     { width: 430, height: 932 },
     ".paper-workspace .admin-dashboard"
+  );
+  await capture(
+    "statistics-desktop",
+    "/statisticsDashboard",
+    0,
+    { width: 1440, height: 1000 },
+    ".paper-workspace .statistics-page"
+  );
+  await capture(
+    "statistics-mobile",
+    "/statisticsDashboard",
+    0,
+    { width: 430, height: 932 },
+    ".paper-workspace .statistics-page"
   );
 } finally {
   await browser.close();

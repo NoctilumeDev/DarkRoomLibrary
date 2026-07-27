@@ -165,6 +165,11 @@ function recommendationFeed(state, user, requestedSize) {
       .filter((item) => item.userId === user.id && !item.status)
       .map((item) => item.bookId)
   );
+  const dismissedItemIds = new Set(
+    (state.recommendationEvents || [])
+      .filter((event) => event.userId === user.id && event.eventType === "DISMISS")
+      .map((event) => event.itemId)
+  );
   const personalized = state.recommendationEnabled !== false && favoriteBooks.length >= 3;
   const categoryCounts = favoriteBooks.reduce((counts, book) => {
     counts[book.category] = Number(counts[book.category] || 0) + 1;
@@ -176,7 +181,8 @@ function recommendationFeed(state, user, requestedSize) {
       (book) =>
         !book.deleted &&
         !favoriteIds.has(book.id) &&
-        !activeBorrowIds.has(book.id)
+        !activeBorrowIds.has(book.id) &&
+        !dismissedItemIds.has(recommendationItemId(user.id, book.id))
     )
     .map((book) => {
       const content = personalized
@@ -584,10 +590,12 @@ export async function demoAdapter(config) {
   } else if (/^\/recommendation\/items\/\d+\/events$/.test(path)) {
     const itemId = Number(path.split("/")[3]);
     if (!user || user.userRole !== 2) result = rejected("当前身份不能记录读者推荐事件。");
-    else {
+    else if (!["CLICK", "DISMISS"].includes(payload.eventType)) {
+      result = rejected("推荐事件无效");
+    } else {
       recordRecommendationEvent(state, user.id, itemId, payload.eventType);
       writeState(state);
-      result = ok();
+      result = ok(null, payload.eventType === "DISMISS" ? "已减少此类推荐" : "操作成功");
     }
   } else if (path.startsWith("/book/queryByDays/")) {
     result = ok([

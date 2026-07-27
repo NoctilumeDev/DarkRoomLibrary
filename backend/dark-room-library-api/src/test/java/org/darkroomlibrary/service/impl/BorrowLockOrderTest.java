@@ -13,6 +13,7 @@ import org.darkroomlibrary.mapper.BorrowRecordMapper;
 import org.darkroomlibrary.mapper.UserMapper;
 import org.darkroomlibrary.service.FineService;
 import org.darkroomlibrary.service.ReservationWorkflowService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +54,8 @@ class BorrowLockOrderTest {
     private DomainEventPublisher domainEventPublisher;
     @Mock
     private ReservationWorkflowService reservationWorkflowService;
+    @Mock
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     private BorrowRecordServiceImpl service;
     private BorrowRecord activeRecord;
@@ -66,6 +70,8 @@ class BorrowLockOrderTest {
         ReflectionTestUtils.setField(service, "bookReservationMapper", bookReservationMapper);
         ReflectionTestUtils.setField(service, "domainEventPublisher", domainEventPublisher);
         ReflectionTestUtils.setField(service, "reservationWorkflowService", reservationWorkflowService);
+        ReflectionTestUtils.setField(service, "recommendationSourceVersionService",
+                recommendationSourceVersionService);
         ReflectionTestUtils.setField(service, "renewWindowDaysBeforeDue", 3);
         ReflectionTestUtils.setField(service, "maxRenewCount", 1);
         ReflectionTestUtils.setField(service, "renewExtendDays", 30);
@@ -103,6 +109,7 @@ class BorrowLockOrderTest {
         order.verify(userMapper).findByIdForUpdate(USER_ID);
         order.verify(bookMapper).findByIdForUpdate(BOOK_ID);
         order.verify(borrowRecordMapper).findByIdForUpdate(RECORD_ID);
+        verify(recommendationSourceVersionService).invalidateUserAndGlobalAfterCommit(USER_ID);
     }
 
     @Test

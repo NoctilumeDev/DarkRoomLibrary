@@ -140,4 +140,25 @@ class RecommendationServiceImplTest extends BaseTest {
         assertEquals(400, recommendationService.recordEvent(
                 feed.getItems().get(0).getItemId(), "CLICK").getCode());
     }
+
+    @Test
+    void dismissIsIdempotentAndRemovesTheBookFromTheNextBatch() {
+        for (int index = 0; index < 3; index++) {
+            bookFavoriteService.addFavorite(books.get(index).getId());
+        }
+        RecommendationFeedView feed = recommendationService.feed(6).getData();
+        var dismissed = feed.getItems().get(0);
+
+        assertEquals(200, recommendationService.recordEvent(
+                dismissed.getItemId(), "DISMISS").getCode());
+        assertEquals(200, recommendationService.recordEvent(
+                dismissed.getItemId(), "DISMISS").getCode());
+
+        RecommendationFeedView refreshed = recommendationService.feed(6).getData();
+        assertTrue(refreshed.getItems().stream()
+                .noneMatch(item -> item.getBookId().equals(dismissed.getBookId())));
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM recommendation_event WHERE item_id = ? AND event_type = 'DISMISS'",
+                Integer.class, dismissed.getItemId()));
+    }
 }

@@ -17,6 +17,7 @@ import org.darkroomlibrary.web.view.MetricPoint;
 import org.darkroomlibrary.service.BookService;
 import org.darkroomlibrary.service.FileStorageService;
 import org.darkroomlibrary.service.ReservationWorkflowService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.utils.AnalyticsTimeline;
 import org.darkroomlibrary.utils.IdListUtils;
 import org.darkroomlibrary.utils.TransactionCallbacks;
@@ -61,6 +62,9 @@ public class BookServiceImpl implements BookService {
 
     @Resource
     private ReservationWorkflowService reservationWorkflowService;
+
+    @Resource
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     /**
      * 新增图书
@@ -108,6 +112,7 @@ public class BookServiceImpl implements BookService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("封面文件无效或不属于当前用户");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return ApiResponse.success();
     }
 
@@ -212,6 +217,7 @@ public class BookServiceImpl implements BookService {
         if (availableCount > existing.getAvailableCount()) {
             notifyReservationsAfterCommit(book.getId());
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return ApiResponse.success();
     }
 
@@ -247,6 +253,7 @@ public class BookServiceImpl implements BookService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("图书状态已变化，请刷新后重试");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return ApiResponse.success();
     }
 
@@ -270,6 +277,7 @@ public class BookServiceImpl implements BookService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("图书状态已变化，请刷新后重试");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return ApiResponse.success();
     }
 

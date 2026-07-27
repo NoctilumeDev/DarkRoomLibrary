@@ -10,6 +10,7 @@ const runKey = process.env.E2E_CONCURRENCY_RUN_KEY || String(Date.now()).slice(-
 const readerPassword = getConcurrentReaderPassword();
 const readerCount = 20;
 const burstSize = 32;
+const databaseName = process.env.E2E_DATABASE_NAME || "dark_room_library";
 
 const identities = Object.freeze({
   root: getAccount("root"),
@@ -25,7 +26,7 @@ const report = {
   configuration: {
     readerCount,
     burstSize,
-    database: "dark_room_library_e2e",
+    database: databaseName,
   },
   scenarios: [],
 };

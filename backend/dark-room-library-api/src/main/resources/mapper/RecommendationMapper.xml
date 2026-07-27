@@ -89,9 +89,18 @@
     </select>
 
     <insert id="insertEvent" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO recommendation_event (user_id, item_id, event_type, created_at)
+        INSERT IGNORE INTO recommendation_event (user_id, item_id, event_type, created_at)
         VALUES (#{userId}, #{itemId}, #{eventType}, #{createdAt})
     </insert>
+
+    <select id="findDismissedBookIds" resultType="java.lang.Integer">
+        SELECT DISTINCT ri.book_id
+        FROM recommendation_event re
+        JOIN recommendation_item ri ON ri.id = re.item_id
+        WHERE re.user_id = #{userId}
+          AND re.event_type = 'DISMISS'
+          AND re.created_at &gt;= #{since}
+    </select>
 
     <delete id="deleteBatchesByUser">
         DELETE FROM recommendation_batch WHERE user_id = #{userId}

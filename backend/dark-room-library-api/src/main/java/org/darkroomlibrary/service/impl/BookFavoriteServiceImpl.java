@@ -15,6 +15,7 @@ import org.darkroomlibrary.domain.model.User;
 import org.darkroomlibrary.web.view.BookFavoriteView;
 import org.darkroomlibrary.service.BookFavoriteService;
 import org.darkroomlibrary.service.RecommendationService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.utils.TransactionCallbacks;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,9 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
 
     @Resource
     private RecommendationService recommendationService;
+
+    @Resource
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     @Override
     @Transactional
@@ -78,6 +82,7 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
         } catch (DuplicateKeyException e) {
             return ApiResponse.error("已收藏该图书");
         }
+        recommendationSourceVersionService.invalidateUserAndGlobalAfterCommit(userId);
         TransactionCallbacks.afterCommit(() -> recommendationService.attributeFavorite(userId, bookId));
         return ApiResponse.success("收藏成功");
     }
@@ -86,7 +91,9 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
     @Transactional
     public ApiResponse<Void> removeFavorite(Integer bookId) {
         Integer userId = CurrentUserContext.userId();
-        bookFavoriteMapper.removeByUserAndBook(userId, bookId);
+        if (bookFavoriteMapper.removeByUserAndBook(userId, bookId) > 0) {
+            recommendationSourceVersionService.invalidateUserAndGlobalAfterCommit(userId);
+        }
         return ApiResponse.success("取消收藏成功");
     }
 

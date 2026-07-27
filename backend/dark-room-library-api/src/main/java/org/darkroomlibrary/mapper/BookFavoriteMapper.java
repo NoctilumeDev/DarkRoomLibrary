@@ -14,7 +14,7 @@ public interface BookFavoriteMapper extends BaseMapper<BookFavorite> {
 
     Integer isFavorited(@Param("userId") Integer userId, @Param("bookId") Integer bookId);
 
-    void removeByUserAndBook(@Param("userId") Integer userId, @Param("bookId") Integer bookId);
+    int removeByUserAndBook(@Param("userId") Integer userId, @Param("bookId") Integer bookId);
 
     List<BookFavoriteView> query(BookFavoritePageQuery dto);
 

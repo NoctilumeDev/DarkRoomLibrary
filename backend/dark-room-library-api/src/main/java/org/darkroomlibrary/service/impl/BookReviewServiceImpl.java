@@ -24,6 +24,7 @@ import org.darkroomlibrary.web.view.InteractionSummary;
 import org.darkroomlibrary.service.ContentPostingPolicy;
 import org.darkroomlibrary.service.OperationAuditService;
 import org.darkroomlibrary.service.BookReviewService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.utils.ContentSanitizer;
 import org.darkroomlibrary.utils.IdListUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -62,6 +63,8 @@ public class BookReviewServiceImpl implements BookReviewService {
     private ContentPostingPolicy contentPostingPolicy;
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     @Override
     @Transactional
@@ -100,6 +103,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         if (bookReviewMapper.insert(bookReview) != 1) {
             return ApiResponse.error("评价发布失败，请重试");
         }
+        recommendationSourceVersionService.invalidateUserAndGlobalAfterCommit(userId);
         return ApiResponse.success("评价成功");
     }
 
@@ -144,6 +148,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         if (bookReviewMapper.update(update) == 0) {
             return ApiResponse.error("评价状态已变化，请刷新后重试");
         }
+        recommendationSourceVersionService.invalidateUserAndGlobalAfterCommit(userId);
         return ApiResponse.success("修改评价成功");
     }
 
@@ -178,6 +183,9 @@ public class BookReviewServiceImpl implements BookReviewService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("评价状态已变化，请刷新后重试");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
+        reviews.stream().map(BookReview::getUserId).filter(Objects::nonNull).distinct()
+                .forEach(recommendationSourceVersionService::invalidateUserAfterCommit);
         if (adminOperation) {
             operationAuditService.record("删除", "书评及回复",
                     "书评ID=" + normalizedIds + "，删除书评数=" + normalizedIds.size()

@@ -32,6 +32,7 @@ import org.darkroomlibrary.service.LoginAttemptService;
 import org.darkroomlibrary.service.ReservationWorkflowService;
 import org.darkroomlibrary.service.UserService;
 import org.darkroomlibrary.service.VerificationCodeService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.utils.AnalyticsTimeline;
 import org.darkroomlibrary.utils.IdListUtils;
 import org.darkroomlibrary.utils.JwtUtil;
@@ -96,6 +97,9 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private ReservationWorkflowService reservationWorkflowService;
+
+    @Resource
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     @Resource
     private JwtUtil jwtUtil;
@@ -302,6 +306,7 @@ public class UserServiceImpl implements UserService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("部分用户状态已变化，请刷新后重试");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return ApiResponse.success("删除成功");
     }
 
@@ -526,6 +531,9 @@ public class UserServiceImpl implements UserService {
         recordUserUpdateAudits(
                 target, dto, loginStatusChanged, wordStatusChanged, roleChanged,
                 coordinatorAdminChanged, coordinatorAdminUpdate);
+        if (loginStatusChanged || roleChanged) {
+            recommendationSourceVersionService.invalidateGlobalAfterCommit();
+        }
         return ApiResponse.success(passwordResetRequested ? "保存成功，密码已重置" : "保存成功");
     }
 
@@ -633,6 +641,7 @@ public class UserServiceImpl implements UserService {
                     userIdentity(target) + "，账号状态："
                             + accountStatusName(target.getAccountStatus()) + " -> 冻结");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return ApiResponse.success("用户已冻结");
     }
 
@@ -660,6 +669,7 @@ public class UserServiceImpl implements UserService {
                     userIdentity(target) + "，账号状态："
                             + accountStatusName(target.getAccountStatus()) + " -> 正常");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return ApiResponse.success("用户已解冻");
     }
 
@@ -699,6 +709,7 @@ public class UserServiceImpl implements UserService {
                 .build()) != 1) {
             return ApiResponse.error("用户状态已变化，请刷新后重试");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return ApiResponse.success("账号已注销");
     }
 

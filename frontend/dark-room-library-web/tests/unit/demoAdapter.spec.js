@@ -132,6 +132,13 @@ describe("browser demo adapter", () => {
     expect(feed.data.items.every((item) => item.reason)).toBe(true);
     expect(feed.data.items.every((item) => ![1, 5, 6].includes(item.bookId))).toBe(true);
 
+    const dismissed = feed.data.items[1];
+    expect((await call("post", `/recommendation/items/${dismissed.itemId}/events`, {
+      eventType: "DISMISS",
+    })).code).toBe(200);
+    const feedAfterDismiss = await call("get", "/recommendation/feed", undefined, { size: 6 });
+    expect(feedAfterDismiss.data.items.some((entry) => entry.bookId === dismissed.bookId)).toBe(false);
+
     const item = feed.data.items[0];
     expect((await call("post", `/recommendation/items/${item.itemId}/events`, {
       eventType: "CLICK",

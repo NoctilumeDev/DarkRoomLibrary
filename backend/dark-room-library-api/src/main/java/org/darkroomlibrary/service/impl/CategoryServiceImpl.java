@@ -7,6 +7,7 @@ import org.darkroomlibrary.web.response.PageResponse;
 import org.darkroomlibrary.web.dto.query.CategoryPageQuery;
 import org.darkroomlibrary.domain.model.Category;
 import org.darkroomlibrary.service.CategoryService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.utils.IdListUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Resource
     private BookMapper bookMapper;
+
+    @Resource
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     @Override
     @Transactional
@@ -71,6 +75,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
         if (!existing.getName().equals(newName)) {
             bookMapper.updateCategoryName(existing.getName(), newName);
+            recommendationSourceVersionService.invalidateGlobalAfterCommit();
         }
         return ApiResponse.success("修改分类成功");
     }

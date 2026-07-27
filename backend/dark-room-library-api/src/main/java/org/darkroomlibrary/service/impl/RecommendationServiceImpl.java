@@ -15,6 +15,7 @@ import org.darkroomlibrary.mapper.RecommendationMapper;
 import org.darkroomlibrary.mapper.UserMapper;
 import org.darkroomlibrary.service.RecommendationService;
 import org.darkroomlibrary.service.support.RecommendationRankingEngine;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.service.support.RecommendationRankingEngine.RankedRecommendation;
 import org.darkroomlibrary.service.support.RecommendationRankingEngine.RecommendationPlan;
 import org.darkroomlibrary.web.response.ApiResponse;
@@ -37,6 +38,9 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class RecommendationServiceImpl implements RecommendationService {
@@ -44,6 +48,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private static final int DEFAULT_FEED_SIZE = 6;
     private static final int MAX_GENERATED_ITEMS = 8;
     private static final int PERSONALIZATION_THRESHOLD = 3;
+    private static final int DISMISS_RETENTION_DAYS = 30;
     private static final String DATA_SCOPE = "只使用你主动留下的收藏、借阅与评分，不记录无关浏览行为。";
     private static final String CLEAR_EFFECT = "清除曝光、点击与计算结果，不删除收藏、借阅或书评。";
 
@@ -52,6 +57,9 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Resource
     private RecommendationRankingEngine rankingEngine;
+
+    @Resource
+    private RecommendationSourceVersionService sourceVersionService;
 
     @Resource
     private UserMapper userMapper;
@@ -65,23 +73,43 @@ public class RecommendationServiceImpl implements RecommendationService {
                 ? DEFAULT_FEED_SIZE : Math.max(1, Math.min(requestedSize, MAX_GENERATED_ITEMS));
         RecommendationSetting setting = recommendationMapper.findSetting(userId);
         boolean enabled = setting == null || Boolean.TRUE.equals(setting.getEnabled());
-        List<RecommendationBookProfile> books = recommendationMapper.findActiveBookProfiles();
-        List<RecommendationUserSignal> signals = enabled
-                ? recommendationMapper.findUserSignals(userId) : List.of();
-        long favoriteCount = signals.stream()
-                .filter(signal -> signal.getFavoriteCount() != null && signal.getFavoriteCount() > 0)
-                .count();
-        List<RecommendationFavoriteLink> links = favoriteCount >= PERSONALIZATION_THRESHOLD
-                ? recommendationMapper.findFavoriteLinks(userId) : List.of();
         LocalDateTime now = now();
-        String fingerprint = fingerprint(enabled, books, signals, links);
-        RecommendationBatch batch = recommendationMapper.findReusableBatch(userId, fingerprint, now);
+        Optional<String> sourceSeed = sourceVersionService.currentSeed(userId);
+        String fingerprint = sourceSeed.map(seed -> fingerprint(enabled, seed)).orElse(null);
+        RecommendationBatch batch = fingerprint == null
+                ? null : recommendationMapper.findReusableBatch(userId, fingerprint, now);
         if (batch == null) {
+            Set<Integer> dismissedBookIds = recommendationMapper.findDismissedBookIds(
+                    userId, now.minusDays(DISMISS_RETENTION_DAYS)).stream().collect(Collectors.toSet());
+            List<RecommendationBookProfile> books = recommendationMapper.findActiveBookProfiles()
+                    .stream().filter(book -> !dismissedBookIds.contains(book.getId())).toList();
+            List<RecommendationUserSignal> signals = enabled
+                    ? recommendationMapper.findUserSignals(userId) : List.of();
+            long favoriteCount = signals.stream()
+                    .filter(signal -> signal.getFavoriteCount() != null && signal.getFavoriteCount() > 0)
+                    .count();
+            List<RecommendationFavoriteLink> links = favoriteCount >= PERSONALIZATION_THRESHOLD
+                    ? recommendationMapper.findFavoriteLinks(userId) : List.of();
+            if (fingerprint == null) {
+                fingerprint = fingerprint(enabled, books, signals, links, dismissedBookIds);
+                batch = recommendationMapper.findReusableBatch(userId, fingerprint, now);
+            }
+            if (batch != null) {
+                return feedView(batch, enabled, size, userId, now);
+            }
             RecommendationPlan plan = rankingEngine.rank(userId, books, signals, links,
                     enabled, MAX_GENERATED_ITEMS, now);
             batch = persistPlan(userId, fingerprint, plan, now);
             recommendationMapper.pruneExpiredBatches(userId, now.minusDays(90));
         }
+        return feedView(batch, enabled, size, userId, now);
+    }
+
+    private ApiResponse<RecommendationFeedView> feedView(RecommendationBatch batch,
+                                                          boolean enabled,
+                                                          int size,
+                                                          Integer userId,
+                                                          LocalDateTime now) {
         List<RecommendationItemView> items = recommendationMapper.findItems(batch.getId())
                 .stream().limit(size).toList();
         for (RecommendationItemView item : items) {
@@ -123,6 +151,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 recommendationMapper.updateSetting(setting);
             }
         }
+        sourceVersionService.invalidateUserAfterCommit(userId);
         return ApiResponse.success(enabled ? "个性化推荐已开启" : "已改为公共荐书", settingView(enabled));
     }
 
@@ -134,6 +163,7 @@ public class RecommendationServiceImpl implements RecommendationService {
         recommendationMapper.deleteEventsByUser(userId);
         recommendationMapper.deleteItemsByUser(userId);
         recommendationMapper.deleteBatchesByUser(userId);
+        sourceVersionService.invalidateUserAfterCommit(userId);
         return ApiResponse.success("推荐记录已清除，收藏、借阅和书评保持不变");
     }
 
@@ -147,8 +177,12 @@ public class RecommendationServiceImpl implements RecommendationService {
         }
         RecommendationItem item = recommendationMapper.findOwnedItem(userId, itemId);
         if (item == null) return ApiResponse.error("推荐条目不存在或不属于当前读者");
-        insertUniqueEvent(userId, itemId, eventType, now());
-        return ApiResponse.success();
+        int inserted = insertUniqueEvent(userId, itemId, eventType, now());
+        if (inserted > 0 && "DISMISS".equals(eventType)) {
+            sourceVersionService.invalidateUserAfterCommit(userId);
+        }
+        return "DISMISS".equals(eventType)
+                ? ApiResponse.success("已减少此类推荐") : ApiResponse.success();
     }
 
     @Override
@@ -203,17 +237,13 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .build();
     }
 
-    private void insertUniqueEvent(Integer userId, Long itemId, String eventType, LocalDateTime time) {
-        try {
-            recommendationMapper.insertEvent(RecommendationEvent.builder()
-                    .userId(userId)
-                    .itemId(itemId)
-                    .eventType(eventType)
-                    .createdAt(time)
-                    .build());
-        } catch (DuplicateKeyException ignored) {
-            // One immutable event of each type per recommendation item is sufficient for attribution.
-        }
+    private int insertUniqueEvent(Integer userId, Long itemId, String eventType, LocalDateTime time) {
+        return recommendationMapper.insertEvent(RecommendationEvent.builder()
+                .userId(userId)
+                .itemId(itemId)
+                .eventType(eventType)
+                .createdAt(time)
+                .build());
     }
 
     private boolean isReader(Integer userId) {
@@ -238,11 +268,18 @@ public class RecommendationServiceImpl implements RecommendationService {
         return LocalDateTime.now().withNano(0);
     }
 
+    private String fingerprint(boolean enabled, String sourceSeed) {
+        return hash((enabled ? "1|" : "0|")
+                + RecommendationRankingEngine.ALGORITHM_VERSION + '|' + sourceSeed);
+    }
+
     private String fingerprint(boolean enabled,
                                List<RecommendationBookProfile> books,
                                List<RecommendationUserSignal> signals,
-                               List<RecommendationFavoriteLink> links) {
+                               List<RecommendationFavoriteLink> links,
+                               Set<Integer> dismissedBookIds) {
         StringBuilder source = new StringBuilder(enabled ? "1|" : "0|");
+        source.append(RecommendationRankingEngine.ALGORITHM_VERSION).append('|');
         books.stream().sorted(Comparator.comparing(RecommendationBookProfile::getId)).forEach(book ->
                 source.append('b').append(book.getId()).append(':').append(book.getVersion())
                         .append(':').append(book.getFavoriteCount()).append(':').append(book.getBorrowCount())
@@ -256,9 +293,15 @@ public class RecommendationServiceImpl implements RecommendationService {
                         .thenComparing(RecommendationFavoriteLink::getBookId))
                 .forEach(link -> source.append('f').append(link.getUserId()).append(':')
                         .append(link.getBookId()).append('|'));
+        dismissedBookIds.stream().sorted()
+                .forEach(bookId -> source.append('d').append(bookId).append('|'));
+        return hash(source.toString());
+    }
+
+    private String hash(String source) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(source.toString().getBytes(StandardCharsets.UTF_8));
+                    .digest(source.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 is unavailable", e);

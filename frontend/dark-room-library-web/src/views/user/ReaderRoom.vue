@@ -32,26 +32,38 @@
           <button type="button" @click="$router.push('/bookSearch')">全部藏书</button>
         </span>
       </header>
-      <div class="desk-books">
-        <button
+      <TransitionGroup name="desk-book" tag="div" class="desk-books">
+        <article
           v-for="book in recommendationItems"
           :key="book.itemId"
-          type="button"
-          @click="openBook(book)"
+          class="desk-book"
         >
-          <span class="book-cover">
-            <el-image v-if="book.cover" :src="fileUrl(book.cover)" fit="cover" lazy>
-              <template #error><i>{{ shortTitle(book.name) }}</i></template>
-            </el-image>
-            <i v-else>{{ shortTitle(book.name) }}</i>
-          </span>
-          <span class="book-copy">
-            <strong>{{ book.name }}</strong>
-            <em>{{ book.author || "佚名" }}</em>
-            <small>{{ book.reason }}</small>
-          </span>
-        </button>
-      </div>
+          <button type="button" class="desk-book-main" @click="openBook(book)">
+            <span class="book-cover">
+              <el-image v-if="book.cover" :src="fileUrl(book.cover)" fit="cover" lazy>
+                <template #error><i>{{ shortTitle(book.name) }}</i></template>
+              </el-image>
+              <i v-else>{{ shortTitle(book.name) }}</i>
+            </span>
+            <span class="book-copy">
+              <strong>{{ book.name }}</strong>
+              <em>{{ book.author || "佚名" }}</em>
+              <small>{{ book.reason }}</small>
+            </span>
+          </button>
+          <button
+            v-if="typeof book.itemId === 'number'"
+            type="button"
+            class="dismiss-recommendation"
+            :disabled="dismissingRecommendationIds.length > 0"
+            :aria-label="`不再推荐《${book.name}》`"
+            title="对此书不感兴趣"
+            @click.stop="dismissRecommendation(book)"
+          >
+            <Close />
+          </button>
+        </article>
+      </TransitionGroup>
     </section>
 
     <nav v-if="categories.length" class="category-whisper" aria-label="图书分类">
@@ -95,12 +107,12 @@
 </template>
 
 <script>
-import { InfoFilled, Search as SearchIcon } from "@element-plus/icons-vue";
+import { Close, InfoFilled, Search as SearchIcon } from "@element-plus/icons-vue";
 import { resolveFileUrl } from "@/utils/fileUrl.js";
 
 export default {
   name: "ReaderRoom",
-  components: { InfoFilled, SearchIcon },
+  components: { Close, InfoFilled, SearchIcon },
   data() {
     return {
       loading: false,
@@ -116,6 +128,7 @@ export default {
       recommendationSettingsVisible: false,
       recommendationSettingSaving: false,
       recommendationHistoryClearing: false,
+      dismissingRecommendationIds: [],
       recommendationSetting: {
         enabled: true,
         dataScope: "只使用你主动留下的收藏、借阅与评分，不记录无关浏览行为。",
@@ -233,6 +246,30 @@ export default {
         path: "/bookSearch",
         query: { name: book.name, open: String(book.bookId) },
       });
+    },
+    async dismissRecommendation(book) {
+      if (typeof book.itemId !== "number"
+          || this.dismissingRecommendationIds.length > 0) return;
+      this.dismissingRecommendationIds.push(book.itemId);
+      try {
+        const response = await this.$axios.post(`/recommendation/items/${book.itemId}/events`, {
+          eventType: "DISMISS",
+        });
+        if (response.data.code !== 200) throw new Error(response.data.msg || "操作失败");
+        this.recommendation.items = (this.recommendation.items || [])
+          .filter((item) => item.itemId !== book.itemId);
+        this.$message.success(response.data.msg || "已减少此类推荐");
+        try {
+          this.recommendation = await this.loadRecommendation();
+        } catch (refreshError) {
+          console.warn("推荐已关闭，但列表补位暂时失败:", refreshError);
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || error.message || "操作失败");
+      } finally {
+        this.dismissingRecommendationIds = this.dismissingRecommendationIds
+          .filter((itemId) => itemId !== book.itemId);
+      }
     },
     openCategory(category) {
       this.$router.push({ path: "/bookSearch", query: { category } });
@@ -405,18 +442,51 @@ export default {
 
 .desk-books { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 
-.desk-books > button {
+.desk-book {
+  position: relative;
   min-width: 0;
+}
+
+.desk-book-main {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0;
+  padding: 0 18px 0 0;
   border: 0;
   color: inherit;
   background: transparent;
   text-align: left;
   cursor: pointer;
 }
+
+.dismiss-recommendation {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.38;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dismiss-recommendation:hover,
+.dismiss-recommendation:focus-visible { opacity: 0.9; transform: scale(1.08); }
+.dismiss-recommendation:disabled { cursor: wait; opacity: 0.22; }
+.dismiss-recommendation svg { width: 13px; height: 13px; }
+
+.desk-book-move,
+.desk-book-enter-active,
+.desk-book-leave-active { transition: opacity 0.24s ease, transform 0.24s ease; }
+.desk-book-enter-from,
+.desk-book-leave-to { opacity: 0; transform: translateY(6px); }
 
 .book-cover {
   width: 38px;
@@ -507,11 +577,13 @@ export default {
     scrollbar-width: none;
   }
   .desk-books::-webkit-scrollbar { display: none; }
-  .desk-books > button {
+  .desk-book {
     width: min(248px, 76vw);
     flex: 0 0 min(248px, 76vw);
-    align-items: flex-start;
     scroll-snap-align: start;
+  }
+  .desk-book-main {
+    align-items: flex-start;
   }
 }
 

@@ -28,6 +28,7 @@ import org.darkroomlibrary.web.view.OrderUnreadSummary;
 import org.darkroomlibrary.service.OperationAuditService;
 import org.darkroomlibrary.service.ProcurementService;
 import org.darkroomlibrary.service.ReservationWorkflowService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.utils.ContentSanitizer;
 import org.darkroomlibrary.utils.TransactionCallbacks;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +92,9 @@ public class ProcurementServiceImpl implements ProcurementService {
 
     @Resource
     private ReservationWorkflowService reservationWorkflowService;
+
+    @Resource
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     @Override
     @Transactional
@@ -651,6 +655,7 @@ public class ProcurementServiceImpl implements ProcurementService {
         if (updated == 0) {
             throw new IllegalStateException("采购入库失败，图书不存在或数量无效");
         }
+        recommendationSourceVersionService.invalidateGlobalAfterCommit();
         return true;
     }
 

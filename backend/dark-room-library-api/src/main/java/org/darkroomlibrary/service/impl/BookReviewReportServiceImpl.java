@@ -10,6 +10,7 @@ import org.darkroomlibrary.domain.model.BookReviewReport;
 import org.darkroomlibrary.web.view.BookReviewReportView;
 import org.darkroomlibrary.service.OperationAuditService;
 import org.darkroomlibrary.service.BookReviewReportService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
@@ -27,6 +28,8 @@ public class BookReviewReportServiceImpl implements BookReviewReportService {
     private BookReviewMapper bookReviewMapper;
     @Resource
     private OperationAuditService operationAuditService;
+    @Resource
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     @Override
     public ApiResponse<List<BookReviewReportView>> query(BookReviewReportPageQuery dto) {
@@ -91,6 +94,7 @@ public class BookReviewReportServiceImpl implements BookReviewReportService {
         }
         operationAuditService.record("审核", "书评举报",
                 reportDetail(report) + "，处理结果=隐藏书评，书评作者ID=" + review.getUserId());
+        recommendationSourceVersionService.invalidateUserAndGlobalAfterCommit(review.getUserId());
         return ApiResponse.success("已隐藏书评");
     }
 

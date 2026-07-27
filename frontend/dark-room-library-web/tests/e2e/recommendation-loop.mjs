@@ -133,6 +133,8 @@ const report = {
 };
 let token;
 let addedBookId;
+let hybridBookId;
+const hybridPeerAccounts = ["drl_e2e_cf_peer_a", "drl_e2e_cf_peer_b"];
 
 try {
   token = await login();
@@ -192,9 +194,36 @@ try {
     body: { enabled: true },
   });
   assert(enabled.enabled === true, "Personalization was not re-enabled");
-  const personalizedFeed = await requireSuccess(token, "/recommendation/feed?size=6");
+  let personalizedFeed = await requireSuccess(token, "/recommendation/feed?size=6");
   assertRecommendationFeed(personalizedFeed, favoriteIds, "restored feed");
   report.checks.push("privacy-toggle-public-fallback");
+
+  const dismissed = personalizedFeed.items.at(-1);
+  await requireSuccess(token, `/recommendation/items/${dismissed.itemId}/events`, {
+    method: "POST",
+    body: { eventType: "DISMISS" },
+  });
+  await requireSuccess(token, `/recommendation/items/${dismissed.itemId}/events`, {
+    method: "POST",
+    body: { eventType: "DISMISS" },
+  });
+  const afterDismiss = await requireSuccess(token, "/recommendation/feed?size=6");
+  assert(
+    afterDismiss.items.every((item) => Number(item.bookId) !== Number(dismissed.bookId)),
+    "Dismissed book remained in the next recommendation batch"
+  );
+  const dismissCount = mysqlScalar(
+    `SELECT COUNT(*) FROM recommendation_event
+     WHERE user_id = ${Number(profile.id)}
+       AND item_id = ${Number(dismissed.itemId)}
+       AND event_type = 'DISMISS'`
+  );
+  if (dismissCount !== null) {
+    assert(dismissCount === "1", `Expected one idempotent dismiss event, got ${dismissCount}`);
+  }
+  report.checks.push("dismiss-idempotent-and-filtered");
+  await requireSuccess(token, "/recommendation/history", { method: "DELETE" });
+  personalizedFeed = await requireSuccess(token, "/recommendation/feed?size=6");
 
   const candidate = personalizedFeed.items[0];
   addedBookId = Number(candidate.bookId);
@@ -255,6 +284,66 @@ try {
     restoredIds.join(",") === [...favoriteIds].sort((a, b) => a - b).join(","),
     "Fixture favorites were not restored"
   );
+
+  if (mysqlContainer) {
+    mysqlScalar(
+      `DELETE FROM user WHERE user_account IN ('${hybridPeerAccounts[0]}','${hybridPeerAccounts[1]}');
+       DELETE FROM book WHERE name = 'DRL-E2E-HYBRID-CANDIDATE';`
+    );
+    hybridBookId = Number(mysqlScalar(
+      `INSERT INTO book
+         (version, name, author, isbn, publisher, category, total_count,
+          available_count, description, create_time, is_deleted)
+       VALUES
+         (0, 'DRL-E2E-HYBRID-CANDIDATE', 'Hybrid Peer Lab', 'E2E-HYBRID-001',
+          'Dark Room Test Press', '跨域样本', 5, 5,
+          'quartz vector heliotrope synthetic collaboration sample', NOW(), 0);
+       SELECT LAST_INSERT_ID();`
+    ));
+    assert(Number.isInteger(hybridBookId) && hybridBookId > 0,
+      `Invalid hybrid candidate id: ${hybridBookId}`);
+    const sourceFavoriteId = [...favoriteIds][0];
+    mysqlScalar(
+      `INSERT INTO user
+         (user_account, user_name, user_pwd, user_role, is_coordinator_admin,
+          account_status, is_login, is_word, create_time)
+       SELECT '${hybridPeerAccounts[0]}', '协同荐书样本甲', user_pwd, 2, 0, 0, 0, 0, NOW()
+       FROM user WHERE id = ${Number(profile.id)};
+       INSERT INTO user
+         (user_account, user_name, user_pwd, user_role, is_coordinator_admin,
+          account_status, is_login, is_word, create_time)
+       SELECT '${hybridPeerAccounts[1]}', '协同荐书样本乙', user_pwd, 2, 0, 0, 0, 0, NOW()
+       FROM user WHERE id = ${Number(profile.id)};
+       INSERT IGNORE INTO book_favorite (user_id, book_id, create_time)
+       SELECT id, ${Number(sourceFavoriteId)}, NOW() FROM user
+       WHERE user_account IN ('${hybridPeerAccounts[0]}','${hybridPeerAccounts[1]}');
+       INSERT IGNORE INTO book_favorite (user_id, book_id, create_time)
+       SELECT id, ${hybridBookId}, NOW() FROM user
+       WHERE user_account IN ('${hybridPeerAccounts[0]}','${hybridPeerAccounts[1]}');`
+    );
+    await requireSuccess(token, "/recommendation/history", { method: "DELETE" });
+    const hybridFeeds = await Promise.all(apiBaseUrls.map((baseUrl) =>
+      requireSuccess(token, "/recommendation/feed?size=8", { baseUrl })
+    ));
+    assert(hybridFeeds.every((feed) => feed.mode === "HYBRID"),
+      `Expected HYBRID on every instance, got ${hybridFeeds.map((feed) => feed.mode)}`);
+    assert(hybridFeeds.every((feed) => feed.items.some((item) =>
+      Number(item.bookId) === hybridBookId && item.sourceType === "COLLABORATIVE")),
+    "Collaborative candidate was not explained consistently across instances");
+    const hybridBatchCount = mysqlScalar(
+      `SELECT COUNT(*) FROM recommendation_batch WHERE user_id = ${Number(profile.id)}`
+    );
+    assert(hybridBatchCount === "1",
+      `Three-instance HYBRID generation created ${hybridBatchCount} batches`);
+    report.checks.push("three-instance-real-hybrid-collaboration");
+
+    mysqlScalar(
+      `DELETE FROM user WHERE user_account IN ('${hybridPeerAccounts[0]}','${hybridPeerAccounts[1]}');
+       DELETE FROM book WHERE id = ${hybridBookId};`
+    );
+    hybridBookId = undefined;
+    await requireSuccess(token, "/recommendation/history", { method: "DELETE" });
+  }
   const finalFeed = await requireSuccess(token, "/recommendation/feed?size=6");
   assertRecommendationFeed(finalFeed, favoriteIds, "final feed");
   report.checks.push("fixture-restored-and-feed-regenerated");
@@ -272,6 +361,13 @@ try {
     `RECOMMENDATION_E2E_OK instances=${apiBaseUrls.length} mode=${report.mode} signals=${report.signalCount} checks=${report.checks.length}`
   );
 } finally {
+  if (mysqlContainer && hybridBookId) {
+    mysqlScalar(
+      `DELETE FROM user WHERE user_account IN ('${hybridPeerAccounts[0]}','${hybridPeerAccounts[1]}');
+       DELETE FROM book WHERE id = ${Number(hybridBookId)};`
+    );
+    if (token) await apiRequest(token, "/recommendation/history", { method: "DELETE" });
+  }
   if (token && addedBookId) {
     const current = await apiRequest(token, `/bookFavorite/isFavorited/${addedBookId}`);
     if (current.payload?.code === 200 && current.payload.data === true) {

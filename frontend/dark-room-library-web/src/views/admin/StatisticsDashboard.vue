@@ -193,7 +193,7 @@
 </template>
 
 <script>
-import { loadEcharts } from "@/utils/echarts.js";
+import { loadBarEcharts, loadLineEcharts, loadPieEcharts } from "@/utils/echarts.js";
 import {
   ADMIN_THEME_EVENT,
   getAdminChartTheme,
@@ -332,7 +332,7 @@ export default {
     async renderMonthlyChart() {
       const chartElement = this.$refs.monthlyChart;
       if (!chartElement) return;
-      const echarts = await loadEcharts();
+      const echarts = await loadLineEcharts();
       if (this.$refs.monthlyChart !== chartElement) return;
       const theme = getAdminChartTheme(this.$el);
       if (!this.monthlyChart) this.monthlyChart = echarts.init(chartElement);
@@ -374,7 +374,7 @@ export default {
     async renderHotBooksChart() {
       const chartElement = this.$refs.hotBooksChart;
       if (!chartElement) return;
-      const echarts = await loadEcharts();
+      const echarts = await loadBarEcharts();
       if (this.$refs.hotBooksChart !== chartElement) return;
       const theme = getAdminChartTheme(this.$el);
       if (!this.hotBooksChart) this.hotBooksChart = echarts.init(chartElement);
@@ -443,7 +443,7 @@ export default {
     async renderCollectionChart() {
       const chartElement = this.$refs.collectionChart;
       if (!chartElement) return;
-      const echarts = await loadEcharts();
+      const echarts = await loadPieEcharts();
       if (this.$refs.collectionChart !== chartElement) return;
       const theme = getAdminChartTheme(this.$el);
       if (!this.collectionChart) {

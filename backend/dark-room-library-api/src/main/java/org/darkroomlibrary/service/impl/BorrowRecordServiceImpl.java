@@ -19,6 +19,7 @@ import org.darkroomlibrary.web.view.BorrowRecordView;
 import org.darkroomlibrary.service.BorrowRecordService;
 import org.darkroomlibrary.service.FineService;
 import org.darkroomlibrary.service.ReservationWorkflowService;
+import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.utils.TransactionCallbacks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,6 +57,9 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
 
     @Resource
     private ReservationWorkflowService reservationWorkflowService;
+
+    @Resource
+    private RecommendationSourceVersionService recommendationSourceVersionService;
 
     @Value("${borrow.max-count:5}")
     private int maxBorrowCount;
@@ -131,6 +135,7 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("预约状态已变化，请刷新后重试");
         }
+        recommendationSourceVersionService.invalidateUserAndGlobalAfterCommit(userId);
         return ApiResponse.success("借阅成功");
     }
 
@@ -173,6 +178,7 @@ public class BorrowRecordServiceImpl implements BorrowRecordService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("图书库存状态异常，归还失败");
         }
+        recommendationSourceVersionService.invalidateUserAndGlobalAfterCommit(record.getUserId());
         publishBookReturnedAfterCommit(record.getBookId());
         if (fine.compareTo(BigDecimal.ZERO) > 0) {
             return ApiResponse.success("归还成功，逾期罚款：" + fine + "元");

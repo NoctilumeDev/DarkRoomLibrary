@@ -41,22 +41,6 @@ export default defineConfig(({ mode }) => ({
     port: 4175,
     strictPort: true,
   },
-  build: {
-    chunkSizeWarningLimit: 600,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("/node_modules/zrender/")) {
-            return "charts-renderer";
-          }
-          if (id.includes("/node_modules/echarts/")) {
-            return "charts";
-          }
-          return undefined;
-        },
-      },
-    },
-  },
   test: {
     environment: "jsdom",
     globals: true,
