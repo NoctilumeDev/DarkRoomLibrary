@@ -19,20 +19,13 @@ if ($Reset -and $DatabaseName -notmatch '_e2e$') {
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
 $bootstrapPath = Join-Path $projectRoot "sql\init-dark-room-library.sql"
-$demoDataPath = Join-Path $projectRoot "sql\demo-data.sql"
 if (-not (Test-Path -LiteralPath $bootstrapPath)) {
     throw "Bootstrap SQL is missing: $bootstrapPath"
-}
-if (-not (Test-Path -LiteralPath $demoDataPath)) {
-    throw "Demo SQL is missing: $demoDataPath"
 }
 
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 $sql = [System.IO.File]::ReadAllText($bootstrapPath, $utf8)
-$demoSql = [System.IO.File]::ReadAllText($demoDataPath, $utf8)
 $sql = $sql.Replace('`dark_room_library`', ('`{0}`' -f $DatabaseName))
-$demoSql = $demoSql.Replace('`dark_room_library`', ('`{0}`' -f $DatabaseName))
-$sql = "$sql`n$demoSql"
 if ($Reset) {
     $sql = "DROP DATABASE IF EXISTS ``$DatabaseName``;`n$sql"
 }
@@ -76,6 +69,5 @@ finally {
     Host = $HostName
     Port = $Port
     Reset = [bool]$Reset
-    Bootstrap = $bootstrapPath
-    DemoData = $demoDataPath
+    SqlFile = $bootstrapPath
 }

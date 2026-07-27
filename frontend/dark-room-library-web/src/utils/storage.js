@@ -6,8 +6,6 @@ const SESSION_KEYS = Object.freeze({
   authIntroSeen: "auth-intro-seen",
   noticeOperation: "noticeOperation",
   noticeDraft: "noticeInfo",
-  legacyHealthInfo: "health-info",
-  legacyActivePath: "active_key",
 });
 
 function read(key) {

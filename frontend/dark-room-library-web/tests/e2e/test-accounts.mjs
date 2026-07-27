@@ -33,10 +33,13 @@ const accountSpecs = Object.freeze({
 });
 
 function requiredSecret(primaryName, fallbackName) {
-  const value = process.env[primaryName] || (fallbackName && process.env[fallbackName]);
+  const value =
+    process.env[primaryName] ||
+    (fallbackName && process.env[fallbackName]) ||
+    process.env.DRL_DEMO_PASSWORD;
   if (!value) {
     throw new Error(
-      `Missing ${primaryName}. Set the local E2E password environment variable before running this script.`
+      `Missing ${primaryName}. Set it directly or set DRL_DEMO_PASSWORD before running this script.`
     );
   }
   return value;

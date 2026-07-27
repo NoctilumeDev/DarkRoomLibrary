@@ -15,6 +15,7 @@ test-results/
 
 # Generated delivery archives
 release/
+*.inspect.ndjson
 
 # Runtime uploads and temporary files
 backend/dark-room-library-api/upload/

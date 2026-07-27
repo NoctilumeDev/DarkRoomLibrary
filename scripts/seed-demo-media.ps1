@@ -4,7 +4,11 @@
 param(
     [string]$ApiBaseUrl = "http://localhost:20606/api/dark-room-library/v1",
     [string]$AdminAccount = "drl_root_aurora",
-    [string]$AdminPassword = $env:DRL_DEMO_ADMIN_PASSWORD,
+    [string]$AdminPassword = $(if ($env:DRL_DEMO_ADMIN_PASSWORD) {
+        $env:DRL_DEMO_ADMIN_PASSWORD
+    } else {
+        $env:DRL_DEMO_PASSWORD
+    }),
     [string]$ReaderAccount = "drl_reader_yandeng",
     [string]$CoordinatorAccount = "drl_keeper_qingwu",
     [string]$BookName = "暗室藏书",
@@ -15,7 +19,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 if ([string]::IsNullOrWhiteSpace($AdminPassword)) {
-    throw "Set DRL_DEMO_ADMIN_PASSWORD before seeding demo media."
+    throw "Set DRL_DEMO_PASSWORD or DRL_DEMO_ADMIN_PASSWORD before seeding demo media."
 }
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path

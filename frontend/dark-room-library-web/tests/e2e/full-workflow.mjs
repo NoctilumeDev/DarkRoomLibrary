@@ -131,6 +131,14 @@ function attachDiagnostics(page, label, report) {
   };
 }
 
+async function waitForImagesToSettle(page) {
+  await page.waitForFunction(
+    () => Array.from(document.images).every((image) => image.complete),
+    undefined,
+    { timeout: 10_000 }
+  );
+}
+
 async function openAuthenticatedPage(browser, token, label, report) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   await context.addInitScript((value) => sessionStorage.setItem("token", value), token);
@@ -198,6 +206,23 @@ async function runReaderBorrowReturn(browser, tokens, report) {
         response.request().method() === "POST" &&
         matchesApiPath(response, "/borrowRecord/borrow/")
     );
+    const refreshResponses = Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          matchesApiPath(response, "/book/query")
+      ),
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          matchesApiPath(response, "/borrowRecord/query")
+      ),
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          matchesApiPath(response, "/bookReservation/query")
+      ),
+    ]);
     await card.getByRole("button", { name: "借阅", exact: true }).click();
     await page.locator(".swal2-confirm").click();
     const borrowed = await borrowResponse;
@@ -205,12 +230,18 @@ async function runReaderBorrowReturn(browser, tokens, report) {
     if (!borrowed.ok() || borrowedPayload.code !== 200) {
       throw new Error(`Reader borrow failed: ${borrowedPayload.msg}`);
     }
+    for (const response of await refreshResponses) {
+      if (!response.ok()) {
+        throw new Error(`Reader refresh failed: ${response.status()} ${response.url()}`);
+      }
+    }
     await card.getByRole("button", { name: "借阅中", exact: true }).waitFor();
     await page.screenshot({
       path: `${outputDir}/reader-borrowed.png`,
       fullPage: true,
     });
     await waitForSwalToClose(page);
+    await waitForImagesToSettle(page);
 
     await page.goto(`${baseUrl}/#/myBorrows`, { waitUntil: "networkidle" });
     const row = page.locator(".el-table__row").filter({ hasText: bookName }).first();
@@ -220,6 +251,11 @@ async function runReaderBorrowReturn(browser, tokens, report) {
         response.request().method() === "POST" &&
         matchesApiPath(response, "/borrowRecord/return/")
     );
+    const refreshedBorrowRecords = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        matchesApiPath(response, "/borrowRecord/query")
+    );
     await row.getByRole("button", { name: "还书", exact: true }).click();
     await page.locator(".swal2-confirm").click();
     const returned = await returnResponse;
@@ -227,7 +263,11 @@ async function runReaderBorrowReturn(browser, tokens, report) {
     if (!returned.ok() || returnedPayload.code !== 200) {
       throw new Error(`Reader return failed: ${returnedPayload.msg}`);
     }
-    await page.waitForTimeout(400);
+    const refreshed = await refreshedBorrowRecords;
+    if (!refreshed.ok()) {
+      throw new Error(`Reader return refresh failed: ${refreshed.status()}`);
+    }
+    await row.getByText("已归还", { exact: true }).first().waitFor();
     await page.screenshot({
       path: `${outputDir}/reader-returned.png`,
       fullPage: true,

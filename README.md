@@ -89,7 +89,7 @@ flowchart TB
 DarkRoomLibrary/
 ├─ backend/dark-room-library-api/       Spring Boot 后端与自动测试
 ├─ frontend/dark-room-library-web/  Vue 前端、单元测试和 E2E 脚本
-├─ sql/                             从零初始化数据库的唯一入口
+├─ sql/init-dark-room-library.sql   建库、表结构与演示数据的唯一入口
 ├─ docs/                            架构、模块图、验收清单和项目介绍
 ├─ scripts/package-release.ps1      生成干净源码交付包
 └─ release/                         本地生成的交付产物，不进入 Git
@@ -110,27 +110,19 @@ DarkRoomLibrary/
 cmd /c "mysql --default-character-set=utf8mb4 -u root -p < sql\init-dark-room-library.sql"
 ```
 
-脚本会创建 `dark_room_library`、19 张业务表、基础分类/书架和默认超级管理员：
-
-初始化脚本中的账号仅用于本地演示；公开仓库不记录明文密码。请在本地通过
-`E2E_ROOT_PASSWORD` 或私有验收记录设置密码，首次登录后立即修改。
-
-需要带有虚构书目、书评、留言、公告和采购流转的本地展示数据时，再执行：
-
-```powershell
-cmd /c "mysql --default-character-set=utf8mb4 -u root -p < sql\demo-data.sql"
-```
-
-演示账号只用于本地展示和验收，密码通过本地环境变量提供，公开仓库不保存：
+这是数据库的唯一入口。执行一次会创建 `dark_room_library`、19 张业务表、基础分类与书架，
+并写入虚构书目、书评、留言、公告、采购物流记录和五类本地演示账号：
 
 | 角色 | 账号 | 密码 |
 | --- | --- | --- |
-| 馆务协调员 | `drl_keeper_qingwu` | `E2E_COORDINATOR_PASSWORD` |
-| 读者 | `drl_reader_yandeng` | `E2E_READER_PASSWORD` |
-| 采购员 | `drl_buyer_xinglan` | `E2E_PURCHASER_PASSWORD` |
-| 物流员 | `drl_logistics_chenxiang` | `E2E_LOGISTICS_PASSWORD` |
+| 超级管理员 | `drl_root_aurora` | `DarkRoom@20606` |
+| 馆务协调员 | `drl_keeper_qingwu` | `DarkRoom@20606` |
+| 读者 | `drl_reader_yandeng` | `DarkRoom@20606` |
+| 采购员 | `drl_buyer_xinglan` | `DarkRoom@20606` |
+| 物流员 | `drl_logistics_chenxiang` | `DarkRoom@20606` |
 
-面向公网部署前必须删除这些演示账号，或逐个修改账号和密码。E2E 脚本会拒绝在未设置密码环境变量时运行。
+这些账号只用于本地展示和验收。面向公网部署前必须删除演示账号，或逐个修改账号和密码。
+运行 E2E 时可统一设置 `$env:DRL_DEMO_PASSWORD="DarkRoom@20606"`；也可以使用各角色独立的密码环境变量覆盖它。
 
 ### 3. 启动后端
 
@@ -206,7 +198,7 @@ npm run build
 - 后端 `225/225` 通过，前端单元测试 `31/31` 通过。
 - ESLint、Vite 生产构建和 npm 官方 registry 安全审计通过，审计结果为 `0 vulnerabilities`。
 - 五个演示账号全部真实登录，完整流程记录 75 次 API 响应，覆盖借还、权限切换、采购、物流、入库和库存幂等。
-- 单实例并发一致性测试覆盖 20 个场景、393 次请求，最大场景 P95 为 146 ms；双实例共享 MySQL 测试覆盖 6 个场景、125 次请求，最大场景 P95 为 121 ms。两组测试均未出现违反业务不变量的结果。
+- 单实例并发一致性测试覆盖 20 个场景、393 次请求，最大场景 P95 为 117 ms；双实例共享 MySQL 测试覆盖 6 个场景、125 次请求，最大场景 P95 为 119 ms。两组测试均未出现违反业务不变量的结果。
 - 浏览器诊断完成 86 个路由检查、248 次 API 响应和 3968 次总网络响应；Console 错误/警告、页面异常、失败请求、网络错误和页面横向溢出均为 0。
 - 数据库完成 27 条外键关系检查，孤儿记录与领域不变量违规均为 0。
 - Redis 使用真实缓存键和 TTL 验证；RabbitMQ 故障恢复与队列消费通过。最终并发套件保留 2 条发送到虚构 `.local` 地址的可补偿通知任务，用于验证邮件失败后的租约、重试和恢复路径，不属于业务一致性违规。
@@ -226,6 +218,7 @@ $env:DB_URL="jdbc:mysql://127.0.0.1:3306/dark_room_library_e2e?characterEncoding
 后端启动后，可通过真实登录、上传和业务绑定接口安装演示头像与封面：
 
 ```powershell
+$env:DRL_DEMO_PASSWORD="DarkRoom@20606"
 pwsh -File .\scripts\seed-demo-media.ps1
 ```
 
@@ -257,11 +250,10 @@ $env:CORS_ORIGINS="https://your-frontend.example.com"
 - [项目沿革与 Git 说明](docs/project-history.md)
 - [最终验证报告](docs/verification-report.md)
 - [项目起源 PDF](docs/暗室藏书_项目起源.pdf)
-- [项目想法起源 PDF](docs/暗室藏书_项目想法起源.pdf)
+- [项目计划书 PDF](docs/暗室藏书_项目计划书.pdf)
 - [项目工程复盘 PDF](docs/暗室藏书项目复盘.pdf)
-- [项目个人复盘 PDF](docs/暗室藏书项目个人复盘.pdf)
 - [项目介绍 PPT](docs/DarkRoomLibrary-project-overview.pptx)
-- [数据库初始化说明](sql/README.md)
+- [数据库初始化脚本](sql/init-dark-room-library.sql)
 
 ## 交付
 
