@@ -58,6 +58,18 @@ CREATE TABLE IF NOT EXISTS `user` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='user';
 
 -- ============================================================
+-- 1A. user_email_quota
+-- One normalized email can be shared by at most three accounts.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `user_email_quota` (
+  `email` varchar(100) NOT NULL COMMENT 'normalized lowercase email',
+  `account_count` tinyint unsigned NOT NULL DEFAULT 0 COMMENT 'linked account count',
+  PRIMARY KEY (`email`),
+  CONSTRAINT `chk_user_email_quota`
+    CHECK (`account_count` >= 0 AND `account_count` <= 3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='user email account quota';
+
+-- ============================================================
 -- 2. category
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `category` (
@@ -528,6 +540,14 @@ VALUES
   ('drl_reader_zhiyue', '纸月听澜', '$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq', NULL, 'drl_reader_zhiyue@darkroomlibrary.local', 2, 0, 1, 1, 0, '2026-07-20 09:25:00'),
   ('drl_buyer_xinglan', '采书星阑', '$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq', NULL, 'drl_buyer_xinglan@darkroomlibrary.local', 3, 0, 0, 0, 0, '2026-07-20 09:30:00'),
   ('drl_logistics_chenxiang', '归架沉香', '$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq', NULL, 'drl_logistics_chenxiang@darkroomlibrary.local', 4, 0, 0, 0, 0, '2026-07-20 09:40:00');
+
+INSERT INTO `user_email_quota` (`email`, `account_count`)
+SELECT LOWER(TRIM(`user_email`)), LEAST(COUNT(*), 3)
+FROM `user`
+WHERE `user_email` IS NOT NULL
+  AND TRIM(`user_email`) <> ''
+GROUP BY LOWER(TRIM(`user_email`))
+ON DUPLICATE KEY UPDATE `account_count` = VALUES(`account_count`);
 
 UPDATE `user`
 SET `user_avatar` = '/demo-media/coordinator-avatar.webp'

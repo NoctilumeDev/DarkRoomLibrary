@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS `user` (
     KEY `idx_user_role` (`user_role`)
 );
 
+CREATE TABLE IF NOT EXISTS `user_email_quota` (
+    `email` VARCHAR(100) PRIMARY KEY,
+    `account_count` INT NOT NULL DEFAULT 0,
+    CONSTRAINT `chk_user_email_quota`
+        CHECK (`account_count` >= 0 AND `account_count` <= 3)
+);
+
 CREATE TABLE IF NOT EXISTS `book` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `version` INT NOT NULL DEFAULT 0,

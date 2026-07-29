@@ -24,7 +24,7 @@ describe("browser demo adapter", () => {
     resetDemoStateForTest();
   });
 
-  it("authenticates every fixed demo identity with its own permissions", async () => {
+  it("authenticates every fixed demo identity and enforces the shared-email limit", async () => {
     for (const identity of DEMO_IDENTITIES) {
       activateDemoIdentity(identity.key);
       const auth = await call("get", "/user/auth");
@@ -32,6 +32,15 @@ describe("browser demo adapter", () => {
       expect(auth.data.id).toBe(identity.id);
       expect(auth.data.userRole).toBe(identity.role);
       expect(auth.data.userAccount).toBe(identity.account);
+    }
+
+    const sharedEmail = "shared-demo@example.test";
+    for (const identity of DEMO_IDENTITIES.slice(0, 4)) {
+      activateDemoIdentity(identity.key);
+      const updated = await call("put", "/user/update", {
+        userEmail: sharedEmail,
+      });
+      expect(updated.code).toBe(identity === DEMO_IDENTITIES[3] ? 400 : 200);
     }
   });
 

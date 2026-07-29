@@ -36,4 +36,10 @@ public class UserUpdateDto {
     @Email(message = "邮箱格式不正确")
     @Size(max = 100, message = "邮箱不能超过100个字符")
     private String userEmail;
+
+    /**
+     * 更换联系邮箱时使用的验证码
+     */
+    @Pattern(regexp = "^\\d{6}$", message = "邮箱验证码为6位数字")
+    private String verificationCode;
 }

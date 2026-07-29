@@ -15,10 +15,10 @@
 | --- | --- |
 | 权限模型 | 5 个角色码：超级管理员、管理员、读者、采购员、物流员 |
 | 固定身份 | 6 个验收身份：超级管理员、馆务协调员、普通管理员、读者、采购员、物流员；馆务协调员仍使用管理员角色码 |
-| 数据模型 | 19 张 MySQL 业务表，包含外键、唯一约束、状态字段和审计记录 |
+| 数据模型 | 19 张 MySQL 业务表，另有 1 张邮箱配额技术控制表；包含外键、唯一约束、状态字段和审计记录 |
 | 后端结构 | 单体分层：Controller → Service → Mapper/XML → MySQL |
 | 中间件 | Redis、RabbitMQ 可选启用，故障时自动降级，不阻断核心业务 |
-| 自动测试 | 后端 226 项、前端 36 项；6 个固定权限身份全链路 78 次真实 API 响应；三实例并发按 96 / 128 / 160 分批验证，共 1,986 次场景请求 |
+| 自动测试 | 后端 229 项、前端 36 项；6 个固定权限身份全链路 78 次真实 API 响应；三实例并发按 96 / 128 / 160 分批验证，共 1,986 次场景请求；另有 100 请求共享邮箱配额回归 |
 | 前端体验 | 读者端“暗室藏书”叙事界面；管理端宣纸/竹简主题；桌面与移动端适配 |
 
 ## 项目实景
@@ -102,7 +102,7 @@ flowchart TB
 
 - 后端：JDK 17、Spring Boot 3.5.16、Spring MVC、MyBatis-Plus 3.5.17
 - 数据：MySQL 8、Redis 5（可选增强）、RabbitMQ 4（可选增强）
-- 安全：JWT、BCrypt、登录数学验证码、邮箱验证码场景隔离、登录失败锁定、AOP 权限控制
+- 安全：JWT、BCrypt、登录数学验证码、邮箱验证码场景隔离、新邮箱换绑验证、登录失败锁定、AOP 权限控制
 - 前端：Vue 3.5.40、Vue Router 4、Element Plus 2.14.3、ECharts 6.1、Vite 8.1.5
 - 工程：Maven、npm、JUnit 5、H2、Vitest、ESLint、Playwright E2E 脚本、GitHub Actions
 - 部署：GitHub Pages 浏览器演示；本机直接运行；可选 Docker Compose 一键启动 MySQL、Redis、RabbitMQ、后端和前端
@@ -160,7 +160,7 @@ docker compose ps
 cmd /c "mysql --default-character-set=utf8mb4 -u root -p < sql\init-dark-room-library.sql"
 ```
 
-这是数据库的唯一入口。执行一次会创建 `dark_room_library`、19 张业务表、基础分类与书架，
+这是数据库的唯一入口。执行一次会创建 `dark_room_library`、19 张业务表、1 张邮箱配额技术控制表、基础分类与书架，
 并写入虚构书目、书评、留言、公告、采购物流记录和 6 个本地演示身份：
 
 | 角色 | 账号 | 密码 |
@@ -200,7 +200,7 @@ npm run dev
 
 ### 5. 启用邮件
 
-注册、重置密码、预约到货和借阅到期提醒需要邮箱 SMTP 授权码：
+注册、联系邮箱换绑、重置密码、预约到货和借阅到期提醒需要邮箱 SMTP 授权码：
 
 ```powershell
 $env:MAIL_USERNAME="your-email@example.com"
@@ -208,6 +208,8 @@ $env:MAIL_PASSWORD="your-mail-authorization-code"
 ```
 
 授权码只应保存在环境变量中，不要写入 Git。
+
+同一规范化邮箱最多关联 3 个账号。注册页和个人资料页会公开说明固定规则，但不会显示当前关联数量或账号身份；注册与换绑只有在验证码证明邮箱归属后，才会返回账号冲突或配额已满等精确结果。
 
 ## 可选中间件与降级
 
@@ -256,16 +258,17 @@ npm run build:demo
 npm run preview:demo
 ```
 
-需连接真实服务和测试账号时，再执行 `tests/e2e` 中的读者、管理员、采购物流、全流程、并发一致性与浏览器诊断脚本。完整命令和证据见 [最终验证报告](docs/verification-report.md)，人工复核步骤见 [验收清单](docs/manual-acceptance-checklist.md)。
+需连接真实服务和测试账号时，再执行 `tests/e2e` 中的读者、管理员、采购物流、全流程、并发一致性、注册邮箱隐私、邮箱配额与浏览器诊断脚本。`npm run test:e2e:registration-email` 会通过真实注册、登录、资料换绑和物理删除接口验证“验证前通用提示、验证后精确提示”及删除释放名额；它使用 Docker Redis 注入一次性测试验证码，不发送真实邮件。三实例邮箱配额回归可执行 `npm run test:e2e:email-quota`，实例地址通过 `E2E_API_BASE_URLS` 传入。完整命令和证据见 [最终验证报告](docs/verification-report.md)，人工复核步骤见 [验收清单](docs/manual-acceptance-checklist.md)。
 
 推送到 `main` 或创建 Pull Request 时，GitHub Actions 会自动执行后端 Maven 测试、前端 ESLint/单元测试/生产构建/依赖审计，并校验 `compose.yaml`。合并到 `main` 后，独立 Pages 工作流还会构建并部署浏览器演示。
 
 2026-07-27 最终回归结果：
 
-- 后端 `226/226` 通过，前端单元测试 `36/36` 通过。
+- 后端 `229/229` 通过，前端单元测试 `36/36` 通过。
 - ESLint、Vite 生产构建和 npm 官方 registry 安全审计通过，审计结果为 `0 vulnerabilities`。
 - 6 个固定权限身份全部真实登录，完整流程记录 78 次 API 响应，覆盖借还、权限切换、采购、物流、入库和库存幂等。
 - 三个后端实例共享 MySQL，按突发量 96、128、160 分三批执行；每批 8 个一致性场景，三批共 1,986 次场景请求，最大场景 P95 为 461 ms，未出现违反业务不变量的结果。
+- 同一邮箱的 100 请求三实例专项回归为 3 个成功、97 个明确配额拒绝、0 个 HTTP 500 或其他失败；配额控制值与实际用户数均为 3。
 - 浏览器诊断完成 116 个路由检查、414 次 API 响应和 5,678 次总网络响应；Console 错误/警告、页面异常、失败请求、网络错误和页面横向溢出均为 0。另完成 116 个页面和 21 个关键弹层的布局审查。
 - 数据库完成 27 条外键关系检查，孤儿记录与领域不变量违规均为 0。
 - Redis 使用真实缓存键和 TTL 验证；RabbitMQ 故障恢复与队列消费通过。最终并发套件保留 2 条发送到虚构 `.local` 地址的可补偿通知任务，用于验证邮件失败后的租约、重试和恢复路径，不属于业务一致性违规。

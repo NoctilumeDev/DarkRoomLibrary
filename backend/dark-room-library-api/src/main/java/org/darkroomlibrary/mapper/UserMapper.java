@@ -28,6 +28,8 @@ public interface UserMapper extends BaseMapper<User> {
 
     Integer queryCount(UserPageQuery dto);
 
+    int countByNormalizedEmail(@Param("email") String email);
+
     List<DailyCount> dailyCreateStats(@Param("startTime") LocalDateTime startTime,
                                       @Param("endTime") LocalDateTime endTime);
 }

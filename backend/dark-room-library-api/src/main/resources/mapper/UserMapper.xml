@@ -99,6 +99,12 @@
         </where>
     </select>
 
+    <select id="countByNormalizedEmail" resultType="integer">
+        SELECT COUNT(*)
+        FROM user
+        WHERE LOWER(TRIM(user_email)) = #{email}
+    </select>
+
     <select id="dailyCreateStats" resultMap="DailyCountMap">
         SELECT CAST(u.create_time AS DATE) AS stat_day,
                COUNT(*) AS stat_count

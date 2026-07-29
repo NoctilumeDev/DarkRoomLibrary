@@ -395,17 +395,35 @@ export async function demoAdapter(config) {
   } else if (path === "/user/auth") {
     result = user ? ok(clone(user)) : body(401, null, "请先选择演示身份。");
   } else if (
-    ["/user/sendVerifyCode", "/user/register", "/user/resetPwd"].includes(path)
+    [
+      "/user/sendVerifyCode",
+      "/user/sendEmailChangeCode",
+      "/user/register",
+      "/user/resetPwd",
+    ].includes(path)
   ) {
     result = rejected("在线演示不发送邮件或创建真实账号。");
   } else if (path === "/user/update" && method === "put") {
     if (!user) result = body(401, null, "请先选择演示身份。");
     else {
-      user.userName = payload.userName || user.userName;
-      user.userEmail = payload.userEmail || user.userEmail;
-      user.userAvatar = payload.userAvatar || user.userAvatar;
-      writeState(state);
-      result = ok(clone(user), "个人资料已在当前演示会话中更新。");
+      const requestedEmail = String(payload.userEmail || user.userEmail)
+        .trim()
+        .toLowerCase();
+      const linkedAccounts = state.users.filter(
+        (candidate) =>
+          candidate.id !== user.id &&
+          String(candidate.userEmail || "").trim().toLowerCase() ===
+            requestedEmail
+      ).length;
+      if (requestedEmail && linkedAccounts >= 3) {
+        result = body(400, null, "同一邮箱最多关联 3 个账号，请更换邮箱");
+      } else {
+        user.userName = payload.userName || user.userName;
+        user.userEmail = requestedEmail || user.userEmail;
+        user.userAvatar = payload.userAvatar || user.userAvatar;
+        writeState(state);
+        result = ok(clone(user), "个人资料已在当前演示会话中更新。");
+      }
     }
   } else if (path === "/user/cancelAccount") {
     result = rejected("在线演示不执行账号注销。");
