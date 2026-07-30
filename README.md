@@ -258,7 +258,7 @@ npm run build:demo
 npm run preview:demo
 ```
 
-需连接真实服务和测试账号时，再执行 `tests/e2e` 中的读者、管理员、采购物流、全流程、并发一致性、注册邮箱隐私、邮箱配额与浏览器诊断脚本。`npm run test:e2e:registration-email` 会通过真实注册、登录、资料换绑和物理删除接口验证“验证前通用提示、验证后精确提示”及删除释放名额；它使用 Docker Redis 注入一次性测试验证码，不发送真实邮件。三实例邮箱配额回归可执行 `npm run test:e2e:email-quota`，实例地址通过 `E2E_API_BASE_URLS` 传入。完整命令和证据见 [最终验证报告](docs/verification-report.md)，人工复核步骤见 [验收清单](docs/manual-acceptance-checklist.md)。
+需连接真实服务和测试账号时，再执行 `tests/e2e` 中的读者、管理员、采购物流、全流程、并发一致性、注册邮箱隐私、邮箱配额与浏览器诊断脚本。`npm run test:e2e:registration-email` 会通过真实注册、登录、资料换绑和物理删除接口验证“验证前通用提示、验证后精确提示”及删除释放名额；它使用 Docker Redis 注入一次性测试验证码，不发送真实邮件。三实例邮箱配额回归可执行 `npm run test:e2e:email-quota`，实例地址通过 `E2E_API_BASE_URLS` 传入。Windows 单机执行高连接测试前应先阅读 [本地全链路测试网络边界](docs/local-test-network-boundary.md)，并将后端、并发和浏览器阶段串行执行。完整命令和证据见 [最终验证报告](docs/verification-report.md)，人工复核步骤见 [验收清单](docs/manual-acceptance-checklist.md)。
 
 推送到 `main` 或创建 Pull Request 时，GitHub Actions 会自动执行后端 Maven 测试、前端 ESLint/单元测试/生产构建/依赖审计，并校验 `compose.yaml`。合并到 `main` 后，独立 Pages 工作流还会构建并部署浏览器演示。
 

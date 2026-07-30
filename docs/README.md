@@ -17,8 +17,9 @@
 2. 对照 [功能模块图 Mermaid 版](function-module-diagram.md)。
 3. 查看 [架构审查](architecture-review.md)，理解事务、竞态、降级和未来拆分边界。
 4. 查看 [部署指南](deployment.md)，理解 Compose、健康检查和多实例文件边界。
-5. 查看 [最终验证报告](verification-report.md)。
-6. 查看唯一的 [数据库初始化脚本](../sql/init-dark-room-library.sql)。
+5. 需要在 Windows 单机执行高连接测试时，先读 [本地全链路测试网络边界](local-test-network-boundary.md)。
+6. 查看 [最终验证报告](verification-report.md)。
+7. 查看唯一的 [数据库初始化脚本](../sql/init-dark-room-library.sql)。
 
 ### 按角色验收系统
 
@@ -33,6 +34,7 @@
 | `system-design.md` | 解释架构分层、角色边界、业务状态、一致性与降级策略 | 开发者、答辩评委 |
 | `architecture-review.md` | 记录事务边界、时序、多实例竞态、最终一致性和吞吐取舍 | 开发者、维护者、答辩评委 |
 | `deployment.md` | 说明本机、Compose、健康检查、反向代理和文件存储扩容边界 | 部署者、维护者 |
+| `local-test-network-boundary.md` | 记录 Windows 动态端口耗尽证据、高连接测试顺序和安全恢复边界 | 开发者、测试人员、维护者 |
 | `function-module-diagram.md` | 可维护的 Mermaid 功能图、后台流程图和状态图 | 开发者、代码托管平台 |
 | `library-system-modules.html` | 独立打开即可展示的可视化功能模块图 | 演示、汇报、截图 |
 | `manual-acceptance-checklist.md` | 按角色逐项人工验证功能 | 测试人员、交付人员 |
@@ -48,6 +50,7 @@
 
 - README 只保留“是什么、怎么运行、去哪里深入阅读”。
 - 系统设计文档解释“为什么这样设计”。
+- 本机网络与高连接测试规范只在 `local-test-network-boundary.md` 维护，其他文档只链接，不复制诊断正文。
 - 模块图只表达功能归属和关键流程，不复制接口代码。
 - 验收清单描述可观察结果，不依赖实现细节。
 - 项目沿革必须区分“想法起源”“课程落地条件”和“当前实现”，不伪造 Git 记录或夸大结论。

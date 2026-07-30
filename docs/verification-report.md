@@ -14,6 +14,8 @@
 
 发布前另以 Docker Compose 完成独立实机复核：MySQL 8.4、Redis 7.4、RabbitMQ 4.2.3、Eclipse Temurin JRE 17 与 Nginx 1.28 五个容器按依赖顺序启动，均达到 `healthy`，重启次数和错误日志匹配数均为 0。该轮使用 fresh 初始化数据库、统一演示密码和真实文件上传目录，不替代上表的三实例并发环境。
 
+Windows 宿主机曾在其他中断批次记录 TCP 动态端口分配失败；中断结果未并入下方成功基线。对应证据、只读取证命令、串行测试顺序和安全恢复边界统一维护在 [`local-test-network-boundary.md`](local-test-network-boundary.md)。
+
 ## 2. 自动测试与构建
 
 | 检查 | 结果 |
