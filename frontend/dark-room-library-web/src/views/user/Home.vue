@@ -154,12 +154,22 @@ export default {
   created() {
     this.tokenCheckLoad();
   },
+  mounted() {
+    this.applyReaderTheme();
+  },
+  beforeUnmount() {
+    delete document.body.dataset.readerTheme;
+  },
   methods: {
     getAvatarUrl(url) {
       return resolveFileUrl(url);
     },
     switchTheme() {
       this.theme = toggleReaderTheme(this.theme);
+      this.applyReaderTheme();
+    },
+    applyReaderTheme() {
+      document.body.dataset.readerTheme = this.theme;
     },
     goRoom() {
       this.go("/readerRoom");
@@ -235,28 +245,60 @@ export default {
 
 .scene-image {
   z-index: 0;
-  background-image: url("../../assets/images/reading-room-night-v2.webp");
-  background-position: center;
-  background-size: cover;
-  filter: brightness(1.18) saturate(0.9);
+  overflow: hidden;
   transform: scale(1.015);
-  transition: opacity 0.8s ease, filter 0.8s ease;
+  transition: opacity var(--reader-motion-slow) var(--reader-motion-curve), filter var(--reader-motion-slow) var(--reader-motion-curve);
 }
 
-.reader-shell[data-reader-theme="day"] .scene-image {
+.scene-image::before,
+.scene-image::after,
+.scene-veil::before,
+.scene-veil::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
+}
+
+.scene-image::before,
+.scene-image::after {
+  background-position: center;
+  background-size: cover;
+}
+
+.scene-image::before {
+  background-image: url("../../assets/images/reading-room-night-v2.webp");
+  filter: brightness(1.18) saturate(0.9);
+  opacity: 1;
+}
+
+.scene-image::after {
   background-image: url("../../assets/images/reading-room-day-v2.webp");
   filter: brightness(1) saturate(0.82);
+  opacity: 0;
 }
+
+.reader-shell[data-reader-theme="day"] .scene-image::before { opacity: 0; }
+.reader-shell[data-reader-theme="day"] .scene-image::after { opacity: 1; }
 
 .scene-veil {
   z-index: 1;
-  background: linear-gradient(180deg, rgba(5, 5, 4, 0.28), transparent 24%, transparent 72%, rgba(5, 5, 4, 0.24));
-  transition: background 0.8s ease;
 }
 
-.reader-shell[data-reader-theme="day"] .scene-veil {
-  background: linear-gradient(180deg, rgba(246, 244, 236, 0.32), transparent 27%, transparent 70%, rgba(232, 229, 217, 0.28));
+.scene-veil::before {
+  background: linear-gradient(180deg, rgba(5, 5, 4, 0.28), transparent 24%, transparent 72%, rgba(5, 5, 4, 0.24));
+  opacity: 1;
 }
+
+.scene-veil::after {
+  background: linear-gradient(180deg, rgba(246, 244, 236, 0.32), transparent 27%, transparent 70%, rgba(232, 229, 217, 0.28));
+  opacity: 0;
+}
+
+.reader-shell[data-reader-theme="day"] .scene-veil::before { opacity: 0; }
+.reader-shell[data-reader-theme="day"] .scene-veil::after { opacity: 1; }
 
 .reader-shell:not(.room-route) .scene-image {
   filter: blur(5px) saturate(0.72);
@@ -264,12 +306,18 @@ export default {
 }
 
 .reader-shell:not(.room-route) .scene-veil {
-  background: color-mix(in srgb, var(--scene-base) 72%, transparent);
   backdrop-filter: blur(2px);
 }
 
-.reader-shell[data-reader-theme="day"]:not(.room-route) .scene-veil {
+.reader-shell:not(.room-route) .scene-veil::before {
+  background: color-mix(in srgb, #0c0b09 72%, transparent);
+}
+
+.reader-shell:not(.room-route) .scene-veil::after {
   background: rgba(231, 233, 227, 0.5);
+}
+
+.reader-shell[data-reader-theme="day"]:not(.room-route) .scene-veil {
   backdrop-filter: blur(1.5px);
 }
 

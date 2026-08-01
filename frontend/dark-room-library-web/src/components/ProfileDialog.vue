@@ -93,7 +93,7 @@
     </div>
 
     <template #footer>
-      <el-button @click="close">取消</el-button>
+      <el-button class="profile-cancel-button" @click="close">取消</el-button>
       <el-button
         class="profile-save-button"
         :loading="saving"
@@ -328,12 +328,46 @@ export default {
 </script>
 
 <style scoped lang="scss">
+:global(.profile-dialog) {
+  --profile-paper: var(--paper, var(--admin-surface-strong, #fbf5e9));
+  --profile-paper-raised: var(--paper-raised, var(--admin-surface-muted, #f3eadb));
+  --profile-ink: var(--paper-ink, var(--admin-text, #2d2923));
+  --profile-ink-soft: var(--paper-ink-soft, var(--admin-text-secondary, #4f473c));
+  --profile-ink-faint: var(--paper-ink-faint, var(--admin-muted, #6d6357));
+  --profile-line: var(--paper-line, var(--admin-border-strong, rgba(72, 58, 41, 0.2)));
+  --profile-seal: var(--seal, var(--workbench-seal, var(--admin-accent, #93483a)));
+  --el-dialog-bg-color: var(--profile-paper);
+  color: var(--profile-ink);
+  border-color: var(--profile-line);
+  background: var(--profile-paper);
+}
+
+:global(.profile-dialog .el-dialog__header),
+:global(.profile-dialog .el-dialog__body),
+:global(.profile-dialog .el-dialog__footer) {
+  background: var(--profile-paper) !important;
+}
+
+:global(.profile-dialog .el-input__wrapper) {
+  color: var(--profile-ink);
+  background: color-mix(in srgb, var(--profile-paper-raised) 68%, transparent) !important;
+  box-shadow: 0 0 0 1px var(--profile-line) inset !important;
+}
+
+:global(.profile-dialog .el-input__inner) {
+  color: var(--profile-ink) !important;
+}
+
+:global(.profile-dialog .el-input__inner::placeholder) {
+  color: var(--profile-ink-faint) !important;
+}
+
 .dialog-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-weight: 700;
-  color: #2f281f;
+  color: var(--profile-ink);
 
   button {
     width: 30px;
@@ -342,7 +376,7 @@ export default {
     place-items: center;
     border: 0;
     padding: 0;
-    color: #8b745a;
+    color: var(--profile-ink-soft);
     background: transparent;
     cursor: pointer;
   }
@@ -358,7 +392,7 @@ export default {
 
   label {
     margin-top: 8px;
-    color: #5d5042;
+    color: var(--profile-ink);
     font-size: 13px;
     font-weight: 700;
   }
@@ -366,13 +400,13 @@ export default {
 
 .profile-hint {
   margin: 8px 0 0;
-  color: #7d6c5b;
+  color: var(--profile-ink-faint);
   font-size: 12px;
   line-height: 1.6;
 }
 
 .profile-email-help {
-  color: #7d6c5b;
+  color: var(--profile-ink-faint);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -384,11 +418,11 @@ export default {
 }
 
 :global(.email-code-button.el-button) {
-  --el-button-text-color: var(--seal, var(--workbench-seal, var(--tone-seal)));
-  --el-button-border-color: color-mix(in srgb, var(--tone-seal) 42%, transparent);
-  --el-button-hover-text-color: var(--tone-seal-deep);
-  --el-button-hover-border-color: var(--tone-seal-deep);
-  --el-button-hover-bg-color: color-mix(in srgb, var(--tone-seal) 8%, transparent);
+  --el-button-text-color: var(--profile-seal);
+  --el-button-border-color: color-mix(in srgb, var(--profile-seal) 42%, transparent);
+  --el-button-hover-text-color: var(--profile-seal);
+  --el-button-hover-border-color: var(--profile-seal);
+  --el-button-hover-bg-color: color-mix(in srgb, var(--profile-seal) 8%, transparent);
 }
 
 .avatar-uploader {
@@ -410,9 +444,9 @@ export default {
 .avatar-placeholder {
   display: grid;
   place-items: center;
-  border: 1px dashed #c6ad8c;
-  color: #8b745a;
-  background: #fbf5ea;
+  border: 1px dashed var(--profile-line);
+  color: var(--profile-ink-soft);
+  background: var(--profile-paper-raised);
   font-size: 12px;
 }
 
@@ -433,13 +467,13 @@ export default {
   }
 
   strong {
-    color: #8b2f25;
+    color: var(--profile-seal);
     font-size: 14px;
   }
 
   span {
     margin-top: 4px;
-    color: #7d6c5b;
+    color: var(--profile-ink-faint);
     font-size: 12px;
     line-height: 1.5;
   }
@@ -447,13 +481,22 @@ export default {
 
 :global(.profile-save-button.el-button) {
   --el-button-text-color: #fffdf7;
-  --el-button-bg-color: var(--seal, var(--workbench-seal, var(--tone-seal)));
-  --el-button-border-color: var(--seal, var(--workbench-seal, var(--tone-seal)));
+  --el-button-bg-color: var(--profile-seal);
+  --el-button-border-color: var(--profile-seal);
   --el-button-hover-text-color: #fffdf7;
-  --el-button-hover-bg-color: var(--tone-seal-deep);
-  --el-button-hover-border-color: var(--tone-seal-deep);
-  --el-button-active-bg-color: color-mix(in srgb, var(--tone-seal-deep) 84%, black);
-  --el-button-active-border-color: color-mix(in srgb, var(--tone-seal-deep) 84%, black);
+  --el-button-hover-bg-color: color-mix(in srgb, var(--profile-seal) 86%, white);
+  --el-button-hover-border-color: color-mix(in srgb, var(--profile-seal) 86%, white);
+  --el-button-active-bg-color: color-mix(in srgb, var(--profile-seal) 84%, black);
+  --el-button-active-border-color: color-mix(in srgb, var(--profile-seal) 84%, black);
+}
+
+:global(.profile-cancel-button.el-button) {
+  --el-button-text-color: var(--profile-ink-soft);
+  --el-button-border-color: var(--profile-line);
+  --el-button-bg-color: color-mix(in srgb, var(--profile-paper-raised) 72%, transparent);
+  --el-button-hover-text-color: var(--profile-ink);
+  --el-button-hover-border-color: var(--profile-seal);
+  --el-button-hover-bg-color: var(--profile-paper-raised);
 }
 
 :global(.profile-save-button.el-button.is-disabled) {

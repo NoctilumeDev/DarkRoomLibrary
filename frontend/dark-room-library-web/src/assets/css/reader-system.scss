@@ -18,7 +18,8 @@
 }
 
 .reader-shell,
-.auth-world {
+.auth-world,
+body[data-reader-theme] {
   --scene-base: #0c0b09;
   --scene-text: #eee9dd;
   --scene-shadow: rgba(0, 0, 0, 0.52);
@@ -41,7 +42,8 @@
 }
 
 .reader-shell[data-reader-theme="day"],
-.auth-world[data-reader-theme="day"] {
+.auth-world[data-reader-theme="day"],
+body[data-reader-theme="day"] {
   --scene-base: #e7e9e3;
   --scene-text: #273633;
   --scene-shadow: rgba(34, 50, 46, 0.2);
@@ -350,7 +352,7 @@
 }
 
 .reader-shell .reader-stage .el-input__wrapper,
-.reader-shell .reader-stage .el-select .el-input__wrapper,
+.reader-shell .reader-stage .el-select__wrapper,
 .reader-shell .reader-stage .el-textarea__inner {
   color: var(--paper-ink) !important;
   border-radius: 1px !important;
@@ -359,7 +361,16 @@
 }
 
 .reader-shell .reader-stage .el-input__inner,
+.reader-shell .reader-stage .el-select__selected-item,
 .reader-shell .reader-stage .el-textarea__inner { color: var(--paper-ink) !important; }
+
+.reader-shell .reader-stage .el-input__inner::placeholder,
+.reader-shell .reader-stage .el-select__placeholder,
+.reader-shell .reader-stage .el-textarea__inner::placeholder {
+  color: var(--paper-ink-faint) !important;
+}
+
+.reader-shell .reader-stage .el-select__caret { color: var(--paper-ink-faint) !important; }
 
 .reader-shell .reader-stage .el-table,
 .reader-shell .reader-stage .el-table tr,
@@ -378,9 +389,42 @@
 
 .reader-shell .reader-stage .el-pagination {
   --el-pagination-bg-color: transparent;
+  --el-pagination-button-bg-color: transparent;
   --el-pagination-text-color: var(--paper-ink-soft);
   --el-pagination-button-color: var(--paper-ink-soft);
   --el-pagination-hover-color: var(--seal);
+}
+
+.reader-shell .reader-stage .el-pagination button,
+.reader-shell .reader-stage .el-pager li {
+  color: var(--paper-ink-soft) !important;
+  background: transparent !important;
+}
+
+.reader-shell .reader-stage .el-pagination .el-select__wrapper {
+  color: var(--paper-ink-soft) !important;
+  background: color-mix(in srgb, var(--paper-raised) 65%, transparent) !important;
+  box-shadow: 0 0 0 1px var(--paper-line) inset !important;
+}
+
+.reader-shell .reader-stage .el-pagination .el-select__selected-item,
+.reader-shell .reader-stage .el-pagination__total {
+  color: var(--paper-ink-soft) !important;
+}
+
+.reader-shell .reader-stage .el-pager li.is-active {
+  color: #fffdf7 !important;
+  background: var(--seal) !important;
+}
+
+.reader-shell .el-input__count,
+.reader-shell .el-input__count-inner {
+  color: var(--paper-ink-faint) !important;
+  background: transparent !important;
+}
+
+.reader-shell .el-textarea__inner::-webkit-resizer {
+  background: linear-gradient(135deg, transparent 0 52%, var(--paper-ink-faint) 53% 59%, transparent 60% 69%, var(--paper-ink-faint) 70% 76%, transparent 77%);
 }
 
 .reader-shell .el-dialog {
@@ -414,6 +458,27 @@
 }
 .reader-shell .profile-dialog .el-input__inner { color: var(--paper-ink) !important; }
 .reader-shell .profile-dialog .el-input__inner::placeholder { color: var(--paper-ink-faint) !important; }
+
+body[data-reader-theme] .el-popper.is-light,
+body[data-reader-theme] .el-select-dropdown {
+  color: var(--paper-ink);
+  border-color: var(--paper-line) !important;
+  background: var(--paper-raised) !important;
+}
+
+body[data-reader-theme] .el-select-dropdown__item {
+  color: var(--paper-ink-soft) !important;
+}
+
+body[data-reader-theme] .el-select-dropdown__item.is-hovering,
+body[data-reader-theme] .el-select-dropdown__item:hover {
+  color: var(--paper-ink) !important;
+  background: color-mix(in srgb, var(--jade) 8%, transparent) !important;
+}
+
+body[data-reader-theme] .el-select-dropdown__item.is-selected {
+  color: var(--seal) !important;
+}
 
 .auth-world {
   color: var(--paper-ink);

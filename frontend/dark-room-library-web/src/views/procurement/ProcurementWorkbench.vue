@@ -116,7 +116,7 @@
 
     <el-dialog
       v-model="createVisible"
-      class="admin-editor-dialog procurement-create-dialog"
+      class="admin-editor-dialog procurement-dialog procurement-create-dialog"
       width="min(620px, calc(100vw - 32px))"
       top="8vh"
       append-to-body
@@ -148,14 +148,14 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="assignVisible" :title="assignMode === 'purchaser' ? '指派采购员' : '分配物流员'" width="min(440px, calc(100vw - 32px))">
+    <el-dialog v-model="assignVisible" class="procurement-dialog" :title="assignMode === 'purchaser' ? '指派采购员' : '分配物流员'" width="min(440px, calc(100vw - 32px))" append-to-body>
       <el-select v-model="assignUserId" filterable placeholder="选择人员" style="width: 100%">
         <el-option v-for="user in assignCandidates" :key="user.id" :label="user.userName" :value="user.id" />
       </el-select>
       <template #footer><el-button @click="assignVisible=false">取消</el-button><el-button type="primary" @click="submitAssign">确认</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="logisticsVisible" :title="logisticsDialogTitle" width="min(520px, calc(100vw - 32px))">
+    <el-dialog v-model="logisticsVisible" class="procurement-dialog" :title="logisticsDialogTitle" width="min(520px, calc(100vw - 32px))" append-to-body>
       <el-form label-width="86px">
         <el-form-item label="承运方"><el-input v-model="logisticsForm.carrier" maxlength="100" /></el-form-item>
         <el-form-item label="运单号"><el-input v-model="logisticsForm.trackingNo" maxlength="100" /></el-form-item>
@@ -164,7 +164,7 @@
       <template #footer><el-button @click="logisticsVisible=false">取消</el-button><el-button type="primary" @click="submitLogistics">确认流转</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="messageVisible" title="采购协作消息" width="min(680px, calc(100vw - 32px))" @closed="messageText=''">
+    <el-dialog v-model="messageVisible" title="采购协作消息" class="procurement-dialog procurement-message-dialog" width="min(680px, calc(100vw - 32px))" append-to-body @closed="messageText=''">
       <el-radio-group v-if="messageChannels.length > 1" v-model="messageChannel" @change="loadMessages">
         <el-radio-button v-for="channel in messageChannels" :key="channel.value" :value="channel.value">{{ channel.label }}</el-radio-button>
       </el-radio-group>
@@ -643,6 +643,118 @@ export default {
 .message-row p { margin: 7px 0 0; color: var(--workbench-ink); line-height: 1.7; white-space: pre-wrap; }
 .message-compose { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
 
+:global(.procurement-dialog) {
+  --workbench-ink: var(--admin-ink, #2d2923);
+  --workbench-ink-soft: var(--admin-ink-soft, #4f473c);
+  --workbench-muted: var(--admin-ink-muted, #665d51);
+  --workbench-line: var(--admin-line, rgba(72, 58, 41, 0.17));
+  --workbench-line-strong: var(--admin-line-strong, rgba(72, 58, 41, 0.28));
+  --workbench-paper: var(--admin-paper, #f3eadb);
+  --workbench-paper-light: var(--admin-paper-light, #fbf5e9);
+  --workbench-paper-deep: var(--admin-paper-wash, #e9ddca);
+  --workbench-seal: var(--admin-seal-solid, #824034);
+  --workbench-seal-soft: var(--admin-accent-soft, rgba(147, 72, 58, 0.09));
+  --workbench-gold: var(--admin-gold, #72562f);
+  --el-dialog-bg-color: var(--workbench-paper-light);
+  max-height: min(82dvh, 700px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--workbench-ink);
+  border: 1px solid var(--workbench-line);
+  border-radius: 4px;
+  background: var(--workbench-paper-light);
+}
+
+:global(.procurement-dialog .el-dialog__header),
+:global(.procurement-dialog .el-dialog__footer) {
+  flex: 0 0 auto;
+  margin: 0;
+  background: var(--workbench-paper-light) !important;
+}
+
+:global(.procurement-dialog .el-dialog__header) {
+  padding: 20px 24px 14px !important;
+  border-bottom: 1px solid var(--workbench-line);
+}
+
+:global(.procurement-dialog .el-dialog__body) {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 20px 24px !important;
+  overflow-y: auto;
+  color: var(--workbench-ink);
+  background: var(--workbench-paper-light) !important;
+}
+
+:global(.procurement-dialog .el-dialog__footer) {
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--workbench-line);
+}
+
+:global(.procurement-dialog .el-dialog__title),
+:global(.procurement-dialog .el-dialog__close),
+:global(.procurement-dialog .el-form-item__label),
+:global(.procurement-dialog .el-input__inner),
+:global(.procurement-dialog .el-select__selected-item),
+:global(.procurement-dialog .el-textarea__inner) {
+  color: var(--workbench-ink) !important;
+}
+
+:global(.procurement-dialog .el-input__inner::placeholder),
+:global(.procurement-dialog .el-select__placeholder),
+:global(.procurement-dialog .el-textarea__inner::placeholder) {
+  color: var(--workbench-muted) !important;
+}
+
+:global(.procurement-dialog .el-input__wrapper),
+:global(.procurement-dialog .el-select__wrapper),
+:global(.procurement-dialog .el-textarea__inner),
+:global(.procurement-dialog .el-input-number) {
+  background: color-mix(in srgb, var(--workbench-paper) 72%, transparent) !important;
+  box-shadow: 0 0 0 1px var(--workbench-line-strong) inset !important;
+}
+
+:global(.procurement-dialog .el-input__count),
+:global(.procurement-dialog .el-input__count-inner) {
+  color: var(--workbench-muted) !important;
+  background: transparent !important;
+}
+
+:global(.procurement-dialog .el-textarea__inner::-webkit-resizer) {
+  background: linear-gradient(135deg, transparent 0 52%, var(--workbench-muted) 53% 59%, transparent 60% 69%, var(--workbench-muted) 70% 76%, transparent 77%);
+}
+
+:global(.procurement-dialog .el-radio-button__inner) {
+  color: var(--workbench-ink-soft) !important;
+  border-color: var(--workbench-line-strong) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:global(.procurement-dialog .el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  color: #fffaf1 !important;
+  border-color: var(--workbench-seal) !important;
+  background: var(--workbench-seal) !important;
+}
+
+:global(.procurement-message-dialog .message-list) {
+  min-height: 220px;
+  max-height: min(42dvh, 420px);
+}
+
+:global(.procurement-message-dialog .message-row) {
+  color: var(--workbench-ink);
+  background: color-mix(in srgb, var(--workbench-paper-deep) 64%, transparent);
+}
+
+:global(.procurement-message-dialog .message-row.mine) {
+  background: var(--workbench-seal-soft);
+}
+
+:global(.procurement-message-dialog .message-row div) { color: var(--workbench-ink-soft); }
+:global(.procurement-message-dialog .message-row p) { color: var(--workbench-ink); }
+
 :global(.procurement-create-dialog) {
   --procurement-dialog-ink: var(--admin-ink, #2d2923);
   --procurement-dialog-ink-soft: var(--admin-ink-soft, #4f473c);
@@ -765,6 +877,19 @@ export default {
   .mobile-order-item footer :deep(.el-badge__content.is-fixed) { top: 1px; right: 1px; transform: translate(58%, -42%); }
   .message-row { max-width: 92%; }
   .message-compose { grid-template-columns: 1fr; }
+
+  :global(.procurement-dialog) {
+    width: calc(100vw - 24px) !important;
+    max-height: 90dvh;
+    margin-top: 4dvh !important;
+  }
+
+  :global(.procurement-dialog .el-dialog__header) { padding: 16px 18px 12px !important; }
+  :global(.procurement-dialog .el-dialog__body) { padding: 16px 18px !important; }
+  :global(.procurement-dialog .el-dialog__footer) { padding: 12px 18px 16px; }
+  :global(.procurement-message-dialog .message-list) { min-height: 180px; max-height: 36dvh; }
+  :global(.procurement-message-dialog .message-compose) { grid-template-columns: 1fr; }
+  :global(.procurement-message-dialog .message-row) { max-width: 92%; }
 
   :global(.procurement-create-dialog) {
     width: calc(100vw - 24px) !important;

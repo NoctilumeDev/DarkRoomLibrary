@@ -43,22 +43,31 @@
     </el-row>
 
     <!-- 回复弹窗 -->
-    <el-dialog v-model="replyDialog" title="回复留言" width="460px">
-      <div class="reply-context">
-        <div><strong>{{ replyTarget.userName }}：</strong></div>
-        <div>{{ replyTarget.content }}</div>
+    <el-dialog
+      v-model="replyDialog"
+      title="回复留言"
+      class="admin-editor-dialog admin-editor-dialog--compact admin-message-reply-dialog"
+      width="min(460px, calc(100vw - 24px))"
+      top="16vh"
+      append-to-body
+    >
+      <div class="admin-form-scroll">
+        <div class="reply-context">
+          <div><strong>{{ replyTarget.userName }}：</strong></div>
+          <div>{{ replyTarget.content }}</div>
+        </div>
+        <el-input
+          v-model="replyText"
+          type="textarea"
+          :rows="4"
+          maxlength="1000"
+          show-word-limit
+          placeholder="输入回复内容"
+        ></el-input>
       </div>
-      <el-input
-        v-model="replyText"
-        type="textarea"
-        rows="4"
-        maxlength="1000"
-        show-word-limit
-        placeholder="输入回复内容"
-      ></el-input>
       <template #footer>
-        <el-button @click="replyDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitReply">提交回复</el-button>
+        <el-button class="admin-dialog-cancel" @click="replyDialog = false">取消</el-button>
+        <el-button class="admin-dialog-submit" type="primary" @click="submitReply">提交回复</el-button>
       </template>
     </el-dialog>
   </div>

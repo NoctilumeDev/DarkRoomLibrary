@@ -691,14 +691,42 @@ body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-select__wrapp
 }
 
 body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-input__inner,
+body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-select__selected-item,
 body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-textarea__inner {
   color: var(--admin-ink) !important;
+}
+
+body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-input__inner::placeholder,
+body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-select__placeholder,
+body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-textarea__inner::placeholder {
+  color: var(--admin-ink-muted) !important;
+}
+
+body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-select__wrapper.is-disabled .el-select__selected-item {
+  color: var(--admin-ink-soft) !important;
+  opacity: 0.82;
+}
+
+body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-select__caret,
+body[data-admin-theme] .el-overlay-dialog .el-dialog__close,
+body[data-admin-theme] .el-overlay-dialog .el-dialog__title {
+  color: var(--admin-ink-soft) !important;
 }
 
 body[data-admin-theme] .el-overlay-dialog .admin-editor-dialog .el-textarea__inner {
   border-radius: 3px;
   background: color-mix(in srgb, var(--admin-paper) 72%, transparent) !important;
   box-shadow: 0 0 0 1px var(--admin-line-strong) inset !important;
+}
+
+body[data-admin-theme] .el-overlay-dialog .el-input__count,
+body[data-admin-theme] .el-overlay-dialog .el-input__count-inner {
+  color: var(--admin-ink-muted) !important;
+  background: transparent !important;
+}
+
+body[data-admin-theme] .el-overlay-dialog .el-textarea__inner::-webkit-resizer {
+  background: linear-gradient(135deg, transparent 0 52%, var(--admin-ink-muted) 53% 59%, transparent 60% 69%, var(--admin-ink-muted) 70% 76%, transparent 77%);
 }
 
 body[data-admin-theme] .el-overlay-dialog .admin-dialog-submit.el-button {
