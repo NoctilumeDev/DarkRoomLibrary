@@ -33,6 +33,7 @@ public class UserAuthLookup {
                 user.getId(),
                 user.getUserName(),
                 user.getUserRole(),
+                user.getAuthVersion(),
                 isDisabled(user)
         ));
     }
@@ -50,6 +51,7 @@ public class UserAuthLookup {
         private Integer id;
         private String userName;
         private Integer userRole;
+        private Integer authVersion;
         private Boolean disabled;
     }
 }

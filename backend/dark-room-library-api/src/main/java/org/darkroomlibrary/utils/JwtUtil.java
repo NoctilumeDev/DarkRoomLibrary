@@ -41,15 +41,17 @@ public class JwtUtil {
      *
      * @param id   用户ID
      * @param role 用户角色
+     * @param authVersion 认证状态版本
      * @return String
      */
-    public String toToken(Integer id, Integer role) {
+    public String toToken(Integer id, Integer role, Integer authVersion) {
         return Jwts.builder()
                 .header()
                 .type("JWT")
                 .and()
                 .claim("id", id)
                 .claim("role", role)
+                .claim("authVersion", authVersion)
                 .subject("用户认证")
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .id(UUID.randomUUID().toString())
@@ -71,13 +73,13 @@ public class JwtUtil {
         try {
             return jwtParser.parseSignedClaims(token).getPayload();
         } catch (ExpiredJwtException e) {
-            log.warn("Token已过期: {}", e.getMessage());
+            log.debug("Token已过期: {}", e.getMessage());
             return null;
         } catch (SignatureException e) {
-            log.warn("Token签名无效: {}", e.getMessage());
+            log.debug("Token签名无效: {}", e.getMessage());
             return null;
         } catch (Exception e) {
-            log.warn("Token解析失败: {}", e.getMessage());
+            log.debug("Token解析失败: {}", e.getMessage());
             return null;
         }
     }

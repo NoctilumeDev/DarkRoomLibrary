@@ -12,6 +12,9 @@
         <if test="unreadOnly != null and unreadOnly">
             AND pm.read_status = 0
         </if>
+        <if test="beforeId != null">
+            AND pm.id &lt; #{beforeId}
+        </if>
         <if test="startTime != null and endTime != null">
             AND pm.create_time BETWEEN #{startTime} AND #{endTime}
         </if>
@@ -29,7 +32,7 @@
         <where>
             <include refid="queryWhere"/>
         </where>
-        ORDER BY pm.id ASC
+        ORDER BY pm.id DESC
         <if test="current != null and size != null">
             LIMIT #{size} OFFSET #{current}
         </if>
@@ -76,12 +79,12 @@
             read_time = #{readTime}
         WHERE receiver_id = #{receiverId}
           AND read_status = 0
-        <if test="orderId != null">
           AND order_id = #{orderId}
-        </if>
-        <if test="channelType != null">
           AND channel_type = #{channelType}
-        </if>
+          AND id IN
+        <foreach collection="messageIds" item="messageId" open="(" separator="," close=")">
+            #{messageId}
+        </foreach>
     </update>
 
     <resultMap id="ProcurementMessageViewMap" type="org.darkroomlibrary.web.view.ProcurementMessageView">

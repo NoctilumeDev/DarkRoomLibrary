@@ -10,7 +10,8 @@ const apiPathPrefix = new URL(apiBaseUrl).pathname.replace(/\/$/, "");
 const edgePath =
   process.env.EDGE_PATH ||
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const validationDate = "2026-07-27";
+const validationDate =
+  process.env.E2E_VALIDATION_DATE || new Date().toISOString().slice(0, 10);
 const outputDir = "test-results/full-workflow";
 const bookName = "暗室藏书";
 const trackingNo = `DRL-E2E-${validationDate.replaceAll("-", "")}`;
@@ -208,9 +209,25 @@ async function findOrderRow(page, orderId) {
   throw new Error(`Order ${orderId} is not visible in the workbench`);
 }
 
-async function chooseSelectOption(page, scope, label, optionName) {
+async function chooseSelectOption(page, scope, label, optionName, options = {}) {
   const field = scope.locator(".el-form-item").filter({ hasText: label }).first();
-  await field.locator(".el-select").click();
+  const select = field.locator(".el-select");
+  await select.click();
+  if (options.remotePath) {
+    const searchResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        matchesApiPath(response, options.remotePath)
+    );
+    await select.locator("input").fill(optionName);
+    const response = await searchResponse;
+    const payload = await response.json();
+    if (!response.ok() || payload.code !== 200) {
+      throw new Error(
+        `Remote select search failed: ${payload.msg || response.status()}`
+      );
+    }
+  }
   const dropdown = page.locator(".el-select-dropdown:visible");
   await dropdown.waitFor();
   await dropdown.getByText(optionName, { exact: false }).first().click();
@@ -398,7 +415,9 @@ async function createProcurementOrder(browser, tokens, report) {
     await session.page.getByRole("button", { name: "新建采购单" }).click();
     const dialog = session.page.locator(".procurement-create-dialog");
     await dialog.waitFor();
-    await chooseSelectOption(session.page, dialog, "图书", bookName);
+    await chooseSelectOption(session.page, dialog, "图书", bookName, {
+      remotePath: "/book/query",
+    });
     const countInput = dialog
       .locator(".el-form-item")
       .filter({ hasText: "采购数量" })

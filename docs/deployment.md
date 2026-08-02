@@ -54,6 +54,17 @@ docker compose ps
 
 MySQL 数据卷首次创建时，会自动执行唯一入口 `sql/init-dark-room-library.sql`。以后重新构建镜像不会重复覆盖已有数据。
 
+从 `v1.2.0` 保留数据卷升级到 `v1.2.1` 时，先备份数据库，再确认 `user` 表是否已有 `auth_version`。旧表没有该列时只需执行一次：
+
+```sql
+ALTER TABLE `user`
+  ADD COLUMN `auth_version` int NOT NULL DEFAULT 1
+  COMMENT 'authentication state version'
+  AFTER `user_role`;
+```
+
+全新安装不需要执行该命令，初始化 SQL 已直接包含该列。`auth_version` 只用于密码、角色和账号状态变化后让旧 JWT 在三个实例上立即失效，不保存令牌或敏感信息。
+
 普通停止：
 
 ```powershell
@@ -136,7 +147,7 @@ $env:FILE_UPLOAD_DIR="D:\DarkRoomLibrary\upload"
 
 ## 6. 数据库版本演进
 
-当前公开版本面向全新安装，继续保留一份可直接执行的 `init-dark-room-library.sql`，让使用者复制或导入一次即可完成 23 张业务与派生表、邮箱配额技术控制表和演示数据初始化。
+当前公开版本继续保留一份可直接执行的 `init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 23 张业务与派生表、邮箱配额技术控制表和演示数据初始化。`v1.2.1` 对已有 `v1.2.0` 数据卷只有上方一条认证版本列升级，不为首次安装拆出额外 SQL 文件。
 
 暂不强制引入 Flyway，原因是当前没有多版本生产数据库需要滚动升级。出现以下条件时再引入更合理：
 

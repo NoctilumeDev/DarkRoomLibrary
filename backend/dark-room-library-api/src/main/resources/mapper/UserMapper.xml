@@ -123,6 +123,7 @@
         <result column="user_avatar" property="userAvatar"/>
         <result column="user_email" property="userEmail"/>
         <result column="user_role" property="userRole"/>
+        <result column="auth_version" property="authVersion"/>
         <result column="is_coordinator_admin" property="isCoordinatorAdmin"/>
         <result column="account_status" property="accountStatus"/>
         <result column="is_login" property="isLogin"/>

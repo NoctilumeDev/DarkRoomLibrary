@@ -34,6 +34,7 @@ class UserAuthLookupTest {
                 .id(7)
                 .userName("reader")
                 .userRole(0)
+                .authVersion(4)
                 .accountStatus(AccountStatus.NORMAL.code())
                 .isLogin(false)
                 .build();
@@ -41,6 +42,7 @@ class UserAuthLookupTest {
                 .id(7)
                 .userName("reader")
                 .userRole(0)
+                .authVersion(5)
                 .accountStatus(AccountStatus.FROZEN.code())
                 .isLogin(true)
                 .build();

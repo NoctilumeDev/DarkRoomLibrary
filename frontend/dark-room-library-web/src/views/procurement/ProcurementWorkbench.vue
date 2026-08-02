@@ -127,7 +127,17 @@
       <div class="admin-form-scroll procurement-form-scroll">
         <el-form label-width="90px">
           <el-form-item label="图书">
-            <el-select v-model="createForm.bookId" filterable placeholder="选择图书" style="width: 100%">
+            <el-select
+              v-model="createForm.bookId"
+              filterable
+              remote
+              reserve-keyword
+              :remote-method="queueBookSearch"
+              :loading="bookLoading"
+              placeholder="输入书名搜索"
+              style="width: 100%"
+              @visible-change="handleBookSelectVisible"
+            >
               <el-option v-for="book in books" :key="book.id" :label="`${book.name}（可借 ${book.availableCount}）`" :value="book.id" />
             </el-select>
           </el-form-item>
@@ -165,10 +175,19 @@
     </el-dialog>
 
     <el-dialog v-model="messageVisible" title="采购协作消息" class="procurement-dialog procurement-message-dialog" width="min(680px, calc(100vw - 32px))" append-to-body @closed="messageText=''">
-      <el-radio-group v-if="messageChannels.length > 1" v-model="messageChannel" @change="loadMessages">
+      <el-radio-group v-if="messageChannels.length > 1" v-model="messageChannel" @change="loadMessages(false)">
         <el-radio-button v-for="channel in messageChannels" :key="channel.value" :value="channel.value">{{ channel.label }}</el-radio-button>
       </el-radio-group>
       <div class="message-list">
+        <el-button
+          v-if="messageHasOlder"
+          class="message-history-button"
+          link
+          :loading="messageLoading"
+          @click="loadMessages(true)"
+        >
+          查看更早消息
+        </el-button>
         <div v-for="message in messages" :key="message.id" :class="['message-row', { mine: message.senderId === userInfo.id }]">
           <div><strong>{{ message.senderName }}</strong><span>{{ message.createTime }}</span></div>
           <p>{{ message.content }}</p>
@@ -195,12 +214,16 @@ export default {
     return {
       userInfo: { id: null, role: null, name: "" }, loading: false,
       orders: [], totalItems: 0, currentPage: 1, pageSize: 10,
-      filters: { bookName: "", status: null }, books: [], purchasers: [], logisticsUsers: [],
+      filters: { bookName: "", status: null },
+      books: [], bookLoading: false, bookSearchTimer: null, bookSearchSequence: 0,
+      purchasers: [], logisticsUsers: [],
       createVisible: false, createForm: { bookId: null, requestCount: 1, purchaserId: null, requestNote: "" },
       assignVisible: false, assignMode: "purchaser", assignOrder: null, assignUserId: null,
       logisticsVisible: false, logisticsOrder: null, logisticsTargetStatus: null,
       logisticsForm: { carrier: "", trackingNo: "", remark: "" },
-      messageVisible: false, messageOrder: null, messageChannel: 0, messages: [], messageText: "",
+      messageVisible: false, messageOrder: null, messageChannel: 0,
+      messages: [], messageText: "", messageBeforeId: null,
+      messageHasOlder: false, messageLoading: false, messagePageSize: 50,
       orderStatuses: [
         { value: 0, label: "待采购" }, { value: 1, label: "采购中" }, { value: 2, label: "已下单" },
         { value: 3, label: "已发货" }, { value: 4, label: "已到货" }, { value: 5, label: "已入库" },
@@ -233,6 +256,9 @@ export default {
     await this.loadAuth();
     await Promise.all([this.loadOrders(), this.loadReferenceData()]);
   },
+  beforeUnmount() {
+    clearTimeout(this.bookSearchTimer);
+  },
   methods: {
     async loadAuth() {
       const response = await this.$axios.get("/user/auth");
@@ -242,13 +268,39 @@ export default {
     async loadReferenceData() {
       const tasks = [];
       if (this.isAdmin) {
-        tasks.push(this.$axios.post("/book/query", { current: 1, size: 100 }).then(r => { this.books = r.data.data || []; }));
         tasks.push(this.loadPeople(USER_ROLE.ACQUISITIONS));
       }
       if (this.isPurchaser || this.isSuperAdmin) {
         tasks.push(this.loadPeople(USER_ROLE.LOGISTICS));
       }
       await Promise.all(tasks);
+    },
+    handleBookSelectVisible(visible) {
+      if (visible && !this.books.length && !this.bookLoading) this.searchBooks("");
+    },
+    queueBookSearch(query) {
+      clearTimeout(this.bookSearchTimer);
+      this.bookSearchTimer = setTimeout(() => this.searchBooks(query), 220);
+    },
+    async searchBooks(query) {
+      const requestSequence = ++this.bookSearchSequence;
+      this.bookLoading = true;
+      try {
+        const response = await this.$axios.post("/book/query", {
+          current: 1,
+          size: 20,
+          name: String(query || "").trim() || null,
+        });
+        if (requestSequence !== this.bookSearchSequence) return;
+        if (response.data.code === 200) this.books = response.data.data || [];
+        else this.$message.error(response.data.msg || "图书搜索失败");
+      } catch (error) {
+        if (requestSequence === this.bookSearchSequence && error.response?.status !== 401) {
+          this.$message.error("图书搜索失败，请稍后重试");
+        }
+      } finally {
+        if (requestSequence === this.bookSearchSequence) this.bookLoading = false;
+      }
     },
     async loadPeople(role) {
       const response = await this.$axios.get("/user/collaborationUsers", { params: { role } });
@@ -274,7 +326,11 @@ export default {
     statusName(status) { return this.orderStatuses.find(item => item.value === status)?.label || "未知"; },
     statusType(status) { return status === 6 ? "success" : status === 7 ? "info" : status === 0 ? "warning" : undefined; },
     logisticsName(status) { return ({ 0: "待接收", 1: "运输中", 2: "已到馆", 3: "已入库" })[status] || "未分配"; },
-    openCreate() { this.createForm = { bookId: null, requestCount: 1, purchaserId: null, requestNote: "" }; this.createVisible = true; },
+    openCreate() {
+      this.createForm = { bookId: null, requestCount: 1, purchaserId: null, requestNote: "" };
+      this.createVisible = true;
+      this.searchBooks("");
+    },
     async createOrder() {
       if (!this.createForm.bookId) return this.$message.warning("请选择图书");
       const response = await this.$axios.post("/procurement/save", this.createForm);
@@ -293,17 +349,19 @@ export default {
       if (response.data.code === 200) { this.assignVisible = false; this.loadOrders(); }
     },
     nextOrderStatus(row) {
-      if ((!this.isAdmin && !this.isPurchaser) || row.status === 6 || row.status === 7 || row.status === 4) return null;
-      return ({ 0: 1, 1: 2, 2: 3, 3: 4, 5: 6 })[row.status] ?? null;
+      if (!this.isAdmin && !this.isPurchaser) return null;
+      return ({ 0: 1, 1: 2, 5: 6 })[row.status] ?? null;
     },
-    orderActionName(row) { return ({ 0: "开始采购", 1: "确认下单", 2: "确认发货", 3: "确认到货", 5: "完成采购" })[row.status] || "推进"; },
+    orderActionName(row) { return ({ 0: "开始采购", 1: "确认下单", 5: "完成采购" })[row.status] || "推进"; },
     async advanceOrder(row) { await this.callAndRefresh(this.$axios.put("/procurement/updateStatus", { id: row.id, status: this.nextOrderStatus(row) })); },
     canCancel(row) { return (this.isAdmin || this.isPurchaser) && row.status < 5; },
     async cancelOrder(row) {
       const confirmed = await this.$swalConfirm({ title: "取消采购单？", text: `采购单 #${row.id} 取消后不可继续流转。`, icon: "warning" });
       if (confirmed) await this.callAndRefresh(this.$axios.put("/procurement/updateStatus", { id: row.id, status: 7 }));
     },
-    canAssignLogistics(row) { return (this.isPurchaser || this.isSuperAdmin) && row.status < 6 && row.status !== 7; },
+    canAssignLogistics(row) {
+      return (this.isPurchaser || this.isSuperAdmin) && row.status >= 2 && row.status < 5;
+    },
     nextLogisticsStatus(row) {
       if ((!this.isLogistics && !this.isPurchaser && !this.isSuperAdmin) || !row.logisticsId || row.status >= 6 || row.status === 7) return null;
       const current = row.logisticsStatus == null ? 0 : row.logisticsStatus;
@@ -324,19 +382,61 @@ export default {
       this.messageOrder = row;
       this.messageChannel = this.isLogistics ? 1 : 0;
       this.messageVisible = true;
-      this.loadMessages();
+      this.loadMessages(false);
     },
     canMessage(row) {
       if (this.isLogistics) return Boolean(row.purchaserId);
       if (this.isPurchaser) return Boolean(row.requesterId || row.logisticsId);
       return Boolean(row.purchaserId);
     },
-    async loadMessages() {
+    async loadMessages(loadOlder = false) {
       if (!this.messageOrder) return;
-      const response = await this.$axios.post("/procurement/message/query", { orderId: this.messageOrder.id, channelType: this.messageChannel, current: 1, size: 100 });
-      if (response.data.code !== 200) return this.$message.error(response.data.msg);
-      this.messages = response.data.data || [];
-      await this.$axios.put("/procurement/message/read", { orderId: this.messageOrder.id, channelType: this.messageChannel });
+      if (!loadOlder) {
+        this.messages = [];
+        this.messageBeforeId = null;
+        this.messageHasOlder = false;
+      }
+      this.messageLoading = true;
+      try {
+        const response = await this.$axios.post("/procurement/message/query", {
+          orderId: this.messageOrder.id,
+          channelType: this.messageChannel,
+          current: 1,
+          size: this.messagePageSize,
+          beforeId: loadOlder ? this.messageBeforeId : null,
+        });
+        if (response.data.code !== 200) return this.$message.error(response.data.msg);
+        const descendingBatch = response.data.data || [];
+        const chronologicalBatch = [...descendingBatch].reverse();
+        this.messages = loadOlder
+          ? [...chronologicalBatch, ...this.messages]
+          : chronologicalBatch;
+        this.messageBeforeId = descendingBatch.length
+          ? Math.min(...descendingBatch.map(message => Number(message.id)))
+          : this.messageBeforeId;
+        this.messageHasOlder = descendingBatch.length === this.messagePageSize;
+        const unreadIds = descendingBatch
+          .filter(message => message.receiverId === this.userInfo.id && !message.readStatus)
+          .map(message => message.id);
+        if (unreadIds.length) {
+          const readResponse = await this.$axios.put("/procurement/message/read", {
+            orderId: this.messageOrder.id,
+            channelType: this.messageChannel,
+            messageIds: unreadIds,
+          });
+          if (readResponse.data.code === 200) {
+            this.messages = this.messages.map(message =>
+              unreadIds.includes(message.id) ? { ...message, readStatus: true } : message
+            );
+            const order = this.orders.find(item => item.id === this.messageOrder.id);
+            if (order) order.unreadCount = Math.max(0, (order.unreadCount || 0) - unreadIds.length);
+          }
+        }
+      } catch (error) {
+        if (error.response?.status !== 401) this.$message.error("消息加载失败，请稍后重试");
+      } finally {
+        this.messageLoading = false;
+      }
     },
     messageReceiverId() {
       if (this.isLogistics) return this.messageOrder.purchaserId;
@@ -348,7 +448,7 @@ export default {
       const receiverId = this.messageReceiverId();
       if (!receiverId) return this.$message.warning("请先完成相关人员指派");
       const response = await this.$axios.post("/procurement/message/send", { orderId: this.messageOrder.id, channelType: this.messageChannel, receiverId, content: this.messageText });
-      if (response.data.code === 200) { this.messageText = ""; await this.loadMessages(); }
+      if (response.data.code === 200) { this.messageText = ""; await this.loadMessages(false); }
       else this.$message.error(response.data.msg);
     },
     async callAndRefresh(promise) {
@@ -622,6 +722,11 @@ export default {
   display: grid;
   gap: 10px;
   padding: 14px 0;
+}
+
+.message-history-button {
+  justify-self: center;
+  color: var(--workbench-gold) !important;
 }
 
 .message-row {

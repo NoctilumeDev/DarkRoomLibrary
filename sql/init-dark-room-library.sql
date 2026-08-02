@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `user_avatar` varchar(500) DEFAULT NULL COMMENT 'avatar url',
   `user_email` varchar(100) DEFAULT NULL COMMENT 'email',
   `user_role` int NOT NULL DEFAULT 2 COMMENT 'role',
+  `auth_version` int NOT NULL DEFAULT 1 COMMENT 'authentication state version',
   `is_coordinator_admin` tinyint NOT NULL DEFAULT 0 COMMENT 'coordinator admin flag',
   `account_status` tinyint NOT NULL DEFAULT 0 COMMENT 'account status: 0 normal, 1 frozen, 2 cancelled',
   `is_login` tinyint NOT NULL DEFAULT 0 COMMENT 'login disabled flag',

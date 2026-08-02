@@ -19,6 +19,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
 
     private final String apiPrefix;
     private final boolean trustForwardedHeaders;
+    private final int ingressMaxRequestsPerMinute;
     private final int anonymousMaxRequestsPerMinute;
     private final int authenticatedMaxRequestsPerMinute;
     private final CacheService cacheService;
@@ -29,6 +30,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
     public InterceptorConfig(
             @Value("${app.api-prefix}") String apiPrefix,
             @Value("${security.rate-limit.trust-forwarded-headers:false}") boolean trustForwardedHeaders,
+            @Value("${security.rate-limit.ingress-max-per-minute:1200}") int ingressMaxRequestsPerMinute,
             @Value("${security.rate-limit.anonymous-max-per-minute:60}") int anonymousMaxRequestsPerMinute,
             @Value("${security.rate-limit.authenticated-max-per-minute:300}") int authenticatedMaxRequestsPerMinute,
             CacheService cacheService,
@@ -37,6 +39,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
             JwtUtil jwtUtil) {
         this.apiPrefix = apiPrefix;
         this.trustForwardedHeaders = trustForwardedHeaders;
+        this.ingressMaxRequestsPerMinute = ingressMaxRequestsPerMinute;
         this.anonymousMaxRequestsPerMinute = anonymousMaxRequestsPerMinute;
         this.authenticatedMaxRequestsPerMinute = authenticatedMaxRequestsPerMinute;
         this.cacheService = cacheService;
@@ -47,6 +50,23 @@ public class InterceptorConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new RateLimitInterceptor(
+                        trustForwardedHeaders,
+                        ingressMaxRequestsPerMinute,
+                        ingressMaxRequestsPerMinute,
+                        cacheService,
+                        objectMapper,
+                        "ingress",
+                        RateLimitInterceptor.SubjectMode.IP_ONLY))
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                        apiPrefix + "/file/getFile",
+                        apiPrefix + "/file/public",
+                        apiPrefix + "/health/live",
+                        apiPrefix + "/health/ready"
+                )
+                .order(0);
+
         registry.addInterceptor(new JwtInterceptor(apiPrefix, userAuthLookup, objectMapper, jwtUtil))
                 .addPathPatterns("/**")
                 .excludePathPatterns(
@@ -61,7 +81,8 @@ public class InterceptorConfig implements WebMvcConfigurer {
                         apiPrefix + "/health/live",
                         apiPrefix + "/health/ready",
                         apiPrefix + "/error"
-                );
+                )
+                .order(1);
 
         registry.addInterceptor(new RateLimitInterceptor(
                         trustForwardedHeaders,
@@ -75,6 +96,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
                         apiPrefix + "/file/public",
                         apiPrefix + "/health/live",
                         apiPrefix + "/health/ready"
-                );
+                )
+                .order(2);
     }
 }

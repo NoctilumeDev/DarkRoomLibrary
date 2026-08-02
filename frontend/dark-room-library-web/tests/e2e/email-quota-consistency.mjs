@@ -161,7 +161,8 @@ async function queryCreatedUsers(token) {
 }
 
 const report = {
-  validationDate: "2026-07-27",
+  validationDate:
+    process.env.E2E_VALIDATION_DATE || new Date().toISOString().slice(0, 10),
   runKey,
   apiBaseUrls,
   burstSize,

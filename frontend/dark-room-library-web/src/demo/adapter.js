@@ -384,30 +384,71 @@ function filterOrdersForIdentity(orders, identity) {
   return [];
 }
 
-function updateProcurementStatus(state, payload) {
+function updateProcurementStatus(state, payload, identity) {
   const order = state.procurementOrders.find(
     (item) => item.id === Number(payload.id)
   );
   if (!order) return rejected("未找到采购单。");
-  order.status = Number(payload.status);
+  const targetStatus = Number(payload.status);
+  const canManage =
+    [0, 1].includes(identity?.role) ||
+    (identity?.role === 3 &&
+      (!order.purchaserId || order.purchaserId === identity.id));
+  if (!canManage) return rejected("当前身份不能推进该采购单。");
+  const allowed =
+    targetStatus === order.status ||
+    (targetStatus === 7 && order.status < 5) ||
+    (targetStatus === 6 && order.status === 5) ||
+    (targetStatus === order.status + 1 && targetStatus <= 2);
+  if (!allowed) {
+    return rejected(
+      targetStatus === 3 || targetStatus === 4
+        ? "发货和到货状态必须通过物流进度更新。"
+        : "采购状态流转不合法。"
+    );
+  }
+  if (identity?.role === 3 && !order.purchaserId) {
+    order.purchaserId = identity.id;
+    order.purchaserName = identity.name;
+  }
+  order.status = targetStatus;
   order.updateTime = "2026-07-27 20:40:00";
   writeState(state);
   return ok(null, "采购状态已更新。");
 }
 
-function updateLogistics(state, payload) {
+function updateLogistics(state, payload, identity) {
   const order = state.procurementOrders.find(
     (item) => item.id === Number(payload.orderId)
   );
   if (!order) return rejected("未找到采购单。");
+  const canManage =
+    identity?.role === 0 ||
+    (identity?.role === 3 && order.purchaserId === identity.id) ||
+    (identity?.role === 4 && order.logisticsId === identity.id);
+  if (!canManage) return rejected("当前身份不能更新该物流任务。");
+  if (order.status < 2 || [6, 7].includes(order.status)) {
+    return rejected("当前采购状态不能更新物流进度。");
+  }
   const status = Number(payload.status);
+  if (
+    status < 0 ||
+    status > 3 ||
+    (status !== order.logisticsStatus &&
+      status !== order.logisticsStatus + 1)
+  ) {
+    return rejected("物流状态流转不合法。");
+  }
   order.logisticsStatus = status;
   order.carrier = payload.carrier || order.carrier;
   order.trackingNo = payload.trackingNo || order.trackingNo;
   order.logisticsRemark = payload.remark || "";
   order.updateTime = "2026-07-27 20:42:00";
+  const mappedOrderStatus = { 1: 3, 2: 4, 3: 5 }[status];
+  if (mappedOrderStatus) {
+    order.status = Math.max(order.status, mappedOrderStatus);
+  }
   if (status === 3) {
-    order.status = Math.max(order.status, 5);
     if (!order.stockApplied) {
       const book = findBook(state, order.bookId);
       if (book) {
@@ -902,17 +943,32 @@ export async function demoAdapter(config) {
       result = ok(null, "协作人员已更新。");
     }
   } else if (path === "/procurement/updateStatus") {
-    result = updateProcurementStatus(state, payload);
+    result = updateProcurementStatus(state, payload, identity);
   } else if (path === "/procurement/updateLogistics") {
-    result = updateLogistics(state, payload);
+    result = updateLogistics(state, payload, identity);
   } else if (path === "/procurement/message/query") {
-    const messages = state.procurementMessages.filter(
-      (item) =>
-        item.orderId === Number(payload.orderId) &&
-        item.channelType === Number(payload.channelType)
-    );
+    const messages = state.procurementMessages
+      .filter(
+        (item) =>
+          item.orderId === Number(payload.orderId) &&
+          item.channelType === Number(payload.channelType) &&
+          (!payload.beforeId || item.id < Number(payload.beforeId))
+      )
+      .sort((left, right) => right.id - left.id);
     result = paginateResponse(messages, payload);
   } else if (path === "/procurement/message/read") {
+    const messageIds = new Set((payload.messageIds || []).map(Number));
+    state.procurementMessages.forEach((message) => {
+      if (
+        messageIds.has(message.id) &&
+        message.orderId === Number(payload.orderId) &&
+        message.channelType === Number(payload.channelType) &&
+        message.receiverId === identity?.id
+      ) {
+        message.readStatus = true;
+      }
+    });
+    writeState(state);
     result = ok(null, "消息已读。");
   } else if (path === "/procurement/message/send") {
     if (!identity) result = body(401, null, "请先选择演示身份。");
@@ -925,6 +981,7 @@ export async function demoAdapter(config) {
         senderName: identity.name,
         receiverId: Number(payload.receiverId),
         content: payload.content,
+        readStatus: false,
         createTime: "2026-07-27 20:43:00",
       });
       writeState(state);

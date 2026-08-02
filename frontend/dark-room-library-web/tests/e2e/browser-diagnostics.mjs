@@ -10,7 +10,8 @@ const apiPathPrefix = new URL(apiBaseUrl).pathname.replace(/\/$/, "");
 const edgePath =
   process.env.EDGE_PATH ||
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const validationDate = "2026-07-27";
+const validationDate =
+  process.env.E2E_VALIDATION_DATE || new Date().toISOString().slice(0, 10);
 const outputDir = "test-results/browser-diagnostics";
 
 const accounts = Object.freeze({

@@ -61,8 +61,12 @@ public class JwtInterceptor implements HandlerInterceptor {
             return false;
         }
         Integer userId = claims.get("id", Integer.class);
+        Integer tokenAuthVersion = claims.get("authVersion", Integer.class);
         UserAuthLookup.AuthUser user = userAuthLookup.getActiveUser(userId).orElse(null);
-        if (user == null || Boolean.TRUE.equals(user.getDisabled())) {
+        if (user == null
+                || Boolean.TRUE.equals(user.getDisabled())
+                || tokenAuthVersion == null
+                || !tokenAuthVersion.equals(normalizeAuthVersion(user.getAuthVersion()))) {
             writeAuthError(response);
             return false;
         }
@@ -76,6 +80,10 @@ public class JwtInterceptor implements HandlerInterceptor {
             return authorization.substring(7).trim();
         }
         return request.getHeader("token");
+    }
+
+    private Integer normalizeAuthVersion(Integer authVersion) {
+        return authVersion == null ? 1 : authVersion;
     }
 
     private boolean matchesPath(String requestURI, String path) {

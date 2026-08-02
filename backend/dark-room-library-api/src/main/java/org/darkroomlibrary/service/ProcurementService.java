@@ -6,6 +6,7 @@ import org.darkroomlibrary.web.dto.query.ProcurementOrderPageQuery;
 import org.darkroomlibrary.web.dto.command.ProcurementAssignDto;
 import org.darkroomlibrary.web.dto.command.ProcurementLogisticsUpdateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementMessageDto;
+import org.darkroomlibrary.web.dto.command.ProcurementMessageReadDto;
 import org.darkroomlibrary.web.dto.command.ProcurementOrderCreateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementStatusUpdateDto;
 import org.darkroomlibrary.web.view.ProcurementMessageView;
@@ -39,7 +40,7 @@ public interface ProcurementService {
 
     ApiResponse<List<ProcurementMessageView>> queryMessages(ProcurementMessagePageQuery dto);
 
-    ApiResponse<Void> markRead(Integer orderId, Integer channelType);
+    ApiResponse<Void> markRead(ProcurementMessageReadDto dto);
 
     ApiResponse<Map<String, Object>> unreadCount(Integer orderId);
 }

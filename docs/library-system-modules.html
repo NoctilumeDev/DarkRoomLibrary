@@ -688,7 +688,7 @@
             }
         }
         .module-column {
-            animation: fadeInUp 0.5s ease-out forwards;
+            animation: fadeInUp 0.5s ease-out both;
         }
         .module-column:nth-child(1) {
             animation-delay: 0.05s;
@@ -773,7 +773,7 @@
                         <div class="sub-item-title">新邮箱换绑验证</div>
                     </div>
                     <div class="sub-item leaf">
-                        <div class="sub-item-title">JWT 鉴权</div>
+                        <div class="sub-item-title">JWT 鉴权与认证版本失效</div>
                     </div>
                 </div>
             </div>
@@ -999,7 +999,7 @@
                         <div class="sub-item-title">操作审计</div>
                     </div>
                     <div class="sub-item leaf">
-                        <div class="sub-item-title">登录失败限流与账号锁定</div>
+                        <div class="sub-item-title">IP 接入限流与登录锁定</div>
                     </div>
                     <div class="sub-item leaf">
                         <div class="sub-item-title">逾期罚款计算</div>
@@ -1157,10 +1157,10 @@
 
         </div><!-- /modules-row -->
         <p class="baseline-note">
-            2026-07-27 公开基线：Spring Boot 3.5.16 / Vue 3.5.40 / Vite 8.1.5；
-            后端 20606，前端 5175；后端 241 项、前端 37 项、6 个固定权限身份全链路通过；
-            既有三实例强并发基线共 1,986 次场景请求，推荐三实例同时首次生成只产生一个批次并完成真实 HYBRID 协同验证；
-            最新 116 个浏览器路由、352 次 API 与 6,102 次网络响应检查全部通过。
+            2026-08-02 v1.2.1 冻结验收：Spring Boot 3.5.16 / Vue 3.5.40 / Vite 8.1.5；
+            后端 20606，前端 5175；后端 245 项、前端 41 项、6 个固定权限身份真实全链路通过；
+            三实例本轮完成 8 个一致性场景 / 262 次请求与 4 个边界场景 / 76 次请求，历史 1,986 次强并发基线继续有效；
+            最新 116 个浏览器路由、456 次 API 与 5,988 次网络响应检查全部通过。
         </p>
     </div><!-- /diagram-wrapper -->
 

@@ -60,6 +60,11 @@ public class User {
     private Integer userRole;
 
     /**
+     * Authentication state version used to revoke existing access tokens.
+     */
+    private Integer authVersion;
+
+    /**
      * 是否馆务协调员
      */
     @TableField("is_coordinator_admin")

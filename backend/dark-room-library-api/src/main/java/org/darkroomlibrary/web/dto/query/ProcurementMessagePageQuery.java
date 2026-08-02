@@ -16,4 +16,9 @@ public class ProcurementMessagePageQuery extends PageQuery {
     private Integer channelType;
 
     private Boolean unreadOnly;
+
+    /**
+     * Cursor for loading older messages without offset drift.
+     */
+    private Integer beforeId;
 }

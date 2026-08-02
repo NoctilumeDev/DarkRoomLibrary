@@ -29,5 +29,6 @@ public interface ProcurementMessageMapper extends BaseMapper<ProcurementMessage>
     int markRead(@Param("receiverId") Integer receiverId,
                  @Param("orderId") Integer orderId,
                  @Param("channelType") Integer channelType,
+                 @Param("messageIds") List<Integer> messageIds,
                  @Param("readTime") LocalDateTime readTime);
 }

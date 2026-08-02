@@ -15,7 +15,8 @@ const apiBaseUrls = Object.freeze(
     .map((url) => url.trim().replace(/\/$/, ""))
     .filter(Boolean)
 );
-const validationDate = "2026-07-27";
+const validationDate =
+  process.env.E2E_VALIDATION_DATE || new Date().toISOString().slice(0, 10);
 const outputDir = "test-results/multi-instance";
 const requestedRunKey =
   process.env.E2E_MULTI_INSTANCE_RUN_KEY || String(Date.now()).slice(-8);

@@ -37,6 +37,10 @@ security:
   login:
     max-fail-attempts: 5
     lock-duration-minutes: 30
+  rate-limit:
+    ingress-max-per-minute: 1200
+    anonymous-max-per-minute: 60
+    authenticated-max-per-minute: 300
 
 # 借阅配置
 borrow:

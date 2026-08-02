@@ -96,6 +96,15 @@ describe("browser demo adapter", () => {
     });
     const initial = before.data.find((book) => book.id === 3).availableCount;
 
+    for (const status of [1, 2]) {
+      const advanced = await call("put", "/procurement/updateLogistics", {
+        orderId: 701,
+        status,
+        carrier: "星河承运",
+        trackingNo: "DRL-DEMO-701",
+      });
+      expect(advanced.code).toBe(200);
+    }
     const first = await call("put", "/procurement/updateLogistics", {
       orderId: 701,
       status: 3,
@@ -118,6 +127,65 @@ describe("browser demo adapter", () => {
     expect(after.data.find((book) => book.id === 3).availableCount).toBe(
       initial + 7
     );
+  });
+
+  it("keeps procurement and logistics state ownership aligned", async () => {
+    activateDemoIdentity("purchaser");
+    const bypass = await call("put", "/procurement/updateStatus", {
+      id: 701,
+      status: 3,
+    });
+    expect(bypass.code).toBe(409);
+    expect(bypass.msg).toContain("物流进度");
+
+    activateDemoIdentity("logistics");
+    const transit = await call("put", "/procurement/updateLogistics", {
+      orderId: 701,
+      status: 1,
+    });
+    expect(transit.code).toBe(200);
+    const orders = await call("post", "/procurement/query", {
+      current: 1,
+      size: 20,
+    });
+    expect(orders.data.find((order) => order.id === 701).status).toBe(3);
+  });
+
+  it("marks only procurement messages rendered to the receiver", async () => {
+    activateDemoIdentity("logistics");
+    const before = await call("post", "/procurement/message/query", {
+      orderId: 701,
+      channelType: 1,
+      current: 1,
+      size: 50,
+    });
+    expect(before.data[0].readStatus).toBe(false);
+
+    await call("put", "/procurement/message/read", {
+      orderId: 701,
+      channelType: 1,
+      messageIds: [999999],
+    });
+    const untouched = await call("post", "/procurement/message/query", {
+      orderId: 701,
+      channelType: 1,
+      current: 1,
+      size: 50,
+    });
+    expect(untouched.data[0].readStatus).toBe(false);
+
+    await call("put", "/procurement/message/read", {
+      orderId: 701,
+      channelType: 1,
+      messageIds: [before.data[0].id],
+    });
+    const after = await call("post", "/procurement/message/query", {
+      orderId: 701,
+      channelType: 1,
+      current: 1,
+      size: 50,
+    });
+    expect(after.data[0].readStatus).toBe(true);
   });
 
   it("keeps the explainable recommendation loop private and attributable", async () => {

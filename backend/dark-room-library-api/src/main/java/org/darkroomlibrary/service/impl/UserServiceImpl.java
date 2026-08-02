@@ -61,6 +61,9 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private static final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    private static final String LOGIN_FAILURE_MESSAGE = "登录失败，请检查账号凭据或联系管理员";
+    private static final String DUMMY_PASSWORD_HASH =
+            "$2a$10$Maz5r60mNdcsdNhhjbskuekg5Z.C5WKhbFXtuTidGR/NAO/qki4uq";
 
     @Resource
     private UserMapper userMapper;
@@ -133,36 +136,30 @@ public class UserServiceImpl implements UserService {
         if (loginAttemptService.isBlocked(account)) {
             long seconds = loginAttemptService.getRemainingLockSeconds(account);
             long minutes = Math.max(1, seconds / 60);
-            return ApiResponse.error("账户已被锁定，请" + minutes + "分钟后再试");
+            return ApiResponse.error("登录尝试过于频繁，请" + minutes + "分钟后再试");
         }
 
         User user = userMapper.getByActive(User.builder().userAccount(account).build());
-        if (user == null) {
+        String storedPwd = user == null ? null : user.getUserPwd();
+        boolean validPasswordHash = storedPwd != null && storedPwd.startsWith("$2");
+        boolean passwordMatches = encoder.matches(
+                userLoginDTO.getUserPwd(),
+                validPasswordHash ? storedPwd : DUMMY_PASSWORD_HASH);
+        boolean unavailable = user == null
+                || Objects.equals(user.getAccountStatus(), AccountStatus.CANCELLED.code())
+                || Objects.equals(user.getAccountStatus(), AccountStatus.FROZEN.code())
+                || Boolean.TRUE.equals(user.getIsLogin())
+                || !validPasswordHash
+                || !passwordMatches;
+        if (unavailable) {
             loginAttemptService.loginFailed(account);
-            return ApiResponse.error("账号不存在");
-        }
-        if (Objects.equals(user.getAccountStatus(), AccountStatus.CANCELLED.code())) {
-            return ApiResponse.error("账号已注销，无法登录");
-        }
-        if (Objects.equals(user.getAccountStatus(), AccountStatus.FROZEN.code())) {
-            return ApiResponse.error("账户已被冻结，请联系管理员");
-        }
-        if (Boolean.TRUE.equals(user.getIsLogin())) {
-            return ApiResponse.error("账户已被禁用，请联系管理员");
-        }
-
-        String storedPwd = user.getUserPwd();
-        if (storedPwd == null || !storedPwd.startsWith("$2")) {
-            return ApiResponse.error("账号密码格式异常，请使用忘记密码功能重置");
-        }
-        if (!encoder.matches(userLoginDTO.getUserPwd(), storedPwd)) {
-            loginAttemptService.loginFailed(account);
-            return ApiResponse.error("密码错误");
+            return ApiResponse.error(LOGIN_FAILURE_MESSAGE);
         }
 
         loginAttemptService.loginSucceeded(account);
         Map<String, Object> data = new HashMap<>();
-        data.put("token", jwtUtil.toToken(user.getId(), user.getUserRole()));
+        data.put("token", jwtUtil.toToken(
+                user.getId(), user.getUserRole(), currentAuthVersion(user)));
         data.put("role", user.getUserRole());
         return ApiResponse.success("登录成功", data);
     }
@@ -347,6 +344,7 @@ public class UserServiceImpl implements UserService {
         if (userMapper.update(User.builder()
                 .id(user.getId())
                 .userPwd(encoder.encode(newPwd))
+                .authVersion(nextAuthVersion(user))
                 .build()) != 1) {
             return ApiResponse.error("用户状态已变化，请刷新后重试");
         }
@@ -442,6 +440,10 @@ public class UserServiceImpl implements UserService {
         boolean coordinatorAdminChanged = coordinatorAdminUpdate != null
                 && !Objects.equals(coordinatorAdminUpdate, target.getIsCoordinatorAdmin());
         boolean passwordResetRequested = dto.getUserPwd() != null && !dto.getUserPwd().isBlank();
+        boolean authenticationChanged = loginStatusChanged
+                || roleChanged
+                || coordinatorAdminChanged
+                || passwordResetRequested;
         if (passwordResetRequested && !currentIsSuperAdmin) {
             return ApiResponse.error("只有超级管理员可以重置其他用户密码");
         }
@@ -502,6 +504,7 @@ public class UserServiceImpl implements UserService {
                 .isWord(dto.getIsWord())
                 .userRole(dto.getUserRole())
                 .isCoordinatorAdmin(coordinatorAdminUpdate)
+                .authVersion(authenticationChanged ? nextAuthVersion(target) : null)
                 .build();
         try {
             if (userMapper.update(updateEntity) != 1) {
@@ -587,6 +590,7 @@ public class UserServiceImpl implements UserService {
         if (userMapper.update(User.builder()
                 .id(user.getId())
                 .userPwd(encoder.encode(newPwd))
+                .authVersion(nextAuthVersion(user))
                 .build()) != 1) {
             return ApiResponse.error("用户状态已变化，请重新提交");
         }
@@ -630,6 +634,7 @@ public class UserServiceImpl implements UserService {
                 .id(userId)
                 .isLogin(true)
                 .accountStatus(AccountStatus.FROZEN.code())
+                .authVersion(changed ? nextAuthVersion(target) : null)
                 .build()) != 1) {
             return ApiResponse.error("用户状态已变化，请刷新后重试");
         }
@@ -656,10 +661,13 @@ public class UserServiceImpl implements UserService {
         if (Objects.equals(target.getAccountStatus(), AccountStatus.CANCELLED.code())) {
             return ApiResponse.error("已注销账号不能解冻");
         }
+        boolean changed = !Objects.equals(target.getAccountStatus(), AccountStatus.NORMAL.code())
+                || !Boolean.FALSE.equals(target.getIsLogin());
         if (userMapper.update(User.builder()
                 .id(userId)
                 .isLogin(false)
                 .accountStatus(AccountStatus.NORMAL.code())
+                .authVersion(changed ? nextAuthVersion(target) : null)
                 .build()) != 1) {
             return ApiResponse.error("用户状态已变化，请刷新后重试");
         }
@@ -706,6 +714,7 @@ public class UserServiceImpl implements UserService {
                 .id(userId)
                 .isLogin(true)
                 .accountStatus(AccountStatus.CANCELLED.code())
+                .authVersion(nextAuthVersion(user))
                 .build()) != 1) {
             return ApiResponse.error("用户状态已变化，请刷新后重试");
         }
@@ -1065,6 +1074,14 @@ public class UserServiceImpl implements UserService {
 
     private String trimToNull(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private int currentAuthVersion(User user) {
+        return user.getAuthVersion() == null ? 1 : user.getAuthVersion();
+    }
+
+    private int nextAuthVersion(User user) {
+        return currentAuthVersion(user) + 1;
     }
 
     private UserProfileView toView(User user) {

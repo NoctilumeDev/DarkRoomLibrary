@@ -77,6 +77,7 @@ security:
   rate-limit:
     # Only enable this behind a trusted reverse proxy that overwrites forwarded headers.
     trust-forwarded-headers: ${TRUST_FORWARDED_HEADERS:false}
+    ingress-max-per-minute: ${RATE_LIMIT_INGRESS_MAX_PER_MINUTE:1200}
     anonymous-max-per-minute: ${RATE_LIMIT_ANONYMOUS_MAX_PER_MINUTE:60}
     authenticated-max-per-minute: ${RATE_LIMIT_AUTHENTICATED_MAX_PER_MINUTE:300}
 

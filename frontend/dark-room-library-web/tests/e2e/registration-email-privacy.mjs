@@ -149,7 +149,8 @@ const names = {
   target: `RP ${runKey} Target`,
 };
 const report = {
-  validationDate: "2026-07-27",
+  validationDate:
+    process.env.E2E_VALIDATION_DATE || new Date().toISOString().slice(0, 10),
   runKey,
   apiBaseUrl,
   sharedEmail,

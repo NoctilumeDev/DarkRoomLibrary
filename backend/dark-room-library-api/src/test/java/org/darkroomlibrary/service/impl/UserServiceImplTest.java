@@ -160,6 +160,7 @@ public class UserServiceImplTest extends BaseTest {
         ApiResponse<Object> result = userService.login(dto);
         assertNotNull(result);
         assertEquals(400, result.getCode());
+        assertEquals("登录失败，请检查账号凭据或联系管理员", result.getMsg());
     }
 
     @Test
@@ -174,6 +175,7 @@ public class UserServiceImplTest extends BaseTest {
         ApiResponse<Object> result = userService.login(dto);
         assertNotNull(result);
         assertEquals(400, result.getCode());
+        assertEquals("登录失败，请检查账号凭据或联系管理员", result.getMsg());
     }
 
     @Test
@@ -186,10 +188,18 @@ public class UserServiceImplTest extends BaseTest {
         UserLoginDto dto = new UserLoginDto();
         dto.setUserAccount("disabled001");
         dto.setUserPwd(TEST_PASSWORD);
-        fillValidCaptcha(dto);
 
-        ApiResponse<Object> result = userService.login(dto);
-        assertNotNull(result);
+        for (int attempt = 0; attempt < 5; attempt++) {
+            fillValidCaptcha(dto);
+            ApiResponse<Object> result = userService.login(dto);
+            assertNotNull(result);
+            assertEquals("登录失败，请检查账号凭据或联系管理员", result.getMsg());
+        }
+
+        fillValidCaptcha(dto);
+        ApiResponse<Object> blocked = userService.login(dto);
+        assertNotNull(blocked);
+        assertTrue(blocked.getMsg().startsWith("登录尝试过于频繁，请"));
     }
 
     @Test
@@ -215,6 +225,7 @@ public class UserServiceImplTest extends BaseTest {
     @DisplayName("修改密码成功")
     void testUpdatePasswordSuccess() {
         User user = createTestUser("updatepwd", "改密用户", "updatepwd@example.test");
+        int beforeVersion = userMapper.getById(user.getId()).getAuthVersion();
         setCurrentUser(user.getId(), user.getUserRole());
 
         PasswordUpdateDto dto = new PasswordUpdateDto();
@@ -225,6 +236,7 @@ public class UserServiceImplTest extends BaseTest {
         ApiResponse<String> result = userService.updatePwd(dto);
         assertNotNull(result);
         assertEquals(200, result.getCode());
+        assertEquals(beforeVersion + 1, userMapper.getById(user.getId()).getAuthVersion());
     }
 
     @Test

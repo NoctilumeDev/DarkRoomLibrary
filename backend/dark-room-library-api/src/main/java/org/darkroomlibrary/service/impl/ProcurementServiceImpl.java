@@ -13,6 +13,7 @@ import org.darkroomlibrary.web.dto.query.ProcurementOrderPageQuery;
 import org.darkroomlibrary.web.dto.command.ProcurementAssignDto;
 import org.darkroomlibrary.web.dto.command.ProcurementLogisticsUpdateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementMessageDto;
+import org.darkroomlibrary.web.dto.command.ProcurementMessageReadDto;
 import org.darkroomlibrary.web.dto.command.ProcurementOrderCreateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementStatusUpdateDto;
 import org.darkroomlibrary.domain.type.UserRole;
@@ -30,6 +31,7 @@ import org.darkroomlibrary.service.ProcurementService;
 import org.darkroomlibrary.service.ReservationWorkflowService;
 import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
 import org.darkroomlibrary.utils.ContentSanitizer;
+import org.darkroomlibrary.utils.IdListUtils;
 import org.darkroomlibrary.utils.TransactionCallbacks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -261,6 +263,9 @@ public class ProcurementServiceImpl implements ProcurementService {
         }
         if (targetStatus == ORDER_WAREHOUSED) {
             return ApiResponse.error("入库状态必须通过物流入库操作完成");
+        }
+        if (targetStatus == ORDER_SHIPPED || targetStatus == ORDER_ARRIVED) {
+            return ApiResponse.error("发货和到货状态必须通过物流进度更新");
         }
         if (!isAllowedOrderTransition(order.getStatus(), targetStatus)) {
             return ApiResponse.error("采购状态流转不合法");
@@ -598,16 +603,25 @@ public class ProcurementServiceImpl implements ProcurementService {
 
     @Override
     @Transactional
-    public ApiResponse<Void> markRead(Integer orderId, Integer channelType) {
-        ProcurementOrder order = requireOrderForUpdate(orderId);
+    public ApiResponse<Void> markRead(ProcurementMessageReadDto dto) {
+        List<Integer> messageIds = IdListUtils.normalize(dto == null ? null : dto.getMessageIds());
+        if (messageIds.isEmpty() || messageIds.size() > 100) {
+            return ApiResponse.error("请选择不超过100条已展示消息");
+        }
+        ProcurementOrder order = requireOrderForUpdate(dto.getOrderId());
         if (order == null) {
             return ApiResponse.error("采购单不存在");
         }
-        String error = validateChannelView(order, channelType);
+        String error = validateChannelView(order, dto.getChannelType());
         if (error != null) {
             return ApiResponse.error(error);
         }
-        procurementMessageMapper.markRead(CurrentUserContext.userId(), orderId, channelType, LocalDateTime.now());
+        procurementMessageMapper.markRead(
+                CurrentUserContext.userId(),
+                dto.getOrderId(),
+                dto.getChannelType(),
+                messageIds,
+                LocalDateTime.now());
         return ApiResponse.success("消息已读");
     }
 
@@ -858,7 +872,7 @@ public class ProcurementServiceImpl implements ProcurementService {
         }
         return current != null && target != null
                 && target == current + 1
-                && target <= ORDER_ARRIVED;
+                && target <= ORDER_PLACED;
     }
 
     private boolean isAllowedLogisticsTransition(Integer current, Integer target) {

@@ -239,6 +239,7 @@ public class UserServiceSecurityTest extends BaseTest {
     void testBackUpdateAllowsSuperAdminResettingPassword() {
         User superAdmin = createTestUserWithRole("security_super_pwd", "superPwd", "super_pwd@example.test", UserRole.SUPER_ADMIN.code());
         User reader = createTestUserWithRole("security_reader_pwd", "readerPwd", "reader_pwd@example.test", UserRole.READER.code());
+        int beforeVersion = userMapper.getById(reader.getId()).getAuthVersion();
         setCurrentUser(superAdmin.getId(), superAdmin.getUserRole());
 
         ApiResponse<String> result = userService.backUpdate(UserAdminUpdateDto.builder()
@@ -249,6 +250,7 @@ public class UserServiceSecurityTest extends BaseTest {
         assertEquals(200, result.getCode());
         User after = userMapper.getByActive(User.builder().id(reader.getId()).build());
         assertTrue(new BCryptPasswordEncoder().matches("Reset@123", after.getUserPwd()));
+        assertEquals(beforeVersion + 1, after.getAuthVersion());
     }
 
     @Test

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `user` (
     `user_avatar` VARCHAR(500) DEFAULT '',
     `user_email` VARCHAR(100) DEFAULT '',
     `user_role` INT DEFAULT 2,
+    `auth_version` INT NOT NULL DEFAULT 1,
     `is_coordinator_admin` TINYINT DEFAULT 0,
     `account_status` TINYINT DEFAULT 0,
     `is_login` TINYINT DEFAULT 0,

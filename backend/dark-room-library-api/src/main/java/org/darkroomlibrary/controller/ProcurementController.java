@@ -10,6 +10,7 @@ import org.darkroomlibrary.web.dto.query.ProcurementOrderPageQuery;
 import org.darkroomlibrary.web.dto.command.ProcurementAssignDto;
 import org.darkroomlibrary.web.dto.command.ProcurementLogisticsUpdateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementMessageDto;
+import org.darkroomlibrary.web.dto.command.ProcurementMessageReadDto;
 import org.darkroomlibrary.web.dto.command.ProcurementOrderCreateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementStatusUpdateDto;
 import org.darkroomlibrary.web.view.ProcurementMessageView;
@@ -102,8 +103,8 @@ public class ProcurementController {
 
     @RequireRole({UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ACQUISITIONS, UserRole.LOGISTICS})
     @PutMapping("/message/read")
-    public ApiResponse<Void> markRead(@RequestBody ProcurementMessagePageQuery dto) {
-        return procurementService.markRead(dto.getOrderId(), dto.getChannelType());
+    public ApiResponse<Void> markRead(@Valid @RequestBody ProcurementMessageReadDto dto) {
+        return procurementService.markRead(dto);
     }
 
     @RequireRole({UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ACQUISITIONS, UserRole.LOGISTICS})

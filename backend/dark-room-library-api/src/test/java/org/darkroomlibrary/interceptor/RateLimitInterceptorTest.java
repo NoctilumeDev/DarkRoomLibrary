@@ -93,6 +93,27 @@ class RateLimitInterceptorTest {
         assertEquals(429, response.getStatus());
     }
 
+    @Test
+    void ingressModeAlwaysUsesTheIpBudgetBeforeAuthentication() throws Exception {
+        CacheService cacheService = mock(CacheService.class);
+        when(cacheService.increment(anyString(), any())).thenReturn(Optional.empty());
+        RateLimitInterceptor interceptor = new RateLimitInterceptor(
+                false,
+                1,
+                99,
+                cacheService,
+                new ObjectMapper(),
+                "ingress",
+                RateLimitInterceptor.SubjectMode.IP_ONLY);
+        CurrentUserContext.bind(42, 2);
+
+        assertTrue(interceptor.preHandle(
+                request("10.0.0.1", null), new MockHttpServletResponse(), new Object()));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(request("10.0.0.1", null), response, new Object()));
+        assertEquals(429, response.getStatus());
+    }
+
     private RateLimitInterceptor interceptor(boolean trustForwardedHeaders,
                                              int anonymousLimit,
                                              int authenticatedLimit) {

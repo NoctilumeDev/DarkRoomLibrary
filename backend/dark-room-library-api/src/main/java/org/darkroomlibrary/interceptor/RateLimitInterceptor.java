@@ -2,6 +2,7 @@ package org.darkroomlibrary.interceptor;
 
 import org.darkroomlibrary.context.CurrentUserContext;
 import org.darkroomlibrary.infrastructure.cache.CacheService;
+import org.darkroomlibrary.infrastructure.security.ClientIpResolver;
 import org.darkroomlibrary.web.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -23,6 +24,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private static final long WINDOW_MS = 60_000;
     private static final long CLEANUP_INTERVAL_MS = 600_000;
 
+    public enum SubjectMode {
+        IP_ONLY,
+        AUTHENTICATED_OR_IP
+    }
+
     private final Map<String, Window> ipWindows = new ConcurrentHashMap<>();
     private volatile long lastCleanup = System.currentTimeMillis();
     private final Object cleanupLock = new Object();
@@ -31,17 +37,39 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private final int authenticatedMaxRequestsPerMinute;
     private final CacheService cacheService;
     private final ObjectMapper objectMapper;
+    private final String keyNamespace;
+    private final SubjectMode subjectMode;
 
     public RateLimitInterceptor(boolean trustForwardedHeaders,
                                 int anonymousMaxRequestsPerMinute,
                                 int authenticatedMaxRequestsPerMinute,
                                 CacheService cacheService,
                                 ObjectMapper objectMapper) {
+        this(
+                trustForwardedHeaders,
+                anonymousMaxRequestsPerMinute,
+                authenticatedMaxRequestsPerMinute,
+                cacheService,
+                objectMapper,
+                "subject",
+                SubjectMode.AUTHENTICATED_OR_IP
+        );
+    }
+
+    public RateLimitInterceptor(boolean trustForwardedHeaders,
+                                int anonymousMaxRequestsPerMinute,
+                                int authenticatedMaxRequestsPerMinute,
+                                CacheService cacheService,
+                                ObjectMapper objectMapper,
+                                String keyNamespace,
+                                SubjectMode subjectMode) {
         this.trustForwardedHeaders = trustForwardedHeaders;
         this.anonymousMaxRequestsPerMinute = Math.max(1, anonymousMaxRequestsPerMinute);
         this.authenticatedMaxRequestsPerMinute = Math.max(1, authenticatedMaxRequestsPerMinute);
         this.cacheService = cacheService;
         this.objectMapper = objectMapper;
+        this.keyNamespace = keyNamespace;
+        this.subjectMode = subjectMode;
     }
 
     @Override
@@ -50,8 +78,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        Integer userId = CurrentUserContext.userId();
-        boolean authenticated = userId != null;
+        Integer userId = subjectMode == SubjectMode.IP_ONLY ? null : CurrentUserContext.userId();
+        boolean authenticated = subjectMode == SubjectMode.AUTHENTICATED_OR_IP && userId != null;
         String subject = authenticated ? "user:" + userId : "ip:" + getClientIp(request);
         int requestLimit = authenticated
                 ? authenticatedMaxRequestsPerMinute
@@ -82,7 +110,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         });
 
         Optional<Long> distributedCount = cacheService.increment(
-                "rate-limit:" + windowKey,
+                "rate-limit:" + keyNamespace + ":" + windowKey,
                 Duration.ofMillis(WINDOW_MS * 2)
         );
         long requestCount = Math.max(window.count, distributedCount.orElse(0L));
@@ -100,19 +128,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        if (trustForwardedHeaders) {
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()
-                    && !"unknown".equalsIgnoreCase(forwarded)) {
-                return forwarded.split(",")[0].trim();
-            }
-            String realIp = request.getHeader("X-Real-IP");
-            if (realIp != null && !realIp.isBlank()
-                    && !"unknown".equalsIgnoreCase(realIp)) {
-                return realIp.trim();
-            }
-        }
-        return request.getRemoteAddr();
+        return ClientIpResolver.resolve(request, trustForwardedHeaders);
     }
 
     private static class Window {

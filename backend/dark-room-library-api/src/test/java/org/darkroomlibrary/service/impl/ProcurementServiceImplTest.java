@@ -9,6 +9,7 @@ import org.darkroomlibrary.web.dto.query.ProcurementOrderPageQuery;
 import org.darkroomlibrary.web.dto.command.ProcurementAssignDto;
 import org.darkroomlibrary.web.dto.command.ProcurementLogisticsUpdateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementMessageDto;
+import org.darkroomlibrary.web.dto.command.ProcurementMessageReadDto;
 import org.darkroomlibrary.web.dto.command.ProcurementOrderCreateDto;
 import org.darkroomlibrary.web.dto.command.ProcurementStatusUpdateDto;
 import org.darkroomlibrary.domain.type.LoginStatus;
@@ -97,7 +98,18 @@ public class ProcurementServiceImplTest extends BaseTest {
         setCurrentUser(purchaser.getId(), purchaser.getUserRole());
         ApiResponse<Map<String, Object>> unreadBefore = procurementService.unreadCount(order.getId());
         assertEquals(1, unreadBefore.getData().get("total"));
-        assertEquals(200, procurementService.markRead(order.getId(), 0).getCode());
+        ProcurementMessagePageQuery unreadQuery = new ProcurementMessagePageQuery();
+        unreadQuery.setOrderId(order.getId());
+        unreadQuery.setChannelType(0);
+        unreadQuery.setCurrent(0);
+        unreadQuery.setSize(10);
+        ProcurementMessageReadDto readDto = new ProcurementMessageReadDto();
+        readDto.setOrderId(order.getId());
+        readDto.setChannelType(0);
+        readDto.setMessageIds(procurementService.queryMessages(unreadQuery).getData().stream()
+                .map(ProcurementMessageView::getId)
+                .toList());
+        assertEquals(200, procurementService.markRead(readDto).getCode());
         ApiResponse<Map<String, Object>> unreadAfter = procurementService.unreadCount(order.getId());
         assertEquals(0, unreadAfter.getData().get("total"));
 
@@ -109,6 +121,8 @@ public class ProcurementServiceImplTest extends BaseTest {
         purchaseStatus.setStatus(2);
         purchaseStatus.setPurchaseNote("已下单");
         assertEquals(200, procurementService.updateStatus(purchaseStatus).getCode());
+        purchaseStatus.setStatus(3);
+        assertEquals(400, procurementService.updateStatus(purchaseStatus).getCode());
 
         ProcurementAssignDto assignLogistics = new ProcurementAssignDto();
         assignLogistics.setOrderId(order.getId());
