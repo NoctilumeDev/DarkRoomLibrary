@@ -1,6 +1,6 @@
 {
   "name": "dark-room-library-web",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5175",
@@ -12,6 +12,7 @@
     "preview:demo": "vite preview --mode demo --host 0.0.0.0 --port 4175",
     "lint": "eslint src tests",
     "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:visual": "node tests/e2e/visual-baseline.mjs",
     "test:e2e:reader": "node tests/e2e/reader-smoke.mjs",
     "test:e2e:admin": "node tests/e2e/admin-smoke.mjs",
@@ -22,6 +23,7 @@
     "test:e2e:registration-email": "node tests/e2e/registration-email-privacy.mjs",
     "test:e2e:email-quota": "node tests/e2e/email-quota-consistency.mjs",
     "test:e2e:recommendation": "node tests/e2e/recommendation-loop.mjs",
+    "test:e2e:edge-regressions": "node tests/e2e/release-edge-regressions.mjs",
     "test:e2e:diagnostics": "node tests/e2e/browser-diagnostics.mjs",
     "test:e2e:full": "node tests/e2e/full-workflow.mjs",
     "docs:screenshots": "node tests/e2e/capture-readme-screenshots.mjs"
@@ -39,6 +41,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitejs/plugin-vue": "^6.0.8",
+    "@vitest/coverage-v8": "^4.1.10",
     "@vue/compiler-sfc": "^3.5.40",
     "eslint": "^10.8.0",
     "eslint-plugin-vue": "^10.10.0",

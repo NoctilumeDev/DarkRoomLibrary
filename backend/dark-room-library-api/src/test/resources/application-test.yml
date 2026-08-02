@@ -5,6 +5,9 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+    # H2 uses different locking rules under RR; MySQL acceptance tests verify the production isolation.
+    hikari:
+      transaction-isolation: TRANSACTION_READ_COMMITTED
   sql:
     init:
       mode: always
@@ -37,10 +40,19 @@ security:
   login:
     max-fail-attempts: 5
     lock-duration-minutes: 30
+  client-ip:
+    trust-forwarded-headers: false
+    trusted-proxy-cidrs:
   rate-limit:
     ingress-max-per-minute: 1200
+    public-file-max-per-minute: 600
     anonymous-max-per-minute: 60
     authenticated-max-per-minute: 300
+  sensitive-rate-limit:
+    login-capacity: 60
+    account-capacity: 12
+    verification-capacity: 6
+    captcha-capacity: 90
 
 # 借阅配置
 borrow:

@@ -12,6 +12,7 @@ target/
 node_modules/
 dist/
 test-results/
+coverage/
 
 # Generated delivery archives
 release/

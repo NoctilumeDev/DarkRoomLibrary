@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.darkroomlibrary</groupId>
     <artifactId>dark-room-library-api</artifactId>
-    <version>1.2.1</version>
+    <version>1.2.2</version>
     <name>Dark Room Library API</name>
     <description>Backend services for Dark Room Library</description>
 
@@ -16,6 +16,7 @@
         <easyexcel.version>4.0.3</easyexcel.version>
         <jjwt.version>0.13.0</jjwt.version>
         <jsoup.version>1.22.2</jsoup.version>
+        <jacoco.version>0.8.13</jacoco.version>
     </properties>
 
     <parent>
@@ -143,6 +144,46 @@
         </resources>
 
         <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>coverage-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>coverage-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

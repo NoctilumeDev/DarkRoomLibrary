@@ -7,7 +7,7 @@ const apiBaseUrl = (
   "http://127.0.0.1:20606/api/dark-room-library/v1"
 ).replace(/\/$/, "");
 const redisContainer =
-  process.env.E2E_REDIS_CONTAINER || "drl-email-limit-test-redis-1";
+  process.env.E2E_REDIS_CONTAINER || "dark-room-library-redis-1";
 const runKey = String(process.env.E2E_REGISTRATION_RUN_KEY || Date.now())
   .replaceAll(/[^a-zA-Z0-9]/g, "")
   .slice(-8);

@@ -52,10 +52,15 @@ function solveCaptcha(expression) {
   return left * right;
 }
 
-async function apiRequest(token, path, { method = "GET", body } = {}) {
+async function apiRequest(
+  token,
+  path,
+  { method = "GET", body, clientIp } = {}
+) {
   const headers = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (clientIp) headers["X-Forwarded-For"] = clientIp;
   const startedAt = Date.now();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
@@ -93,11 +98,12 @@ function requireSuccess(result, label) {
   return result.payload;
 }
 
-async function login(identity) {
-  const captcha = await apiRequest(null, "/captcha/generate");
+async function login(identity, clientIp) {
+  const captcha = await apiRequest(null, "/captcha/generate", { clientIp });
   requireSuccess(captcha, `captcha for ${identity.account}`);
   const result = await apiRequest(null, "/user/login", {
     method: "POST",
+    clientIp,
     body: {
       userAccount: identity.account,
       userPwd: identity.password,
@@ -602,7 +608,7 @@ async function runProcurementRace(
 }
 
 async function main() {
-  const rootToken = await login(identities.root);
+  const rootToken = await login(identities.root, "198.18.0.1");
   const readerIdentities = [];
   for (let index = 0; index < readerCount; index += 1) {
     const account = `cc_reader_${runKey}_${String(index).padStart(2, "0")}`;
@@ -625,29 +631,35 @@ async function main() {
   });
 
   const readers = [];
-  for (const identity of readerIdentities) {
+  for (const [index, identity] of readerIdentities.entries()) {
     readers.push({
       ...identity,
-      token: await login({
-        account: identity.account,
-        password: identity.password,
-        role: 2,
-      }),
+      token: await login(
+        {
+          account: identity.account,
+          password: identity.password,
+          role: 2,
+        },
+        `198.18.1.${index + 1}`
+      ),
     });
   }
   const purchaserA = {
     ...identities.purchaser,
-    token: await login(identities.purchaser),
+    token: await login(identities.purchaser, "198.19.0.1"),
   };
   const purchaserB = {
     ...purchaserBIdentity,
-    token: await login({
-      account: purchaserBIdentity.account,
-      password: purchaserBIdentity.password,
-      role: 3,
-    }),
+    token: await login(
+      {
+        account: purchaserBIdentity.account,
+        password: purchaserBIdentity.password,
+        role: 3,
+      },
+      "198.19.0.2"
+    ),
   };
-  const logisticsToken = await login(identities.logistics);
+  const logisticsToken = await login(identities.logistics, "198.19.0.3");
   const logisticsUsers = requireSuccess(
     await apiRequest(rootToken, "/user/collaborationUsers?role=4"),
     "query logistics users"

@@ -22,11 +22,11 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     @Value("${security.login.lock-duration-minutes:30}")
     private int lockDurationMinutes;
 
-    @Value("${security.rate-limit.trust-forwarded-headers:false}")
-    private boolean trustForwardedHeaders;
-
     @Resource
     private LoginAttemptStore loginAttemptStore;
+
+    @Resource
+    private ClientIpResolver clientIpResolver;
 
     @Override
     public void loginFailed(String account) {
@@ -58,6 +58,6 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
         String normalizedAccount = account == null
                 ? ""
                 : account.trim().toLowerCase(Locale.ROOT);
-        return normalizedAccount + "|" + ClientIpResolver.resolveCurrentRequest(trustForwardedHeaders);
+        return normalizedAccount + "|" + clientIpResolver.resolveCurrentRequest();
     }
 }

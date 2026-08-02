@@ -37,14 +37,16 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 - **推荐闭环**：收藏为主、借阅和评分为辅，提供可解释推荐、隐私开关、行为归因和“不感兴趣”。
 - **可靠性边界**：核心事务以数据库为准；缓存、消息和邮件故障时降级或补偿，不阻断借还等主流程。
 
-| 验证维度 | v1.2.1 最终结果 |
+| 验证维度 | v1.2.2 最终结果 |
 | --- | --- |
-| 自动测试 | 后端 `245/245`，前端 `41/41`，ESLint、生产构建和 npm 审计通过 |
-| 角色链路 | 5 个角色码、6 个固定权限身份全部真实登录并完成端到端流程 |
-| 多实例一致性 | 3 个后端实例共享 MySQL；历史三批强并发基线 1,986 次，本次冻结复核 262 次，业务不变量违规为 0 |
+| 自动测试 | 后端 `272/272`，前端 `58/58`；行覆盖率 `71.95% / 70.82%`，ESLint、构建和 npm 审计通过 |
+| 角色链路 | 5 个角色码、6 个固定权限身份真实登录，完成 `73` 次 API 全链路 |
+| 多实例一致性 | 3 个后端实例共享 MySQL、Redis、RabbitMQ；8 场景 `176` 次请求，另有 20 场景 `393` 次并发回归 |
 | 推荐并发 | 8 个首次并发请求只生成 1 个批次，三实例得到一致的协同结果 |
-| 浏览器诊断 | 116 个路由、456 次 API 响应、5,988 次网络响应；Console、失败请求与横向溢出为 0 |
-| 数据与中间件 | 24 张表、34 条外键；Redis AOF、RabbitMQ 消费与故障恢复通过 |
+| 浏览器诊断 | 116 个路由、456 次 API 响应、5,998 次网络响应；Console、失败请求与横向溢出为 0 |
+| 数据与中间件 | 24 张表、34 条外键；Redis AOF、RabbitMQ 毒消息转移、通知 Webhook 与故障恢复通过 |
+
+公开覆盖率报告：[后端 JaCoCo](https://noctilumedev.github.io/DarkRoomLibrary/coverage/backend/) · [前端 Vitest V8](https://noctilumedev.github.io/DarkRoomLibrary/coverage/frontend/)。两端均在 GitHub Actions 中执行至少 70% 的行覆盖率门禁。
 
 技术栈为 JDK 17、Spring Boot 3.5.16、MyBatis-Plus 3.5.17、MySQL 8、Vue 3.5.40、Element Plus 2.14.3、ECharts 6.1 和 Vite 8.1.5。完整的事务边界、竞态分析、测试条件与原始结论见 [架构审查](docs/architecture-review.md) 和 [最终验证报告](docs/verification-report.md)。这些结果证明当前环境下的正确性，不构成生产容量承诺。
 
@@ -108,13 +110,13 @@ npm run dev
 
 ```powershell
 cd backend/dark-room-library-api
-mvn clean test
+mvn clean verify
 ```
 
 ```powershell
 cd frontend/dark-room-library-web
 npm run lint
-npm run test:unit
+npm run test:coverage
 npm run build
 npm run build:demo
 ```

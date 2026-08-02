@@ -216,4 +216,4 @@ stateDiagram-v2
 
 ## 当前验证基线
 
-本模块图对应 2026-08-02 的 v1.2.1 冻结验收：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。后端 245 项、前端 41 项、6 个固定权限身份真实全链路通过；三实例本轮完成 8 个一致性场景、262 次请求和 4 个边界场景、76 次请求，历史 1,986 次强并发基线与推荐三实例确定性结果继续有效；浏览器诊断完成 116 个路由、456 次 API 和 5,988 次网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。
+本模块图对应 2026-08-02 的 v1.2.2 冻结验收：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。后端 272 项、前端 58 项、6 个固定权限身份 73 次真实 API 全链路通过；三实例本轮完成 8 个一致性场景、176 次请求和 4 个边界场景、76 次请求，独立并发套件完成 20 个场景、393 次请求，历史 1,986 次强并发基线与推荐三实例确定性结果继续有效；浏览器诊断完成 116 个路由、456 次 API 和 5,998 次网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。

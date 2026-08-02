@@ -207,6 +207,7 @@ import {
   isAdministratorRole,
   USER_ROLE,
 } from "@/utils/userRoles.js";
+import { hasOlderMessages } from "@/utils/messagePagination.js";
 
 export default {
   name: "ProcurementWorkbench",
@@ -414,7 +415,10 @@ export default {
         this.messageBeforeId = descendingBatch.length
           ? Math.min(...descendingBatch.map(message => Number(message.id)))
           : this.messageBeforeId;
-        this.messageHasOlder = descendingBatch.length === this.messagePageSize;
+        this.messageHasOlder = hasOlderMessages(
+          response.data.total,
+          descendingBatch.length
+        );
         const unreadIds = descendingBatch
           .filter(message => message.receiverId === this.userInfo.id && !message.readStatus)
           .map(message => message.id);

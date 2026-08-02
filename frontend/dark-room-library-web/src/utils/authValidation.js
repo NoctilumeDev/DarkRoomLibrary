@@ -13,15 +13,27 @@ export async function resolveAuthorizedRole(token, tokenRole) {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
+  const fallbackRole =
+    tokenRole === null || tokenRole === undefined || tokenRole === ""
+      ? Number.NaN
+      : Number(tokenRole);
+  const retainedRole = Number.isInteger(fallbackRole) ? fallbackRole : null;
   try {
     const response = await fetch(buildApiUrl("/user/auth"), {
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
     });
-    const payload = await response.json();
-    if (!response.ok || payload?.code !== 200 || !payload?.data) {
+    if (response.status === 401 || response.status === 403) {
       clearAuthSession();
       return null;
+    }
+    const payload = await response.json();
+    if (payload?.code === 401 || payload?.code === 403) {
+      clearAuthSession();
+      return null;
+    }
+    if (!response.ok || payload?.code !== 200 || !payload?.data) {
+      return retainedRole;
     }
 
     const user = payload.data;
@@ -40,8 +52,7 @@ export async function resolveAuthorizedRole(token, tokenRole) {
     });
     return role;
   } catch {
-    clearAuthSession();
-    return null;
+    return retainedRole;
   } finally {
     clearTimeout(timeout);
   }

@@ -41,4 +41,24 @@ describe("live authorization validation", () => {
     await expect(resolveAuthorizedRole("stale-token", 2)).resolves.toBeNull();
     expect(getToken()).toBeNull();
   });
+
+  it("retains authentication during a transient network failure", async () => {
+    setToken("current-token");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network unavailable")));
+
+    await expect(resolveAuthorizedRole("current-token", 2)).resolves.toBe(2);
+    expect(getToken()).toBe("current-token");
+  });
+
+  it("uses the token role during a temporary backend failure", async () => {
+    setToken("current-token");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ code: 503, msg: "服务暂不可用" }),
+    }));
+
+    await expect(resolveAuthorizedRole("current-token", 3)).resolves.toBe(3);
+    expect(getToken()).toBe("current-token");
+  });
 });

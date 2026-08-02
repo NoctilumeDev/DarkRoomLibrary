@@ -44,5 +44,22 @@ export default defineConfig(({ mode }) => ({
   test: {
     environment: "jsdom",
     globals: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov", "json-summary"],
+      include: ["src/demo/adapter.js", "src/utils/**/*.js"],
+      exclude: [
+        "src/utils/adminChartTheme.js",
+        "src/utils/echarts*.js",
+        "src/utils/message.js",
+        "src/utils/readerTheme.js",
+        "src/utils/swalPlugin.js",
+      ],
+      thresholds: {
+        lines: 70,
+        branches: 60,
+        functions: 70,
+      },
+    },
   },
 }));

@@ -1,6 +1,7 @@
 package org.darkroomlibrary.service.impl;
 
 import org.darkroomlibrary.context.CurrentUserContext;
+import org.darkroomlibrary.infrastructure.security.ClientIpResolver;
 import org.darkroomlibrary.infrastructure.security.UserAuthLookup;
 import org.darkroomlibrary.domain.model.OperationLog;
 import org.darkroomlibrary.service.OperationAuditService;
@@ -8,11 +9,8 @@ import org.darkroomlibrary.service.OperationLogService;
 import org.darkroomlibrary.utils.TransactionCallbacks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 
 @Slf4j
 @Service
@@ -23,6 +21,9 @@ public class OperationAuditServiceImpl implements OperationAuditService {
 
     @Resource
     private UserAuthLookup userAuthLookup;
+
+    @Resource
+    private ClientIpResolver clientIpResolver;
 
     @Override
     public void record(String operation, String target, String detail) {
@@ -64,12 +65,6 @@ public class OperationAuditServiceImpl implements OperationAuditService {
     }
 
     private String resolveClientIp() {
-        ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            return null;
-        }
-        HttpServletRequest request = attributes.getRequest();
-        return request.getRemoteAddr();
+        return clientIpResolver.resolveCurrentRequest();
     }
 }

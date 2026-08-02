@@ -32,7 +32,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private final Map<String, Window> ipWindows = new ConcurrentHashMap<>();
     private volatile long lastCleanup = System.currentTimeMillis();
     private final Object cleanupLock = new Object();
-    private final boolean trustForwardedHeaders;
+    private final ClientIpResolver clientIpResolver;
     private final int anonymousMaxRequestsPerMinute;
     private final int authenticatedMaxRequestsPerMinute;
     private final CacheService cacheService;
@@ -40,13 +40,13 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private final String keyNamespace;
     private final SubjectMode subjectMode;
 
-    public RateLimitInterceptor(boolean trustForwardedHeaders,
+    public RateLimitInterceptor(ClientIpResolver clientIpResolver,
                                 int anonymousMaxRequestsPerMinute,
                                 int authenticatedMaxRequestsPerMinute,
                                 CacheService cacheService,
                                 ObjectMapper objectMapper) {
         this(
-                trustForwardedHeaders,
+                clientIpResolver,
                 anonymousMaxRequestsPerMinute,
                 authenticatedMaxRequestsPerMinute,
                 cacheService,
@@ -56,14 +56,14 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         );
     }
 
-    public RateLimitInterceptor(boolean trustForwardedHeaders,
+    public RateLimitInterceptor(ClientIpResolver clientIpResolver,
                                 int anonymousMaxRequestsPerMinute,
                                 int authenticatedMaxRequestsPerMinute,
                                 CacheService cacheService,
                                 ObjectMapper objectMapper,
                                 String keyNamespace,
                                 SubjectMode subjectMode) {
-        this.trustForwardedHeaders = trustForwardedHeaders;
+        this.clientIpResolver = clientIpResolver;
         this.anonymousMaxRequestsPerMinute = Math.max(1, anonymousMaxRequestsPerMinute);
         this.authenticatedMaxRequestsPerMinute = Math.max(1, authenticatedMaxRequestsPerMinute);
         this.cacheService = cacheService;
@@ -128,7 +128,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        return ClientIpResolver.resolve(request, trustForwardedHeaders);
+        return clientIpResolver.resolve(request);
     }
 
     private static class Window {

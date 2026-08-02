@@ -231,6 +231,31 @@ describe("browser demo adapter", () => {
     expect(result.msg).toContain("不上传、下载或导出");
   });
 
+  it("serves the dashboard datasets from the same in-memory state", async () => {
+    activateDemoIdentity("root");
+
+    const overview = await call("get", "/statistics/overview");
+    const monthly = await call("get", "/statistics/monthlyBorrow/30");
+    const hotBooks = await call("get", "/statistics/hotBooks");
+    const lowStock = await call("get", "/statistics/lowStock");
+    const overdue = await call("get", "/statistics/overdueUsers");
+    const collection = await call("get", "/statistics/collectionAnalysis");
+    const controls = await call("get", "/views/staticControls");
+    const auditStatus = await call("get", "/adminWorkflow/auditStatus");
+    const backendFlow = await call("get", "/adminWorkflow/backendFlow");
+
+    expect(overview.data.totalBooks).toBeGreaterThan(0);
+    expect(overview.data.totalUsers).toBeGreaterThan(0);
+    expect(monthly.data).toHaveLength(9);
+    expect(hotBooks.data.books).toHaveLength(5);
+    expect(lowStock.data.books.every((book) => book.availableCount < 3)).toBe(true);
+    expect(overdue.data[0].overdueCount).toBe(1);
+    expect(collection.data.categories.length).toBeGreaterThan(0);
+    expect(controls.data).toHaveLength(4);
+    expect(auditStatus.data.activeProcurements).toBeGreaterThan(0);
+    expect(backendFlow.data).toHaveLength(3);
+  });
+
   it("rejects unimplemented writes instead of returning an empty success", async () => {
     activateDemoIdentity("root");
     const result = await call("delete", "/book/batchDelete", [1]);

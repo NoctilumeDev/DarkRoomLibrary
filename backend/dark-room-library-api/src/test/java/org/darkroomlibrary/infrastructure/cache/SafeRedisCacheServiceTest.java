@@ -12,6 +12,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -98,5 +99,23 @@ class SafeRedisCacheServiceTest {
         assertTrue(cacheService.getString("probe").isEmpty());
 
         verify(redisTemplate).delete("missing-key");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void consumesTokenThroughAtomicRedisScript() {
+        when(redisTemplate.execute(
+                any(DefaultRedisScript.class),
+                eq(List.of("rate-limit:sensitive:login:ip:192.0.2.10")),
+                eq("60"),
+                eq("60000")
+        )).thenReturn(1L);
+
+        assertEquals(
+                Optional.of(true),
+                cacheService.tryConsumeToken(
+                        "rate-limit:sensitive:login:ip:192.0.2.10",
+                        60,
+                        Duration.ofMinutes(1)));
     }
 }

@@ -2,6 +2,7 @@ package org.darkroomlibrary.service.impl;
 
 import org.darkroomlibrary.domain.model.NotificationTask;
 import org.darkroomlibrary.infrastructure.event.DomainEventPublisher;
+import org.darkroomlibrary.infrastructure.alert.OperationalAlertService;
 import org.darkroomlibrary.mapper.NotificationTaskMapper;
 import org.darkroomlibrary.utils.MailUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,9 @@ class NotificationServiceImplTest {
     @Mock
     private MailUtil mailUtil;
 
+    @Mock
+    private OperationalAlertService operationalAlertService;
+
     private NotificationServiceImpl service;
 
     @BeforeEach
@@ -43,6 +47,7 @@ class NotificationServiceImplTest {
         ReflectionTestUtils.setField(service, "notificationTaskMapper", notificationTaskMapper);
         ReflectionTestUtils.setField(service, "domainEventPublisher", domainEventPublisher);
         ReflectionTestUtils.setField(service, "mailUtil", mailUtil);
+        ReflectionTestUtils.setField(service, "operationalAlertService", operationalAlertService);
         ReflectionTestUtils.setField(service, "maxRetryCount", 8);
     }
 
@@ -93,6 +98,7 @@ class NotificationServiceImplTest {
                 eq(9), any(), eq(2), eq(3), eq("mail unavailable"),
                 any(LocalDateTime.class), any(LocalDateTime.class));
         verify(notificationTaskMapper, never()).markSent(eq(9), any(), any());
+        verify(operationalAlertService, never()).notificationTaskDead(any(), anyInt(), any());
     }
 
     @Test
@@ -113,6 +119,7 @@ class NotificationServiceImplTest {
         verify(notificationTaskMapper).markFailed(
                 eq(10), any(), eq(4), eq(8), eq("mail unavailable"),
                 eq(null), any(LocalDateTime.class));
+        verify(operationalAlertService).notificationTaskDead(task, 8, "mail unavailable");
     }
 
     private NotificationTask pendingTask() {

@@ -151,7 +151,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             if (storedFileMapper.insert(storedFile) != 1) {
                 throw new IllegalStateException("文件元数据写入失败");
             }
-            String endpoint = rule.publicPreview ? "/file/public" : "/file/download";
+            String endpoint = rule.temporaryPublicPreview ? "/file/public" : "/file/download";
             return ApiResponse.success("上传成功", apiPrefix + endpoint + "?fileName=" + fileName);
         } catch (Exception e) {
             try {
@@ -284,10 +284,9 @@ public class FileStorageServiceImpl implements FileStorageService {
         for (StoredFileView file : files) {
             Path target = resolveTarget(file.getFileName());
             file.setDiskExists(target != null && Files.isRegularFile(target));
-            FileReferenceType refType = FileReferenceType.fromValue(file.getRefType());
             FileRule rule = FILE_RULES.get("." + file.getExtension().toLowerCase());
-            boolean publicPreview = rule != null && rule.publicPreview
-                    && refType != FileReferenceType.MESSAGE_ATTACHMENT;
+            boolean publicPreview = isPubliclyAccessible(
+                    file.getStatus(), file.getRefType(), rule);
             String endpoint = publicPreview ? "/file/public" : "/file/download";
             file.setAccessUrl(apiPrefix + endpoint + "?fileName=" + file.getFileName());
         }
@@ -476,19 +475,23 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     private boolean isPubliclyAccessible(StoredFile storedFile, FileRule rule) {
-        if (!rule.publicPreview) {
-            return false;
-        }
         if (storedFile == null) {
             return false;
         }
-        if (Objects.equals(storedFile.getStatus(), StoredFileStatus.TEMPORARY.getStatus())) {
-            return true;
-        }
-        if (!Objects.equals(storedFile.getStatus(), StoredFileStatus.BOUND.getStatus())) {
+        return isPubliclyAccessible(storedFile.getStatus(), storedFile.getRefType(), rule);
+    }
+
+    private boolean isPubliclyAccessible(Integer status, String refTypeValue, FileRule rule) {
+        if (rule == null) {
             return false;
         }
-        FileReferenceType refType = FileReferenceType.fromValue(storedFile.getRefType());
+        if (Objects.equals(status, StoredFileStatus.TEMPORARY.getStatus())) {
+            return rule.temporaryPublicPreview;
+        }
+        if (!Objects.equals(status, StoredFileStatus.BOUND.getStatus()) || !rule.publicPreview) {
+            return false;
+        }
+        FileReferenceType refType = FileReferenceType.fromValue(refTypeValue);
         return refType != null && refType.isPublicAccess();
     }
 
@@ -733,6 +736,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         private final Set<String> contentTypes;
         private final long maxSize;
         private final boolean publicPreview;
+        private final boolean temporaryPublicPreview;
 
         private FileRule(String responseContentType,
                          Set<String> contentTypes,
@@ -742,6 +746,8 @@ public class FileStorageServiceImpl implements FileStorageService {
             this.contentTypes = contentTypes;
             this.maxSize = maxSize;
             this.publicPreview = publicPreview;
+            this.temporaryPublicPreview = publicPreview
+                    && responseContentType.startsWith("image/");
         }
 
         private boolean allowsContentType(String contentType) {

@@ -90,6 +90,11 @@ Compose 文件提供的默认值只用于降低本地演示门槛。准备公开
 
 仓库只跟踪 `.env.compose.example`，真实 `.env` 已被 Git 忽略。
 
+需要把 Compose 用作正式部署基线时，还应设置
+`DRL_SPRING_PROFILES_ACTIVE=prod`。生产 Profile 会拒绝空密码、仓库内已知演示密码、
+长度不足 32 个 UTF-8 字节的 JWT 密钥，以及启用 RabbitMQ 时的已知默认密码；
+配置错误会在应用接收流量前直接终止启动。
+
 ## 3. 健康检查
 
 后端提供三层探针：
@@ -132,6 +137,24 @@ $env:FILE_UPLOAD_DIR="D:\DarkRoomLibrary\upload"
 
 生产数据库应使用权限受限的应用账号，不应沿用 Compose 的 MySQL root 账号。
 
+后端默认忽略 `X-Forwarded-For` 和 `X-Real-IP`。只有确认后端入口前存在会清理或追加代理链的反向代理时，才能同时设置：
+
+```powershell
+$env:TRUST_FORWARDED_HEADERS="true"
+$env:TRUSTED_PROXY_CIDRS="127.0.0.1/32,172.30.0.5/32"
+```
+
+白名单应填写实际直连代理的精确地址或最小 CIDR，不能为了省事信任全部私有网段。应用只在直连地址命中白名单时读取转发头，并从代理链右侧向左选择第一个非受信地址；开启转发头但白名单为空会直接拒绝启动。限流、登录失败锁定和操作审计使用同一解析结果。
+
+公开文件入口同时受全局 IP 接入限流和独立的公开文件 IP 限流保护，默认上限分别为
+每分钟 `1200` 与 `600` 次，可通过 `RATE_LIMIT_INGRESS_MAX_PER_MINUTE` 和
+`RATE_LIMIT_PUBLIC_FILE_MAX_PER_MINUTE` 调整。临时上传文件只有图片允许匿名预览；
+视频和文档在绑定到允许公开访问的业务对象前，仅上传者或具备相应权限的用户可以下载。
+
+登录、注册/重置、验证码和验证码题分别使用容量为 `60/12/6/90` 的令牌桶，完整补充周期分别为 `1/10/10/1` 分钟。容量可通过 `RATE_LIMIT_LOGIN_CAPACITY`、`RATE_LIMIT_ACCOUNT_CAPACITY`、`RATE_LIMIT_VERIFICATION_CAPACITY` 与 `RATE_LIMIT_CAPTCHA_CAPACITY` 调整。Redis 可用时 Lua 脚本在多个实例间原子消费；Redis 故障时回退到各实例本地令牌桶，因此降级期间总预算会随实例数增加。
+
+通知达到最大重试次数后会保留数据库终止状态。需要外部运维告警时，可配置 `NOTIFICATION_ALERT_WEBHOOK_URL` 和可选的 `NOTIFICATION_ALERT_WEBHOOK_TOKEN`；Webhook 只包含任务 ID、重试次数、主题、脱敏收件地址和截断后的错误，不发送邮件正文。RabbitMQ 消费异常不会无限重新入队，而是分别进入 `dark.room.library.notification-task.dead` 和 `dark.room.library.book-returned.dead`，供管理端或 RabbitMQ 管理页人工检查。邮件本身不作为唯一告警通道。
+
 ## 5. 多实例文件存储边界
 
 多后端实例共享 MySQL，只能保证图书、借阅、预约、采购、文件元数据和租约状态共享。当前上传内容写入 `FILE_UPLOAD_DIR`，数据库不会自动复制图片和附件字节。
@@ -147,7 +170,7 @@ $env:FILE_UPLOAD_DIR="D:\DarkRoomLibrary\upload"
 
 ## 6. 数据库版本演进
 
-当前公开版本继续保留一份可直接执行的 `init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 23 张业务与派生表、邮箱配额技术控制表和演示数据初始化。`v1.2.1` 对已有 `v1.2.0` 数据卷只有上方一条认证版本列升级，不为首次安装拆出额外 SQL 文件。
+当前公开版本继续保留一份可直接执行的 `init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 23 张业务与派生表、邮箱配额技术控制表和演示数据初始化。`v1.2.1` 对已有 `v1.2.0` 数据卷只有上方一条认证版本列升级；`v1.2.2` 没有新增数据库结构变更，不为首次安装拆出额外 SQL 文件。
 
 暂不强制引入 Flyway，原因是当前没有多版本生产数据库需要滚动升级。出现以下条件时再引入更合理：
 

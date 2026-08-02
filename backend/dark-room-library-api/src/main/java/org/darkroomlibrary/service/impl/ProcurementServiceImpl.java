@@ -608,7 +608,7 @@ public class ProcurementServiceImpl implements ProcurementService {
         if (messageIds.isEmpty() || messageIds.size() > 100) {
             return ApiResponse.error("请选择不超过100条已展示消息");
         }
-        ProcurementOrder order = requireOrderForUpdate(dto.getOrderId());
+        ProcurementOrder order = requireOrder(dto.getOrderId());
         if (order == null) {
             return ApiResponse.error("采购单不存在");
         }

@@ -2,6 +2,7 @@ package org.darkroomlibrary.interceptor;
 
 import org.darkroomlibrary.context.CurrentUserContext;
 import org.darkroomlibrary.infrastructure.cache.CacheService;
+import org.darkroomlibrary.infrastructure.security.ClientIpResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -82,7 +83,7 @@ class RateLimitInterceptorTest {
         CacheService cacheService = mock(CacheService.class);
         when(cacheService.increment(anyString(), any())).thenReturn(Optional.of(3L));
         RateLimitInterceptor interceptor = new RateLimitInterceptor(
-                false,
+                resolver(false),
                 2,
                 3,
                 cacheService,
@@ -98,7 +99,7 @@ class RateLimitInterceptorTest {
         CacheService cacheService = mock(CacheService.class);
         when(cacheService.increment(anyString(), any())).thenReturn(Optional.empty());
         RateLimitInterceptor interceptor = new RateLimitInterceptor(
-                false,
+                resolver(false),
                 1,
                 99,
                 cacheService,
@@ -120,11 +121,17 @@ class RateLimitInterceptorTest {
         CacheService cacheService = mock(CacheService.class);
         when(cacheService.increment(anyString(), any())).thenReturn(Optional.empty());
         return new RateLimitInterceptor(
-                trustForwardedHeaders,
+                resolver(trustForwardedHeaders),
                 anonymousLimit,
                 authenticatedLimit,
                 cacheService,
                 new ObjectMapper());
+    }
+
+    private ClientIpResolver resolver(boolean trustForwardedHeaders) {
+        return new ClientIpResolver(
+                trustForwardedHeaders,
+                trustForwardedHeaders ? "10.0.0.0/8" : "");
     }
 
     private MockHttpServletRequest request(String remoteAddress, String forwardedAddress) {

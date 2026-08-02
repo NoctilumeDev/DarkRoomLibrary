@@ -39,6 +39,29 @@ public class SafeRedisCacheService implements CacheService {
                             + "return value",
                     Long.class
             );
+    private static final DefaultRedisScript<Long> TOKEN_BUCKET_SCRIPT =
+            new DefaultRedisScript<>(
+                    "local time = redis.call('TIME'); "
+                            + "local now = time[1] * 1000 + math.floor(time[2] / 1000); "
+                            + "local capacity = tonumber(ARGV[1]); "
+                            + "local refillPeriod = math.max(1, tonumber(ARGV[2])); "
+                            + "local refillRate = capacity / refillPeriod; "
+                            + "local values = redis.call('HMGET', KEYS[1], 'tokens', 'timestamp'); "
+                            + "local tokens = tonumber(values[1]); "
+                            + "local timestamp = tonumber(values[2]); "
+                            + "if tokens == nil or timestamp == nil then "
+                            + "  tokens = capacity; timestamp = now; "
+                            + "else "
+                            + "  tokens = math.min(capacity, tokens + math.max(0, now - timestamp) * refillRate); "
+                            + "  timestamp = now; "
+                            + "end; "
+                            + "local allowed = 0; "
+                            + "if tokens >= 1 then tokens = tokens - 1; allowed = 1; end; "
+                            + "redis.call('HSET', KEYS[1], 'tokens', tokens, 'timestamp', timestamp); "
+                            + "redis.call('PEXPIRE', KEYS[1], math.ceil(refillPeriod * 2)); "
+                            + "return allowed",
+                    Long.class
+            );
 
     @Value("${middleware.redis.enabled:false}")
     private boolean enabled;
@@ -174,6 +197,31 @@ public class SafeRedisCacheService implements CacheService {
                     String.valueOf(ttlMillis)
             );
             Optional<Long> result = Optional.ofNullable(value);
+            markAvailable();
+            return result;
+        } catch (Exception e) {
+            markUnavailable(e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<Boolean> tryConsumeToken(String key, int capacity, Duration refillPeriod) {
+        if (!prepareForOperation()) {
+            return Optional.empty();
+        }
+        try {
+            int normalizedCapacity = Math.max(1, capacity);
+            long refillPeriodMillis = refillPeriod == null
+                    ? 1L
+                    : Math.max(1L, refillPeriod.toMillis());
+            Long allowed = redisTemplate.execute(
+                    TOKEN_BUCKET_SCRIPT,
+                    List.of(key),
+                    String.valueOf(normalizedCapacity),
+                    String.valueOf(refillPeriodMillis)
+            );
+            Optional<Boolean> result = Optional.of(allowed != null && allowed == 1L);
             markAvailable();
             return result;
         } catch (Exception e) {

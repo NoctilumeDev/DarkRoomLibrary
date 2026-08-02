@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 
@@ -172,6 +173,63 @@ class FileStorageServiceImplTest {
     }
 
     @Test
+    void allowsTemporaryImagePublicPreview() throws Exception {
+        Files.write(tempDir.resolve(FILE_NAME), new byte[]{1, 2, 3});
+        when(mapper.selectById(FILE_NAME)).thenReturn(temporaryFile(7));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        service.writePublicFile(FILE_NAME, response);
+
+        assertEquals(200, response.getStatus());
+        assertEquals(3, response.getContentAsByteArray().length);
+    }
+
+    @Test
+    void rejectsTemporaryVideoPublicPreview() throws Exception {
+        String videoName = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.mp4";
+        Files.write(tempDir.resolve(videoName), new byte[]{0, 0, 0, 8, 'f', 't', 'y', 'p'});
+        when(mapper.selectById(videoName)).thenReturn(temporaryFile(videoName, 7));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        service.writePublicFile(videoName, response);
+
+        assertEquals(403, response.getStatus());
+        assertEquals(0, response.getContentAsByteArray().length);
+    }
+
+    @Test
+    void returnsAuthenticatedDownloadUrlForTemporaryVideoUpload() {
+        byte[] videoHeader = new byte[]{0, 0, 0, 8, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'};
+        MockMultipartFile video = new MockMultipartFile(
+                "file", "preview.mp4", "video/mp4", videoHeader);
+        when(mapper.insert(any(StoredFile.class))).thenReturn(1);
+
+        ApiResponse<String> result = service.upload(video);
+
+        assertEquals(200, result.getCode());
+        assertTrue(result.getData().startsWith("/api/test/file/download?fileName="));
+    }
+
+    @Test
+    void allowsBoundPublicVideoPreview() throws Exception {
+        String videoName = "cccccccccccccccccccccccccccccccc.mp4";
+        Files.write(tempDir.resolve(videoName), new byte[]{0, 0, 0, 8, 'f', 't', 'y', 'p'});
+        StoredFile video = StoredFile.builder()
+                .fileName(videoName)
+                .status(StoredFileStatus.BOUND.getStatus())
+                .refType(FileReferenceType.NOTICE_ASSET.getValue())
+                .refId(12)
+                .build();
+        when(mapper.selectById(videoName)).thenReturn(video);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        service.writePublicFile(videoName, response);
+
+        assertEquals(200, response.getStatus());
+        assertEquals(8, response.getContentAsByteArray().length);
+    }
+
+    @Test
     void rejectsDownloadWhenFileMetadataIsMissing() throws Exception {
         Files.write(tempDir.resolve(FILE_NAME), new byte[]{1, 2, 3});
         when(mapper.selectById(FILE_NAME)).thenReturn(null);
@@ -214,8 +272,12 @@ class FileStorageServiceImplTest {
     }
 
     private StoredFile temporaryFile(Integer uploaderId) {
+        return temporaryFile(FILE_NAME, uploaderId);
+    }
+
+    private StoredFile temporaryFile(String fileName, Integer uploaderId) {
         return StoredFile.builder()
-                .fileName(FILE_NAME)
+                .fileName(fileName)
                 .uploaderId(uploaderId)
                 .status(StoredFileStatus.TEMPORARY.getStatus())
                 .build();

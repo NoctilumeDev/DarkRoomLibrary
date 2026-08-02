@@ -1,5 +1,6 @@
 package org.darkroomlibrary.service.impl;
 
+import org.darkroomlibrary.infrastructure.security.ClientIpResolver;
 import org.darkroomlibrary.infrastructure.security.LoginAttemptStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -24,8 +25,8 @@ class LoginAttemptServiceImplTest {
         LoginAttemptServiceImpl service = new LoginAttemptServiceImpl();
         ReflectionTestUtils.setField(service, "maxFailAttempts", 5);
         ReflectionTestUtils.setField(service, "lockDurationMinutes", 30);
-        ReflectionTestUtils.setField(service, "trustForwardedHeaders", false);
         ReflectionTestUtils.setField(service, "loginAttemptStore", store);
+        ReflectionTestUtils.setField(service, "clientIpResolver", new ClientIpResolver(false, ""));
 
         bindRequest("192.0.2.10");
         service.loginFailed(" Reader ");

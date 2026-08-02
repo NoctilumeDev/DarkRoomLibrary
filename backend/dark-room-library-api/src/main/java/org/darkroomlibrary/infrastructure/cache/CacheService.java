@@ -18,4 +18,6 @@ public interface CacheService {
     boolean delete(String key);
 
     Optional<Long> increment(String key, Duration ttl);
+
+    Optional<Boolean> tryConsumeToken(String key, int capacity, Duration refillPeriod);
 }
