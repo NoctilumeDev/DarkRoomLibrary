@@ -41,16 +41,19 @@ public class ProductionConfigurationValidator implements InitializingBean {
     private final String jwtSecret;
     private final boolean rabbitEnabled;
     private final String rabbitPassword;
+    private final String notificationAlertWebhookUrl;
 
     public ProductionConfigurationValidator(
             @Value("${spring.datasource.password}") String databasePassword,
             @Value("${jwt.secret}") String jwtSecret,
             @Value("${middleware.rabbit.enabled:false}") boolean rabbitEnabled,
-            @Value("${spring.rabbitmq.password:}") String rabbitPassword) {
+            @Value("${spring.rabbitmq.password:}") String rabbitPassword,
+            @Value("${notification.alert.webhook-url:}") String notificationAlertWebhookUrl) {
         this.databasePassword = databasePassword;
         this.jwtSecret = jwtSecret;
         this.rabbitEnabled = rabbitEnabled;
         this.rabbitPassword = rabbitPassword;
+        this.notificationAlertWebhookUrl = notificationAlertWebhookUrl;
     }
 
     @Override
@@ -62,6 +65,10 @@ public class ProductionConfigurationValidator implements InitializingBean {
         }
         if (rabbitEnabled) {
             rejectKnownValue("RabbitMQ 密码", rabbitPassword, INSECURE_RABBIT_PASSWORDS);
+            if (notificationAlertWebhookUrl == null || notificationAlertWebhookUrl.isBlank()) {
+                throw new IllegalStateException(
+                        "生产环境启用 RabbitMQ 时必须配置通知与死信告警 Webhook");
+            }
         }
     }
 

@@ -100,6 +100,10 @@ notification:
     webhook-url: ${NOTIFICATION_ALERT_WEBHOOK_URL:}
     webhook-token: ${NOTIFICATION_ALERT_WEBHOOK_TOKEN:}
     timeout-ms: ${NOTIFICATION_ALERT_TIMEOUT_MS:3000}
+    dead-letter-threshold: ${NOTIFICATION_ALERT_DEAD_LETTER_THRESHOLD:1}
+    dead-letter-check-initial-delay-ms: ${NOTIFICATION_ALERT_DEAD_LETTER_INITIAL_DELAY_MS:30000}
+    dead-letter-check-interval-ms: ${NOTIFICATION_ALERT_DEAD_LETTER_INTERVAL_MS:60000}
+    dead-letter-alert-cooldown-minutes: ${NOTIFICATION_ALERT_DEAD_LETTER_COOLDOWN_MINUTES:15}
 
 # 借阅配置
 borrow:
@@ -144,3 +148,7 @@ middleware:
     book-returned-dead-letter-queue: dark.room.library.book-returned.dead
     notification-dead-letter-routing-key: dead.notification.task
     book-returned-dead-letter-routing-key: dead.book.returned
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [requestId=%X{requestId:-system}] %logger{36} - %msg%n"

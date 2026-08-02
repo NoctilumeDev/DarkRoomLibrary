@@ -92,7 +92,7 @@ Compose 文件提供的默认值只用于降低本地演示门槛。准备公开
 
 需要把 Compose 用作正式部署基线时，还应设置
 `DRL_SPRING_PROFILES_ACTIVE=prod`。生产 Profile 会拒绝空密码、仓库内已知演示密码、
-长度不足 32 个 UTF-8 字节的 JWT 密钥，以及启用 RabbitMQ 时的已知默认密码；
+长度不足 32 个 UTF-8 字节的 JWT 密钥，以及启用 RabbitMQ 时的已知默认密码或空告警 Webhook；
 配置错误会在应用接收流量前直接终止启动。
 
 ## 3. 健康检查
@@ -137,6 +137,12 @@ $env:FILE_UPLOAD_DIR="D:\DarkRoomLibrary\upload"
 
 生产数据库应使用权限受限的应用账号，不应沿用 Compose 的 MySQL root 账号。
 
+生产前端的 Nginx 会统一返回 CSP、`Referrer-Policy`、`Permissions-Policy`、
+`X-Content-Type-Options` 和 `X-Frame-Options`。应用入口同时保留等价的 CSP Meta
+作为静态托管兜底；正式反向代理不应覆盖或放宽这些策略。后端为每个响应返回
+`X-Request-ID` 并写入同名日志上下文：格式安全且不超过 64 字符的调用方 ID 会被保留，
+非法、超长或空值会替换为服务端 UUID。跨域读取该响应头已显式加入 CORS 暴露列表。
+
 后端默认忽略 `X-Forwarded-For` 和 `X-Real-IP`。只有确认后端入口前存在会清理或追加代理链的反向代理时，才能同时设置：
 
 ```powershell
@@ -146,14 +152,27 @@ $env:TRUSTED_PROXY_CIDRS="127.0.0.1/32,172.30.0.5/32"
 
 白名单应填写实际直连代理的精确地址或最小 CIDR，不能为了省事信任全部私有网段。应用只在直连地址命中白名单时读取转发头，并从代理链右侧向左选择第一个非受信地址；开启转发头但白名单为空会直接拒绝启动。限流、登录失败锁定和操作审计使用同一解析结果。
 
-公开文件入口同时受全局 IP 接入限流和独立的公开文件 IP 限流保护，默认上限分别为
-每分钟 `1200` 与 `600` 次，可通过 `RATE_LIMIT_INGRESS_MAX_PER_MINUTE` 和
-`RATE_LIMIT_PUBLIC_FILE_MAX_PER_MINUTE` 调整。临时上传文件只有图片允许匿名预览；
+公开文件入口同时受全局 IP 接入限流和独立的公开文件 IP 限流保护。生产 Profile
+及 Compose 的默认上限分别为每分钟 `600` 与 `300` 次，匿名和已认证业务预算分别为
+每分钟 `30` 与 `300` 次；可通过对应的 `RATE_LIMIT_*` 环境变量调整。临时上传文件只有图片允许匿名预览；
 视频和文档在绑定到允许公开访问的业务对象前，仅上传者或具备相应权限的用户可以下载。
 
-登录、注册/重置、验证码和验证码题分别使用容量为 `60/12/6/90` 的令牌桶，完整补充周期分别为 `1/10/10/1` 分钟。容量可通过 `RATE_LIMIT_LOGIN_CAPACITY`、`RATE_LIMIT_ACCOUNT_CAPACITY`、`RATE_LIMIT_VERIFICATION_CAPACITY` 与 `RATE_LIMIT_CAPTCHA_CAPACITY` 调整。Redis 可用时 Lua 脚本在多个实例间原子消费；Redis 故障时回退到各实例本地令牌桶，因此降级期间总预算会随实例数增加。
+生产 Profile 及 Compose 中，登录、注册/重置、验证码和验证码题分别使用容量为
+`20/12/6/60` 的令牌桶，完整补充周期分别为 `1/10/10/1` 分钟。容量可通过
+`RATE_LIMIT_LOGIN_CAPACITY`、`RATE_LIMIT_ACCOUNT_CAPACITY`、
+`RATE_LIMIT_VERIFICATION_CAPACITY` 与 `RATE_LIMIT_CAPTCHA_CAPACITY` 调整。
+Redis 可用时 Lua 脚本在多个实例间原子消费；Redis 故障时回退到各实例本地令牌桶，
+因此降级期间总预算会随实例数增加。
 
-通知达到最大重试次数后会保留数据库终止状态。需要外部运维告警时，可配置 `NOTIFICATION_ALERT_WEBHOOK_URL` 和可选的 `NOTIFICATION_ALERT_WEBHOOK_TOKEN`；Webhook 只包含任务 ID、重试次数、主题、脱敏收件地址和截断后的错误，不发送邮件正文。RabbitMQ 消费异常不会无限重新入队，而是分别进入 `dark.room.library.notification-task.dead` 和 `dark.room.library.book-returned.dead`，供管理端或 RabbitMQ 管理页人工检查。邮件本身不作为唯一告警通道。
+通知达到最大重试次数后会保留数据库终止状态。外部运维告警通过
+`NOTIFICATION_ALERT_WEBHOOK_URL` 和可选的 `NOTIFICATION_ALERT_WEBHOOK_TOKEN` 配置；
+Webhook 只包含任务 ID、重试次数、主题、脱敏收件地址和截断后的错误，不发送邮件正文。
+RabbitMQ 消费异常不会无限重新入队，而是分别进入
+`dark.room.library.notification-task.dead` 和 `dark.room.library.book-returned.dead`。
+定时监控达到阈值后发送脱敏积压事件，Redis 用于跨实例冷却窗口去重，Redis 不可用时
+退回本实例抑制。阈值、首次检查、轮询间隔和冷却时间可通过
+`NOTIFICATION_ALERT_DEAD_LETTER_*` 环境变量调整。生产 Profile 启用 RabbitMQ 时强制要求
+告警 Webhook，避免死信只能依赖人工巡检；邮件本身不作为唯一告警通道。
 
 ## 5. 多实例文件存储边界
 
@@ -170,7 +189,7 @@ $env:TRUSTED_PROXY_CIDRS="127.0.0.1/32,172.30.0.5/32"
 
 ## 6. 数据库版本演进
 
-当前公开版本继续保留一份可直接执行的 `init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 23 张业务与派生表、邮箱配额技术控制表和演示数据初始化。`v1.2.1` 对已有 `v1.2.0` 数据卷只有上方一条认证版本列升级；`v1.2.2` 没有新增数据库结构变更，不为首次安装拆出额外 SQL 文件。
+当前公开版本继续保留一份可直接执行的 `init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 23 张业务与派生表、邮箱配额技术控制表和演示数据初始化。`v1.2.1` 对已有 `v1.2.0` 数据卷只有上方一条认证版本列升级；`v1.2.2` 与 `v1.2.3` 没有新增数据库结构变更，不为首次安装拆出额外 SQL 文件。
 
 暂不强制引入 Flyway，原因是当前没有多版本生产数据库需要滚动升级。出现以下条件时再引入更合理：
 

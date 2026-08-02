@@ -5,4 +5,6 @@ import org.darkroomlibrary.domain.model.NotificationTask;
 public interface OperationalAlertService {
 
     void notificationTaskDead(NotificationTask task, int retryCount, String error);
+
+    void deadLetterQueueBacklog(String queueName, int messageCount);
 }

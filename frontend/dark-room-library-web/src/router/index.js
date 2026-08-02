@@ -1,9 +1,6 @@
 import { createRouter, createWebHashHistory } from "vue-router";
-import { getToken, clearAuthSession } from "@/utils/storage.js";
-import { resolveRoleHome } from "@/utils/roleHome.js";
 import { USER_ROLE } from "@/utils/userRoles.js";
-import { resolveAuthorizedRole } from "@/utils/authValidation.js";
-import jwtDecode from "jwt-decode";
+import { createRouteGuard } from "@/utils/routeGuard.js";
 
 const routes = [
   { path: "/", redirect: "/login" },
@@ -244,44 +241,6 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach(async (to, from, next) => {
-  if (!to.meta.requireAuth) {
-    next();
-    return;
-  }
-
-  const token = getToken();
-  if (!token) {
-    next("/login");
-    return;
-  }
-
-  try {
-    const decoded = jwtDecode(token);
-    const now = Math.floor(Date.now() / 1000);
-    if (decoded.exp && decoded.exp < now) {
-      clearAuthSession();
-      next("/login");
-      return;
-    }
-
-    const authorizedRole = await resolveAuthorizedRole(token, decoded.role);
-    if (authorizedRole === null) {
-      next("/login");
-      return;
-    }
-
-    if (to.meta.roles && !to.meta.roles.includes(authorizedRole)) {
-      next(resolveRoleHome(authorizedRole) || "/login");
-      return;
-    }
-  } catch {
-    clearAuthSession();
-    next("/login");
-    return;
-  }
-
-  next();
-});
+router.beforeEach(createRouteGuard());
 
 export default router;

@@ -13,7 +13,8 @@ class ProductionConfigurationValidatorTest {
                 "Db-9cE3wB4xA7qL",
                 "jwt-6f7f5ad15e8b4bb3b917c68e6b2f329d",
                 true,
-                "Rabbit-7nP4rX8k"
+                "Rabbit-7nP4rX8k",
+                "https://alerts.example.test/dark-room-library"
         );
 
         assertDoesNotThrow(validator::afterPropertiesSet);
@@ -25,7 +26,8 @@ class ProductionConfigurationValidatorTest {
                 "DarkRoomMySQL@20606",
                 "jwt-6f7f5ad15e8b4bb3b917c68e6b2f329d",
                 false,
-                "guest"
+                "guest",
+                ""
         );
 
         assertThrows(IllegalStateException.class, validator::afterPropertiesSet);
@@ -37,13 +39,15 @@ class ProductionConfigurationValidatorTest {
                 "Db-9cE3wB4xA7qL",
                 "dark-room-library-compose-jwt-secret-change-before-public-deployment",
                 false,
-                "guest"
+                "guest",
+                ""
         );
         ProductionConfigurationValidator shortSecret = new ProductionConfigurationValidator(
                 "Db-9cE3wB4xA7qL",
                 "too-short",
                 false,
-                "guest"
+                "guest",
+                ""
         );
 
         assertThrows(IllegalStateException.class, knownDefault::afterPropertiesSet);
@@ -56,7 +60,21 @@ class ProductionConfigurationValidatorTest {
                 "Db-9cE3wB4xA7qL",
                 "jwt-6f7f5ad15e8b4bb3b917c68e6b2f329d",
                 true,
-                "guest"
+                "guest",
+                "https://alerts.example.test/dark-room-library"
+        );
+
+        assertThrows(IllegalStateException.class, validator::afterPropertiesSet);
+    }
+
+    @Test
+    void requiresAlertWebhookWhenRabbitIsEnabled() {
+        ProductionConfigurationValidator validator = new ProductionConfigurationValidator(
+                "Db-9cE3wB4xA7qL",
+                "jwt-6f7f5ad15e8b4bb3b917c68e6b2f329d",
+                true,
+                "Rabbit-7nP4rX8k",
+                ""
         );
 
         assertThrows(IllegalStateException.class, validator::afterPropertiesSet);

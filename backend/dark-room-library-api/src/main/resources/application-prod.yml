@@ -13,5 +13,17 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+security:
+  rate-limit:
+    ingress-max-per-minute: ${RATE_LIMIT_INGRESS_MAX_PER_MINUTE:600}
+    public-file-max-per-minute: ${RATE_LIMIT_PUBLIC_FILE_MAX_PER_MINUTE:300}
+    anonymous-max-per-minute: ${RATE_LIMIT_ANONYMOUS_MAX_PER_MINUTE:30}
+    authenticated-max-per-minute: ${RATE_LIMIT_AUTHENTICATED_MAX_PER_MINUTE:300}
+  sensitive-rate-limit:
+    login-capacity: ${RATE_LIMIT_LOGIN_CAPACITY:20}
+    account-capacity: ${RATE_LIMIT_ACCOUNT_CAPACITY:12}
+    verification-capacity: ${RATE_LIMIT_VERIFICATION_CAPACITY:6}
+    captcha-capacity: ${RATE_LIMIT_CAPTCHA_CAPACITY:60}
+
 cors:
   allowed-origins: ${CORS_ORIGINS}

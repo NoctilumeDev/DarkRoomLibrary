@@ -108,6 +108,8 @@ flowchart TB
     FileLifecycle --> FileCleanup["临时文件 / 孤立文件定时清理"]
     Support --> OperationAudit["操作审计"]
     Support --> LoginProtection["登录失败限流与账号锁定"]
+    Support --> RequestTrace["请求 ID 与日志关联"]
+    Support --> BrowserSecurity["CSP 与浏览器安全响应头"]
     Support --> Fine["逾期罚款计算"]
     Support --> Export["Excel 数据导出"]
     Support --> ViewStats["访问量统计"]
@@ -120,6 +122,7 @@ flowchart TB
     Support --> DegradableMiddleware["可降级中间件"]
     DegradableMiddleware --> RedisFallback["Redis 异常：内存 / MySQL 兜底"]
     DegradableMiddleware --> MqFallback["RabbitMQ 异常：数据库任务 / 定时补偿"]
+    DegradableMiddleware --> DeadLetterAlert["死信积压监控 / Webhook 告警"]
 
     Workflow --> RequestFlow["后台请求处理流程"]
     RequestFlow --> ControllerFlow["Controller 参数校验 / 权限注解"]
@@ -210,10 +213,10 @@ stateDiagram-v2
 | 读者端功能 | 图书查询、借阅、归还、续借、收藏、预约、可解释荐书、公共降级、不感兴趣、隐私开关、推荐记录清除、留言、个人资料与书评互动 |
 | 管理端功能 | 用户（含冻结/解冻/禁言与馆务协调员任免）、图书（含软删除恢复）、分类、书架、借阅、公告、内容审核、留言回复、书评举报状态跟踪、日志、统计、导出和超级管理员文件管理 |
 | 采购物流协作 | 普通管理员只处理自己创建的采购需求并和采购员沟通；采购员认领/推进采购、分配物流员；物流员同步自己的物流进度；入库后自动补充图书库存；协作消息支持已读/未读；超级管理员拥有全局审计视角 |
-| 通用支撑功能 | 文件上传、元数据登记、引用绑定与释放、公开预览、鉴权下载、临时/孤立文件定时清理、操作审计、IP 接入限流、登录失败限流与账号锁定、逾期罚款、查询缓存、邮件通知（补偿）、到期提醒邮件、预约到货通知、续借管理、低库存告警、访问统计、数据导出、Redis/RabbitMQ 可降级增强 |
+| 通用支撑功能 | 文件上传、元数据登记、引用绑定与释放、公开预览、鉴权下载、临时/孤立文件定时清理、操作审计、请求 ID、CSP 与浏览器安全响应头、IP 接入限流、登录失败限流与账号锁定、逾期罚款、查询缓存、邮件通知（补偿）、死信积压告警、到期提醒邮件、预约到货通知、续借管理、低库存告警、访问统计、数据导出、Redis/RabbitMQ 可降级增强 |
 | 后台流程与状态 | Controller 校验、Service 事务、Mapper 条件更新、缓存降级、领域事件、通知补偿、操作审计、借阅/预约/留言/通知/举报/采购/物流状态流转 |
 | 数据存储 | 23 张业务与派生表保存用户、馆藏、流通、推荐、互动、采购物流、通知和文件数据；邮箱配额技术表负责跨实例三账号上限 |
 
 ## 当前验证基线
 
-本模块图对应 2026-08-02 的 v1.2.2 冻结验收：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。后端 272 项、前端 58 项、6 个固定权限身份 73 次真实 API 全链路通过；三实例本轮完成 8 个一致性场景、176 次请求和 4 个边界场景、76 次请求，独立并发套件完成 20 个场景、393 次请求，历史 1,986 次强并发基线与推荐三实例确定性结果继续有效；浏览器诊断完成 116 个路由、456 次 API 和 5,998 次网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。
+本模块图对应 2026-08-02 的 v1.2.3 冻结验收：Spring Boot 3.5.16、Vue 3.5.40、Vite 8.1.5，后端端口 `20606`、前端端口 `5175`。后端 282 项、前端 68 项、6 个固定权限身份 73 次真实 API 全链路通过；三实例本轮完成 8 个一致性场景、176 次请求和 4 个边界场景、76 次请求，独立并发套件完成 20 个场景、393 次请求，历史 1,986 次强并发基线与推荐三实例确定性结果继续有效；浏览器诊断完成 116 个路由、456 次 API 和 6,206 次网络响应，详情见 [`verification-report.md`](verification-report.md) 与 [`architecture-review.md`](architecture-review.md)。

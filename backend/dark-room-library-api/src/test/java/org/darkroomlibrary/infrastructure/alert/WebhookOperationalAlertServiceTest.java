@@ -57,6 +57,26 @@ class WebhookOperationalAlertServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void sendsDeadLetterBacklogAlert() {
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse<Void> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(202);
+        when(client.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(CompletableFuture.completedFuture(response));
+        WebhookOperationalAlertService service = new WebhookOperationalAlertService(
+                new ObjectMapper(),
+                client,
+                "https://alerts.example.test/dark-room-library",
+                "",
+                1000);
+
+        service.deadLetterQueueBacklog("dark.room.library.notification-task.dead", 3);
+
+        verify(client).sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
+    }
+
+    @Test
     void rejectsNonHttpWebhookSchemes() {
         assertThrows(IllegalArgumentException.class, () -> new WebhookOperationalAlertService(
                 new ObjectMapper(),
@@ -64,6 +84,16 @@ class WebhookOperationalAlertServiceTest {
                 "file:///tmp/alerts",
                 "",
                 1000));
+    }
+
+    @Test
+    void rejectsWebhookWithoutHostOrWithEmbeddedCredentials() {
+        HttpClient client = mock(HttpClient.class);
+
+        assertThrows(IllegalArgumentException.class, () -> new WebhookOperationalAlertService(
+                new ObjectMapper(), client, "https:///alerts", "", 1000));
+        assertThrows(IllegalArgumentException.class, () -> new WebhookOperationalAlertService(
+                new ObjectMapper(), client, "https://user:secret@alerts.example.test/hook", "", 1000));
     }
 
     private NotificationTask task() {

@@ -40,19 +40,36 @@ public class WebhookOperationalAlertService implements OperationalAlertService {
 
     @Override
     public void notificationTaskDead(NotificationTask task, int retryCount, String error) {
-        if (webhookUri == null || task == null) {
+        if (task == null) {
+            return;
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("taskId", task.getId());
+        payload.put("retryCount", retryCount);
+        payload.put("subject", task.getSubject());
+        payload.put("receiver", maskEmail(task.getReceiverEmail()));
+        payload.put("error", limit(error, 500));
+        send("notification_task_dead", "taskId=" + task.getId(), payload);
+    }
+
+    @Override
+    public void deadLetterQueueBacklog(String queueName, int messageCount) {
+        if (queueName == null || queueName.isBlank()) {
+            return;
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("queue", queueName);
+        payload.put("messageCount", messageCount);
+        send("rabbit_dead_letter_backlog", "queue=" + queueName, payload);
+    }
+
+    private void send(String event, String subject, Map<String, Object> payload) {
+        if (webhookUri == null) {
             return;
         }
         try {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("event", "notification_task_dead");
+            payload.put("event", event);
             payload.put("occurredAt", OffsetDateTime.now().toString());
-            payload.put("taskId", task.getId());
-            payload.put("retryCount", retryCount);
-            payload.put("subject", task.getSubject());
-            payload.put("receiver", maskEmail(task.getReceiverEmail()));
-            payload.put("error", limit(error, 500));
-
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(webhookUri)
                     .timeout(requestTimeout)
                     .header("Content-Type", "application/json")
@@ -63,15 +80,15 @@ public class WebhookOperationalAlertService implements OperationalAlertService {
             httpClient.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.discarding())
                     .whenComplete((response, throwable) -> {
                         if (throwable != null) {
-                            log.warn("通知终态告警 Webhook 发送失败: taskId={}, error={}",
-                                    task.getId(), throwable.getMessage());
+                            log.warn("运维告警 Webhook 发送失败: event={}, {}, error={}",
+                                    event, subject, throwable.getMessage());
                         } else if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                            log.warn("通知终态告警 Webhook 返回非成功状态: taskId={}, status={}",
-                                    task.getId(), response.statusCode());
+                            log.warn("运维告警 Webhook 返回非成功状态: event={}, {}, status={}",
+                                    event, subject, response.statusCode());
                         }
                     });
         } catch (Exception e) {
-            log.warn("通知终态告警准备失败: taskId={}, error={}", task.getId(), e.getMessage());
+            log.warn("运维告警准备失败: event={}, {}, error={}", event, subject, e.getMessage());
         }
     }
 
@@ -83,6 +100,12 @@ public class WebhookOperationalAlertService implements OperationalAlertService {
         String scheme = uri.getScheme();
         if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
             throw new IllegalArgumentException("通知告警 Webhook 只允许 http 或 https 地址");
+        }
+        if (uri.getHost() == null || uri.getHost().isBlank()) {
+            throw new IllegalArgumentException("通知告警 Webhook 必须包含有效主机");
+        }
+        if (uri.getUserInfo() != null || uri.getFragment() != null) {
+            throw new IllegalArgumentException("通知告警 Webhook 不允许内嵌凭据或片段");
         }
         return uri;
     }

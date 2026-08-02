@@ -8,7 +8,10 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
@@ -46,5 +49,18 @@ class InterceptorConfigPathTest {
                 .andExpect(status().isOk());
         mockMvc.perform(get(CONTEXT_PATH + "/health/live").contextPath(CONTEXT_PATH))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void corsPreflightAllowsRequestCorrelationHeader() throws Exception {
+        mockMvc.perform(options(CONTEXT_PATH + "/health/live")
+                        .contextPath(CONTEXT_PATH)
+                        .header("Origin", "http://localhost:5175")
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "X-Request-ID"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Access-Control-Allow-Headers",
+                        containsStringIgnoringCase("X-Request-ID")));
     }
 }
