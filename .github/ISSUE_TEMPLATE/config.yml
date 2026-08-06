@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 安全问题
-    url: https://github.com/NoctilumeDev/DarkRoomLibrary/security/policy
-    about: 请不要在公开 Issue 中披露漏洞细节，按安全策略私下报告。
+  - name: Private security report
+    url: https://github.com/NoctilumeDev/DarkRoomLibrary/security/advisories/new
+    about: Report vulnerabilities without exposing details publicly.
