@@ -2,6 +2,13 @@
 
 All notable changes to DarkRoomLibrary are documented in this file.
 
+## [1.2.5] - 2026-08-08
+
+### Security
+
+- Updated `org.jsoup:jsoup` from `1.22.2` to `1.23.1` to resolve `GHSA-pmhh-3w7g-xqp8`.
+- Kept the patch dependency-only: no business logic, database schema, API, or frontend behavior changed.
+
 ## [1.2.4] - 2026-08-08
 
 ### Security
