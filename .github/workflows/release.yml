@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  verify-ci:
+    name: Verify release candidate
+    uses: ./.github/workflows/ci.yml
+
+  package:
+    name: Package release
+    needs: verify-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+      - name: Validate release tag and main ancestry
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unsupported release tag: $tag" >&2
+            exit 1
+          fi
+          git rev-parse --verify "refs/tags/$tag"
+          git fetch origin main
+          commit="$(git rev-list -n 1 "$tag")"
+          git merge-base --is-ancestor "$commit" origin/main
+          security_runs="$(gh api --method GET \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/security.yml/runs" \
+            -f head_sha="$commit" \
+            -f status="success" \
+            -f per_page=100)"
+          security_run_count="$(jq \
+            '[.workflow_runs[] | select(.head_sha == $commit and .conclusion == "success")] | length' \
+            --arg commit "$commit" \
+            <<<"$security_runs")"
+          if [ "$security_run_count" -lt 1 ]; then
+            echo "A successful security.yml run is required for release commit $commit" >&2
+            exit 1
+          fi
+          node scripts/check-release-version.mjs "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Build source bundle and checksum
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: node scripts/build-release-bundle.mjs "$RELEASE_TAG"
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          path: .
+          format: spdx-json
+          output-file: release/DarkRoomLibrary-${{ steps.release.outputs.tag }}.spdx.json
+          upload-artifact: false
+      - name: Upload release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: dark-room-library-${{ steps.release.outputs.tag }}
+          path: release/
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          notes_file=".github/release-notes/${RELEASE_TAG}.md"
+          gh release create "$RELEASE_TAG" release/* \
+            --verify-tag \
+            --notes-file "$notes_file" \
+            --title "DarkRoomLibrary $RELEASE_TAG"

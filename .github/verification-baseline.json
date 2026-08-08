@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "targetRelease": "v1.2.4",
+  "status": "released",
+  "verifiedOn": "2026-08-08",
+  "backend": {
+    "tests": 282,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "lineCoverage": 72.23,
+    "lineCoverageMinimum": 70
+  },
+  "frontend": {
+    "criticalLogicTests": 68,
+    "lineCoverage": 71.47,
+    "lineCoverageMinimum": 70,
+    "eslintErrors": 0,
+    "productionBuild": "passed",
+    "demoBuild": "passed"
+  },
+  "realEvidence": {
+    "singleInstanceVerifiedOn": "2026-08-08",
+    "fixedPermissionIdentities": 6,
+    "roleChainApiResponses": 70,
+    "concurrencyScenarios": 20,
+    "concurrencyRequests": 393,
+    "redisAvailable": "passed",
+    "redisUnavailableDegradation": "passed",
+    "rabbitMqAvailable": "passed",
+    "rabbitMqUnavailableDegradation": "passed",
+    "browserRoutes": 116,
+    "browserApiResponses": 456,
+    "browserNetworkResponses": 6114,
+    "browserConsoleErrors": 0,
+    "browserNetworkErrors": 0,
+    "historicalMultiInstanceVerifiedOn": "2026-08-02",
+    "representativeInstances": 3,
+    "multiInstanceScenarios": 8,
+    "multiInstanceRequests": 176,
+    "historicalBurstRequests": 1986
+  }
+}
