@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "targetRelease": "v1.2.4",
+  "targetRelease": "v1.2.5",
   "status": "released",
   "verifiedOn": "2026-08-08",
   "backend": {
