@@ -1,6 +1,7 @@
 # 暗室藏书（DarkRoomLibrary）
 
 [![CI](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/ci.yml/badge.svg)](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/ci.yml)
+[![Security](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/security.yml/badge.svg)](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/security.yml)
 [![GitHub Pages](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/pages.yml/badge.svg)](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/pages.yml)
 
 ## 这是什么
@@ -37,13 +38,13 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 - **推荐闭环**：收藏为主、借阅和评分为辅，提供可解释推荐、隐私开关、行为归因和“不感兴趣”。
 - **可靠性边界**：核心事务以数据库为准；缓存、消息和邮件故障时降级或补偿，不阻断借还等主流程。
 
-| 验证维度 | v1.2.3 最终结果 |
+| 验证维度 | v1.2.4 自动复核与 v1.2.3 真实链路基线 |
 | --- | --- |
 | 自动测试 | 后端 `282/282`，前端 `68/68`；后端行覆盖率 `72.23%`，前端关键逻辑范围行覆盖率 `71.47%`，ESLint、构建和 npm 审计通过 |
-| 角色链路 | 5 个角色码、6 个固定权限身份真实登录，完成 `73` 次 API 全链路 |
-| 多实例一致性 | 3 个后端实例共享 MySQL、Redis、RabbitMQ；8 场景 `176` 次请求，另有 20 场景 `393` 次并发回归 |
+| 角色链路 | 5 个角色码、6 个固定权限身份真实登录，`v1.2.4` 完成 `70` 次页面 API 全链路 |
+| 多实例一致性 | 20 场景 `393` 次并发回归于 `v1.2.4` 重跑；3 个后端实例的 8 场景 `176` 次请求保留为 `v1.2.3` 历史基线 |
 | 推荐并发 | 8 个首次并发请求只生成 1 个批次，三实例得到一致的协同结果 |
-| 浏览器诊断 | 116 个路由、456 次 API 响应、6,206 次网络响应；Console、失败请求与横向溢出为 0 |
+| 浏览器诊断 | 116 个路由、456 次 API 响应、6,114 次网络响应；Console、失败请求与横向溢出为 0 |
 | 数据与中间件 | 24 张表、34 条外键；Redis AOF、请求 ID、CSP、安全响应头、RabbitMQ 毒消息转移与多实例死信告警通过 |
 
 公开覆盖率报告：[后端 JaCoCo](https://noctilumedev.github.io/DarkRoomLibrary/coverage/backend/) · [前端 Vitest V8](https://noctilumedev.github.io/DarkRoomLibrary/coverage/frontend/)。后端模块与前端关键逻辑范围均在 GitHub Actions 中执行至少 70% 的行覆盖率门禁；Vue 组件、路由守卫和真实页面行为另由组件测试及浏览器 E2E 验证，不把局部覆盖率包装成整个前端代码库覆盖率。
@@ -51,6 +52,8 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 技术栈为 JDK 17、Spring Boot 3.5.16、MyBatis-Plus 3.5.17、MySQL 8、Vue 3.5.40、Element Plus 2.14.3、ECharts 6.1 和 Vite 8.1.5。完整的事务边界、竞态分析、测试条件与原始结论见 [架构审查](docs/architecture-review.md) 和 [最终验证报告](docs/verification-report.md)。这些结果证明当前环境下的正确性，不构成生产容量承诺。
 
 **维护状态：** `v1.2.0` 起冻结功能范围。仓库继续接受明确缺陷、安全、依赖兼容、测试和文档修正，不再主动增加大型领域模块；具体边界见 [贡献指南](CONTRIBUTING.md)。
+
+当前版本、自动测试和真实链路证据的机器可读边界见 [验证基线](.github/verification-baseline.json)，版本演进见 [CHANGELOG](CHANGELOG.md)。
 
 ## 如何运行
 
