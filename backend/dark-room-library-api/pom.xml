@@ -15,7 +15,7 @@
         <mysql-connector.version>9.7.0</mysql-connector.version>
         <easyexcel.version>4.0.3</easyexcel.version>
         <jjwt.version>0.13.0</jjwt.version>
-        <jsoup.version>1.22.2</jsoup.version>
+        <jsoup.version>1.23.1</jsoup.version>
         <jacoco.version>0.8.13</jacoco.version>
     </properties>
 
