@@ -36,6 +36,10 @@ jobs:
             echo "Unsupported release tag: $tag" >&2
             exit 1
           fi
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Stable release $tag already exists; releases are append-only." >&2
+            exit 1
+          fi
           git rev-parse --verify "refs/tags/$tag"
           git fetch origin main
           commit="$(git rev-list -n 1 "$tag")"
