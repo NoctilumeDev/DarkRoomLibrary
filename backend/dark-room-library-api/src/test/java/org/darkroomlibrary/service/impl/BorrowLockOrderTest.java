@@ -131,6 +131,21 @@ class BorrowLockOrderTest {
         order.verify(borrowRecordMapper).findByIdForUpdate(RECORD_ID);
     }
 
+    @Test
+    void borrowRejectsAFrozenAccountBeforeReadingBookState() {
+        when(userMapper.findByIdForUpdate(USER_ID)).thenReturn(User.builder()
+                .id(USER_ID)
+                .userRole(UserRole.READER.code())
+                .accountStatus(AccountStatus.FROZEN.code())
+                .isLogin(false)
+                .build());
+
+        var response = service.borrow(BOOK_ID);
+
+        assertEquals(400, response.getCode());
+        assertEquals("当前账号状态不允许借阅", response.getMsg());
+    }
+
     private void stubLockContext() {
         when(borrowRecordMapper.getById(RECORD_ID)).thenReturn(activeRecord);
         when(userMapper.findByIdForUpdate(USER_ID)).thenReturn(User.builder()

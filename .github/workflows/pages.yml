@@ -50,6 +50,10 @@ jobs:
         working-directory: backend/dark-room-library-api
         run: mvn -B -ntp clean verify
 
+      - name: Match backend coverage to the public baseline
+        working-directory: backend/dark-room-library-api
+        run: node ../../scripts/check-backend-coverage.mjs
+
       - name: Build frontend coverage report
         run: npm run test:coverage
 
