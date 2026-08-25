@@ -64,8 +64,16 @@ jobs:
           java-version: "17"
           cache: maven
 
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+
       - name: Run Maven tests and enforce coverage
         run: mvn -B -ntp clean verify
+
+      - name: Match backend coverage to the public baseline
+        run: node ../../scripts/check-backend-coverage.mjs
 
   frontend:
     name: Frontend checks

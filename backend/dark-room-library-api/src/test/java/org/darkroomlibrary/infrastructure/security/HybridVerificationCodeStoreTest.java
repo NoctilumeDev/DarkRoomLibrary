@@ -9,6 +9,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -67,6 +72,29 @@ class HybridVerificationCodeStoreTest {
 
         assertTrue(store.tryAcquireSendSlot("reader@example.com", "slot-a", 60_000));
         assertFalse(store.tryAcquireSendSlot("reader@example.com", "slot-b", 60_000));
+    }
+
+    @Test
+    void localFallbackSerializesCompetingSendSlotsAfterConcurrentRedisMisses() throws Exception {
+        CountDownLatch bothRequestsReachedRedisFallback = new CountDownLatch(2);
+        when(cacheService.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+                .thenAnswer(ignored -> {
+                    bothRequestsReachedRedisFallback.countDown();
+                    assertTrue(bothRequestsReachedRedisFallback.await(10, TimeUnit.SECONDS));
+                    return Optional.empty();
+                });
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            Future<Boolean> first = executor.submit(
+                    () -> store.tryAcquireSendSlot("reader@example.com", "slot-a", 60_000));
+            Future<Boolean> second = executor.submit(
+                    () -> store.tryAcquireSendSlot("reader@example.com", "slot-b", 60_000));
+
+            assertTrue(first.get(10, TimeUnit.SECONDS) ^ second.get(10, TimeUnit.SECONDS));
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
