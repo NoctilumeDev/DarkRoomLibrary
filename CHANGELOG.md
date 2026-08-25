@@ -2,6 +2,19 @@
 
 All notable changes to DarkRoomLibrary are documented in this file.
 
+## [1.2.6] - 2026-08-26
+
+### Reliability
+
+- Stabilized the exact backend coverage evidence at `284/284` tests and `3813/5277` covered lines.
+- Added an append-only release guard and a repository gate that prevents its silent removal.
+- Refreshed pinned GitHub Actions dependencies and pull-request workflow triggers.
+
+### Documentation
+
+- Clarified that the per-email daily verification-code budget counts delivery attempts, including failed mail delivery, while a failed delivery releases only the short resend slot.
+- Kept product behavior, database schema, APIs, and frontend domain behavior unchanged.
+
 ## [1.2.5] - 2026-08-08
 
 ### Security

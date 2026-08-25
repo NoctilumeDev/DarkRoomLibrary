@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.darkroomlibrary</groupId>
     <artifactId>dark-room-library-api</artifactId>
-    <version>1.2.5</version>
+    <version>1.2.6</version>
     <name>Dark Room Library API</name>
     <description>Backend services for Dark Room Library</description>
 

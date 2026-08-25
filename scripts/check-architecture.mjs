@@ -17,6 +17,7 @@ const frontendDevelopmentEnv = path.join(
   "dark-room-library-web",
   ".env.development",
 );
+const releaseWorkflowPath = path.join(repositoryRoot, ".github", "workflows", "release.yml");
 
 async function listFiles(root, extension) {
   const files = [];
@@ -60,6 +61,13 @@ const developmentEnv = await fs.readFile(frontendDevelopmentEnv, "utf8");
 if (!/^VITE_API_BASE_URL=\/api\/dark-room-library\/v1$/mu.test(developmentEnv)) {
   violations.push(
     "frontend development API must use the Vite /api proxy to preserve the CSP same-origin boundary",
+  );
+}
+
+const releaseWorkflow = await fs.readFile(releaseWorkflowPath, "utf8");
+if (!/if gh release view "\$tag"[\s\S]*?exit 1[\s\S]*?fi/u.test(releaseWorkflow)) {
+  violations.push(
+    "release workflow must reject an existing stable release before packaging",
   );
 }
 
