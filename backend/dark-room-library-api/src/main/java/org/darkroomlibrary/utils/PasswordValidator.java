@@ -23,6 +23,13 @@ public class PasswordValidator {
         boolean hasSpecial = false;
         for (int index = 0; index < password.length(); index++) {
             char character = password.charAt(index);
+            if (character == '\n'
+                    || character == '\r'
+                    || character == '\u0085'
+                    || character == '\u2028'
+                    || character == '\u2029') {
+                return false;
+            }
             if (character >= 'a' && character <= 'z') {
                 hasLowercase = true;
             } else if (character >= 'A' && character <= 'Z') {

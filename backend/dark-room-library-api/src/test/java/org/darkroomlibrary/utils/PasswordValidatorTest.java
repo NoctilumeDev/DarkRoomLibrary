@@ -33,4 +33,13 @@ class PasswordValidatorTest {
         assertFalse(PasswordValidator.isValid("abcdef١!"));
         assertTrue(PasswordValidator.isValid("Abcdef1?"));
     }
+
+    @Test
+    void rejectsJavaDefaultLineTerminatorsLikeTheOriginalPolicy() {
+        for (char lineTerminator : new char[]{'\n', '\r', '\u0085', '\u2028', '\u2029'}) {
+            assertFalse(PasswordValidator.isValid("Aa1!" + lineTerminator + "xyz"),
+                    () -> "unexpected line terminator acceptance: U+"
+                            + String.format("%04X", (int) lineTerminator));
+        }
+    }
 }

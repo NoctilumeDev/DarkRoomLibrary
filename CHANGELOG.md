@@ -11,7 +11,7 @@ All notable changes to DarkRoomLibrary are documented in this file.
 
 ### Verification
 
-- Added request-wiring, service-boundary, compatibility, and oversized-input regression tests; the backend candidate now passes `289/289` tests with `3836/5293` covered lines (`72.47%`, rounded down).
+- Added request-wiring, service-boundary, line-terminator compatibility, and oversized-input regression tests; the backend candidate now passes `290/290` tests with `3838/5295` covered lines (`72.48%`, rounded down).
 - Kept the database schema, API shape, frontend domain behavior, and existing-login compatibility unchanged. Remote CodeQL closure remains a release gate rather than a local claim.
 
 ## [1.2.6] - 2026-08-26

@@ -4,13 +4,13 @@
   "status": "release-candidate",
   "verifiedOn": "2026-08-28",
   "backend": {
-    "tests": 289,
+    "tests": 290,
     "failures": 0,
     "errors": 0,
     "skipped": 0,
-    "lineCoverageCovered": 3836,
-    "lineCoverageTotal": 5293,
-    "lineCoverage": 72.47,
+    "lineCoverageCovered": 3838,
+    "lineCoverageTotal": 5295,
+    "lineCoverage": 72.48,
     "lineCoverageMinimum": 70
   },
   "frontend": {
