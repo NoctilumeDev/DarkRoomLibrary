@@ -31,6 +31,7 @@ public class UserRegisterDto {
      * 密码
      */
     @NotBlank(message = "密码不能为空")
+    @Size(min = 8, max = 20, message = "密码长度需要在8-20位之间")
     private String userPwd;
 
     /**

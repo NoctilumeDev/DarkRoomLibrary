@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "targetRelease": "v1.2.6",
-  "status": "released",
-  "verifiedOn": "2026-08-26",
+  "targetRelease": "v1.2.7",
+  "status": "release-candidate",
+  "verifiedOn": "2026-08-28",
   "backend": {
-    "tests": 284,
+    "tests": 289,
     "failures": 0,
     "errors": 0,
     "skipped": 0,
-    "lineCoverageCovered": 3813,
-    "lineCoverageTotal": 5277,
-    "lineCoverage": 72.25,
+    "lineCoverageCovered": 3836,
+    "lineCoverageTotal": 5293,
+    "lineCoverage": 72.47,
     "lineCoverageMinimum": 70
   },
   "frontend": {
