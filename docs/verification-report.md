@@ -12,7 +12,7 @@ PR #16 将产品修复合入 `ebe01216ca9a843a29cdb7ffa5b384414b9ff894`。该精
 
 ### 发布后公开资产读回（2026-08-28）
 
-`v1.2.7` 是附注标签对象 `aaae58f623457caf30bfc868285984455e18d065`，解引用后精确指向发布提交 [`afdf2804d9f50fe16bf1b9e4596fb00fe7dc3b65`](https://github.com/NoctilumeDev/DarkRoomLibrary/commit/afdf2804d9f50fe16bf1b9e4596fb00fe7dc3b65)。该提交自己的 CI `33122305735`、Security `33122305753` 与 Pages `33122305790` 均成功；标签触发的 [Release workflow `33122511089`](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/runs/33122511089) 又重新执行仓库边界、前端、后端和 Compose 镜像构建，并在验证标签祖先关系、同提交 Security 和发布版本后创建了 [GitHub Release](https://github.com/NoctilumeDev/DarkRoomLibrary/releases/tag/v1.2.7)。Release 为非 draft、非 prerelease 的当前 latest；GitHub 报告 `immutable=false`，因此身份保证来自固定标签和下列资产摘要，而不是把平台 Release 描述为不可变。
+`v1.2.7` 是附注标签对象 `aaae58f623457caf30bfc868285984455e18d065`，解引用后精确指向发布提交 [`afdf2804d9f50fe16bf1b9e4596fb00fe7dc3b65`](https://github.com/NoctilumeDev/DarkRoomLibrary/commit/afdf2804d9f50fe16bf1b9e4596fb00fe7dc3b65)。该标签未签名，本报告不将它表述为密码学签名身份。发布提交自己的 CI `33122305735`、Security `33122305753` 与 Pages `33122305790` 均成功；标签触发的 [Release workflow `33122511089`](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/runs/33122511089) 又重新执行仓库边界、前端、后端和 Compose 镜像构建，并在验证标签祖先关系、同提交 Security 和发布版本后创建了 [GitHub Release](https://github.com/NoctilumeDev/DarkRoomLibrary/releases/tag/v1.2.7)。截至 `2026-08-27T22:36Z` 的公开 API 快照，Release 为非 draft、非 prerelease 的 latest；GitHub 报告 `immutable=false`，因此该时间切片的内容绑定证据来自精确标签对象、解引用提交和下列资产摘要，而不是把平台 Release 描述为不可变。
 
 | 公开资产 | 字节数 | GitHub API 与匿名公开下载重算的 SHA-256 |
 | --- | ---: | --- |
@@ -21,9 +21,9 @@ PR #16 将产品修复合入 `ebe01216ca9a843a29cdb7ffa5b384414b9ff894`。该精
 | `DarkRoomLibrary-v1.2.7.zip` | 15433191 | `c96fb23a2067448910ea0415935ef7e3fb305a87df76e5f60541ff4c33647584` |
 | `DarkRoomLibrary-v1.2.7.zip.sha256` | 93 | `72cfc6f9265ee38db6e79248023435de2a6fc48103ffcafd088dc678f92c8f33` |
 
-四项资产均从不带 GitHub 凭据的公开 URL 串行下载，文件大小和摘要与 GitHub API 一致；独立 checksum 与 manifest 也都把 ZIP 绑定到 `c96fb23a...`，manifest 中的提交为 `afdf2804...`。公开 ZIP 含 488 个文件，与该固定提交的 488 个 tracked blob 一一对应：485 个文件的原始 blob 字节相同，3 个 PowerShell 脚本仅按 `.gitattributes` 声明导出为 CRLF，零缺失、零多余、零无法解释的内容差异。仓库外解包后，架构边界检查覆盖 233 个 Java 源文件，文档检查覆盖 20 个 Markdown 文件和 47 个相对链接，发布版本检查通过；未发现本机用户目录、Runner 工作目录或本轮临时目录路径泄漏。SPDX 2.3 资产可解析，包含 118 个 package 和 365 个 relationship。
+本次主审从不带 GitHub 凭据的公开 URL 串行下载四项资产，无上下文审查者随后又从独立临时目录复现；两次现场结果的文件大小和摘要都与 GitHub API 一致。独立 checksum 与 manifest 也都把 ZIP 绑定到 `c96fb23a...`，manifest 中的提交为 `afdf2804...`。公开 ZIP 含 488 个文件，与该固定提交的 488 个 tracked blob 一一对应：485 个文件的原始 blob 字节相同，3 个 PowerShell 脚本仅按 `.gitattributes` 声明导出为 CRLF，零缺失、零多余、零无法解释的内容差异。仓库外解包后，架构边界检查覆盖 233 个 Java 源文件，文档检查覆盖 20 个 Markdown 文件和 47 个相对链接，发布版本检查通过；未发现本机用户目录、Runner 工作目录或本轮临时目录路径泄漏。SPDX 2.3 资产可解析，包含 118 个 package 和 365 个 relationship。
 
-这次公开下载读回在发布后本机完成，没有伪装成额外的 GitHub-hosted 执行日志；它证明的是公开资产可取得、摘要一致、内容绑定正确和仓库自检可从解包目录运行。真实业务、中间件降级、浏览器与历史三实例证据没有在本步骤重跑，仍保持各自原有日期与边界。
+这次公开下载读回在发布后本机完成，原始会话日志没有作为 GitHub 托管资产保存，公开 API 也不能独立证明首次本机读回发生的时间；本报告不把它伪装成额外的 GitHub-hosted provenance。它证明的是结果可由无凭据公开下载重复取得、摘要一致、内容绑定正确和仓库自检可从解包目录运行。真实业务、中间件降级、浏览器与历史三实例证据没有在本步骤重跑，仍保持各自原有日期与边界。
 
 ## 2026-08-26 v1.2.6 维护发布复核
 
