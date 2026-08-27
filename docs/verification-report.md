@@ -10,6 +10,21 @@
 
 PR #16 将产品修复合入 `ebe01216ca9a843a29cdb7ffa5b384414b9ff894`。该精确提交的 CI `33121544968`、Security `33121545043` 与 Pages `33121544994` 均成功；GitHub 随后把 CodeQL alert #1-#4 在 `2026-08-27T22:14:26Z` 自动标为 `fixed`，没有人工 dismissal。机器基线因此从 `release-candidate` 冻结为 `released`，用于允许受保护的 `v1.2.7` tag 进入既有发布工作流；tag 仍须在自身精确提交上重新通过 CI 与 Security，公开 Release 资产也须在发布后单独读回。
 
+### 发布后公开资产读回（2026-08-28）
+
+`v1.2.7` 是附注标签对象 `aaae58f623457caf30bfc868285984455e18d065`，解引用后精确指向发布提交 [`afdf2804d9f50fe16bf1b9e4596fb00fe7dc3b65`](https://github.com/NoctilumeDev/DarkRoomLibrary/commit/afdf2804d9f50fe16bf1b9e4596fb00fe7dc3b65)。该提交自己的 CI `33122305735`、Security `33122305753` 与 Pages `33122305790` 均成功；标签触发的 [Release workflow `33122511089`](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/runs/33122511089) 又重新执行仓库边界、前端、后端和 Compose 镜像构建，并在验证标签祖先关系、同提交 Security 和发布版本后创建了 [GitHub Release](https://github.com/NoctilumeDev/DarkRoomLibrary/releases/tag/v1.2.7)。Release 为非 draft、非 prerelease 的当前 latest；GitHub 报告 `immutable=false`，因此身份保证来自固定标签和下列资产摘要，而不是把平台 Release 描述为不可变。
+
+| 公开资产 | 字节数 | GitHub API 与匿名公开下载重算的 SHA-256 |
+| --- | ---: | --- |
+| `DarkRoomLibrary-v1.2.7.manifest.json` | 317 | `b21762ac74bdbfe3727cf4a372f87fe0f56c0f13eeb8bdf2adef6fb3aa197fbd` |
+| `DarkRoomLibrary-v1.2.7.spdx.json` | 263467 | `265ae6cc95842944175f61e55dc918284ae78fd392b9e5f25566f47394d94504` |
+| `DarkRoomLibrary-v1.2.7.zip` | 15433191 | `c96fb23a2067448910ea0415935ef7e3fb305a87df76e5f60541ff4c33647584` |
+| `DarkRoomLibrary-v1.2.7.zip.sha256` | 93 | `72cfc6f9265ee38db6e79248023435de2a6fc48103ffcafd088dc678f92c8f33` |
+
+四项资产均从不带 GitHub 凭据的公开 URL 串行下载，文件大小和摘要与 GitHub API 一致；独立 checksum 与 manifest 也都把 ZIP 绑定到 `c96fb23a...`，manifest 中的提交为 `afdf2804...`。公开 ZIP 含 488 个文件，与该固定提交的 488 个 tracked blob 一一对应：485 个文件的原始 blob 字节相同，3 个 PowerShell 脚本仅按 `.gitattributes` 声明导出为 CRLF，零缺失、零多余、零无法解释的内容差异。仓库外解包后，架构边界检查覆盖 233 个 Java 源文件，文档检查覆盖 20 个 Markdown 文件和 47 个相对链接，发布版本检查通过；未发现本机用户目录、Runner 工作目录或本轮临时目录路径泄漏。SPDX 2.3 资产可解析，包含 118 个 package 和 365 个 relationship。
+
+这次公开下载读回在发布后本机完成，没有伪装成额外的 GitHub-hosted 执行日志；它证明的是公开资产可取得、摘要一致、内容绑定正确和仓库自检可从解包目录运行。真实业务、中间件降级、浏览器与历史三实例证据没有在本步骤重跑，仍保持各自原有日期与边界。
+
 ## 2026-08-26 v1.2.6 维护发布复核
 
 本轮没有修改业务功能、数据库结构、API 或前端领域行为。新增两条确定性回归，分别固定并发验证码发送槽竞争和冻结账号借阅拒绝分支，避免同一提交在本地 CI 与 Pages 构建中因偶然调度得到不同的行覆盖数。当前主分支后端为 `284/284`，失败、错误、跳过均为 0；JaCoCo 原始值为 `3813/5277 = 72.257%`，对外按不高估原则展示为 `72.25%`。
