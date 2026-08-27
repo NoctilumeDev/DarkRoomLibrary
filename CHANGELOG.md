@@ -2,6 +2,18 @@
 
 All notable changes to DarkRoomLibrary are documented in this file.
 
+## [1.2.7] - 2026-08-28
+
+### Security
+
+- Enforced the existing 8-20 character new-password contract at both request and service boundaries for public registration and administrator-created accounts.
+- Replaced four user-influenced regular-expression scans with one bounded character-class pass while preserving the existing ASCII password policy.
+
+### Verification
+
+- Added request-wiring, service-boundary, line-terminator compatibility, and oversized-input regression tests; the backend candidate now passes `290/290` tests with `3838/5295` covered lines (`72.48%`, rounded down).
+- Kept the database schema, API shape, frontend domain behavior, and existing-login compatibility unchanged. Remote CodeQL closure remains a release gate rather than a local claim.
+
 ## [1.2.6] - 2026-08-26
 
 ### Reliability

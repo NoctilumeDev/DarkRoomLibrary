@@ -13,6 +13,7 @@ import org.darkroomlibrary.domain.type.VerificationCodePurpose;
 import org.darkroomlibrary.service.CaptchaService;
 import org.darkroomlibrary.service.UserService;
 import org.darkroomlibrary.service.VerificationCodeService;
+import org.darkroomlibrary.utils.PasswordValidator;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -442,6 +443,26 @@ public class UserServiceImplTest extends BaseTest {
         ApiResponse<String> accepted = userService.update(update);
         assertEquals(200, accepted.getCode());
         assertEquals(3, userMapper.countByNormalizedEmail(sharedEmail));
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("公开注册与后台新增 - 新密码上限在 HTTP 与服务边界一致")
+    void testNewPasswordUpperBoundaryAtValidationAndServiceLayers() {
+        UserRegisterDto accepted = registration(
+                "password_limit_ok", "密码上限通过", "Aa1!" + "x".repeat(16), "limit-ok@example.test");
+        assertTrue(validator.validate(accepted).isEmpty());
+
+        UserRegisterDto rejected = registration(
+                "password_limit_bad", "密码上限拒绝", "Aa1!" + "x".repeat(17), "limit-bad@example.test");
+        var messages = validator.validate(rejected).stream()
+                .map(violation -> violation.getMessage())
+                .collect(java.util.stream.Collectors.toSet());
+        assertTrue(messages.contains("密码长度需要在8-20位之间"));
+
+        assertEquals(PasswordValidator.getRequirement(), userService.register(rejected).getMsg());
+        setCurrentUser(999_999, UserRole.ADMIN.code());
+        assertEquals(PasswordValidator.getRequirement(), userService.insert(rejected).getMsg());
     }
 
     private void fillValidCaptcha(UserLoginDto dto) {
