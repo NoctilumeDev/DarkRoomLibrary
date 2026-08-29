@@ -11,7 +11,7 @@ import lombok.EqualsAndHashCode;
 @Data
 public class UserPageQuery extends PageQuery {
     /**
-     * 用户的帐号
+     * 用户的账号
      */
     private String userAccount;
     /**

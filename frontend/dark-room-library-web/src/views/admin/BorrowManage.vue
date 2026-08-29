@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-row class="admin-table-page">
     <el-row style="padding: 10px; margin: 0 10px">
       <el-row>

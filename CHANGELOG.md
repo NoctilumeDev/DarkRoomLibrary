@@ -2,6 +2,17 @@
 
 All notable changes to DarkRoomLibrary are documented in this file.
 
+## [Unreleased]
+
+### Documentation
+
+- Synchronized the repository overview, technical documents, presentation, PDFs, and interactive module map with the released v1.2.7 implementation without changing product behavior.
+- Corrected the v1.2.7 backend coverage evidence to the JaCoCo report-level unique source-line total: `3837/5293` (`72.49%`). The former CSV class-row sum double-counted source lines shared by outer and nested classes; the `290/290` test result and 70% gate are unchanged.
+
+### Presentation
+
+- Added a shared DarkRoomLibrary evidence theme, report-scope notes, and project navigation to the generated JaCoCo and Vitest V8 coverage pages. Native sorting, filtering, and source navigation remain intact, while the default saturated traffic-light colors and pixel icons are replaced by restrained jade, ochre, and seal-red evidence states.
+
 ## [1.2.7] - 2026-08-28
 
 ### Security
@@ -11,7 +22,7 @@ All notable changes to DarkRoomLibrary are documented in this file.
 
 ### Verification
 
-- Added request-wiring, service-boundary, line-terminator compatibility, and oversized-input regression tests; the backend passes `290/290` tests with `3838/5295` covered lines (`72.48%`, rounded down).
+- Added request-wiring, service-boundary, line-terminator compatibility, and oversized-input regression tests; the backend passes `290/290` tests with `3837/5293` unique source lines covered (`72.49%`, rounded down from the JaCoCo report-level counter).
 - Kept the database schema, API shape, frontend domain behavior, and existing-login compatibility unchanged. Remote CodeQL closure remains a release gate rather than a local claim.
 
 ## [1.2.6] - 2026-08-26

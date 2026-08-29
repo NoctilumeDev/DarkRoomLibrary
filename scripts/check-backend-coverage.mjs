@@ -11,27 +11,26 @@ const reportPath = path.join(
   "target",
   "site",
   "jacoco",
-  "jacoco.csv",
+  "jacoco.xml",
 );
 
 const baseline = JSON.parse(await fs.readFile(baselinePath, "utf8"));
 const report = await fs.readFile(reportPath, "utf8");
-const [headerLine, ...dataLines] = report.trim().split(/\r?\n/u);
-const headers = headerLine.split(",");
-const missedIndex = headers.indexOf("LINE_MISSED");
-const coveredIndex = headers.indexOf("LINE_COVERED");
+const lineCounters = [
+  ...report.matchAll(/<counter type="LINE" missed="(\d+)" covered="(\d+)"\s*\/>/gu),
+];
 
-if (missedIndex < 0 || coveredIndex < 0) {
-  throw new Error(`JaCoCo CSV is missing line counters: ${reportPath}`);
+if (lineCounters.length === 0) {
+  throw new Error(`JaCoCo XML is missing line counters: ${reportPath}`);
 }
 
-let missed = 0;
-let covered = 0;
-for (const line of dataLines) {
-  const columns = line.split(",");
-  missed += Number.parseInt(columns[missedIndex], 10);
-  covered += Number.parseInt(columns[coveredIndex], 10);
-}
+// JaCoCo writes the report-level counters after all package and class counters.
+// Using that root counter matches the public HTML report's unique source-line
+// total. Summing CSV class rows can double-count a line shared by an outer and
+// an anonymous or nested class.
+const [, missedText, coveredText] = lineCounters.at(-1);
+const missed = Number.parseInt(missedText, 10);
+const covered = Number.parseInt(coveredText, 10);
 
 const total = missed + covered;
 const displayedRate = Math.floor((covered / total) * 10_000) / 100;
