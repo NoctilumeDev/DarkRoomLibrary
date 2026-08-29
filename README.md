@@ -30,6 +30,20 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 | --- |
 | ![采购物流协作工作台](docs/images/procurement-workbench.jpg) |
 
+## 项目全景与说明资料
+
+[![暗室藏书功能模块全景](docs/images/library-system-modules.png)](https://noctilumedev.github.io/DarkRoomLibrary/library-system-modules.html)
+
+点击预览图可打开交互式功能模块图；页面按认证、读者端、管理端、采购物流和系统支撑拆解当前能力。
+
+| 资料 | 内容 |
+| --- | --- |
+| [交互式功能模块图](https://noctilumedev.github.io/DarkRoomLibrary/library-system-modules.html) | 快速浏览角色、模块和业务边界 |
+| [项目介绍 PPT](docs/DarkRoomLibrary-project-overview.pptx) | 18 页项目定位、业务闭环、架构与验证证据 |
+| [项目起源 PDF](docs/暗室藏书_项目起源.pdf) | 从个人构想到独立工程化实现的演进 |
+| [项目计划书 PDF](docs/暗室藏书_项目计划书.pdf) | 需求、架构、数据设计、实施路线与交付结果 |
+| [项目复盘 PDF](docs/暗室藏书项目复盘.pdf) | 重构取舍、验证顺序、当前基线与历史证据边界 |
+
 ## 核心能力与证据
 
 - **流通闭环**：借书、归还、续借、预约排队、到期提醒、逾期罚款与库存恢复联动。
