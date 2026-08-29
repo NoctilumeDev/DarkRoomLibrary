@@ -54,14 +54,14 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 
 | 验证维度 | v1.2.7 后端安全修复与 v1.2.6 / v1.2.4 / v1.2.3 历史基线 |
 | --- | --- |
-| 自动测试 | 后端 `290/290`，行覆盖率 `72.48%`；前端 `68/68`，关键逻辑范围行覆盖率 `71.47%`，ESLint、构建和 npm 审计通过 |
+| 自动测试 | 后端 `290/290`，行覆盖率 `72.49%`；前端 `68/68`，关键逻辑范围行覆盖率 `71.47%`，ESLint、构建和 npm 审计通过 |
 | 角色链路 | 5 个角色码、6 个固定权限身份真实登录，`v1.2.4` 完成 `70` 次页面 API 全链路 |
 | 多实例一致性 | 20 场景 `393` 次并发回归于 `v1.2.4` 重跑；3 个后端实例的 8 场景 `176` 次请求保留为 `v1.2.3` 历史基线 |
 | 推荐并发 | 8 个首次并发请求只生成 1 个批次，三实例得到一致的协同结果 |
 | 浏览器诊断 | 116 个路由、456 次 API 响应、6,114 次网络响应；Console、失败请求与横向溢出为 0 |
 | 数据与中间件 | 24 张表、34 条外键；Redis AOF、请求 ID、CSP、安全响应头、RabbitMQ 毒消息转移与多实例死信告警通过 |
 
-公开覆盖率报告：[后端 JaCoCo](https://noctilumedev.github.io/DarkRoomLibrary/coverage/backend/) · [前端 Vitest V8](https://noctilumedev.github.io/DarkRoomLibrary/coverage/frontend/)。后端模块与前端关键逻辑范围均在 GitHub Actions 中执行至少 70% 的行覆盖率门禁；Vue 组件、路由守卫和真实页面行为另由组件测试及浏览器 E2E 验证，不把局部覆盖率包装成整个前端代码库覆盖率。
+公开覆盖率报告：[后端 JaCoCo](https://noctilumedev.github.io/DarkRoomLibrary/coverage/backend/) · [前端 Vitest V8](https://noctilumedev.github.io/DarkRoomLibrary/coverage/frontend/)。两份生成报告使用同一套低饱和“验证证据”主题，保留原生排序、筛选、源码导航与覆盖状态语义。后端模块与前端关键逻辑范围均在 GitHub Actions 中执行至少 70% 的行覆盖率门禁；Vue 组件、路由守卫和真实页面行为另由组件测试及浏览器 E2E 验证，不把局部覆盖率包装成整个前端代码库覆盖率。
 
 技术栈为 JDK 17、Spring Boot 3.5.16、MyBatis-Plus 3.5.17、MySQL 8、Vue 3.5.40、Element Plus 2.14.3、ECharts 6.1 和 Vite 8.1.5。完整的事务边界、竞态分析、测试条件与原始结论见 [架构审查](docs/architecture-review.md) 和 [最终验证报告](docs/verification-report.md)。这些结果证明当前环境下的正确性，不构成生产容量承诺。
 

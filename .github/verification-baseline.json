@@ -8,9 +8,10 @@
     "failures": 0,
     "errors": 0,
     "skipped": 0,
-    "lineCoverageCovered": 3838,
-    "lineCoverageTotal": 5295,
-    "lineCoverage": 72.48,
+    "lineCoverageCovered": 3837,
+    "lineCoverageTotal": 5293,
+    "lineCoverage": 72.49,
+    "lineCoverageSource": "JaCoCo XML report-level LINE counter",
     "lineCoverageMinimum": 70
   },
   "frontend": {

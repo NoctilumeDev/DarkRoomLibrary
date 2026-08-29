@@ -8,7 +8,7 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const releaseTag = process.argv[2] ?? process.env.RELEASE_TAG;
 
 if (!releaseTag || !/^v\d+\.\d+\.\d+$/u.test(releaseTag)) {
-  throw new Error("Usage: node scripts/build-release-bundle.mjs v1.2.4");
+  throw new Error("Usage: node scripts/build-release-bundle.mjs vX.Y.Z");
 }
 
 const verify = spawnSync("git", ["rev-parse", "--verify", `${releaseTag}^{commit}`], {
