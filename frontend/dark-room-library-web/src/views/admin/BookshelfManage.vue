@@ -60,34 +60,37 @@
         :data="tableData"
         style="width: 100%"
       >
-        <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="id" label="ID" width="80"></el-table-column>
+        <el-table-column type="selection" :width="isCompactViewport ? 42 : 55"></el-table-column>
+        <el-table-column v-if="!isCompactViewport" prop="id" label="ID" width="80"></el-table-column>
         <el-table-column
           prop="name"
           label="书架名称"
-          width="160"
+          :width="isCompactViewport ? 90 : 160"
         ></el-table-column>
         <el-table-column
           prop="location"
           label="所在位置"
-          width="160"
+          :width="isCompactViewport ? 80 : 160"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="capacity"
           label="容量(本)"
           width="100"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="description"
           label="备注"
           min-width="200"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="createTime"
           label="创建时间"
           width="180"
         ></el-table-column>
-        <el-table-column label="操作" width="140">
+        <el-table-column label="操作" :width="isCompactViewport ? 104 : 140" fixed="right">
           <template #default="scope">
             <span class="text-button" @click="handleEdit(scope.row)">编辑</span>
             <span
@@ -177,7 +180,10 @@
 </template>
 
 <script>
+import compactViewport from "@/mixins/compactViewport.js";
+
 export default {
+  mixins: [compactViewport],
   data() {
     return {
       form: { name: "", location: "", capacity: 100, description: "" },

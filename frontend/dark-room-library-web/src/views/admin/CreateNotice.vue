@@ -2,7 +2,7 @@
   <section class="notice-editor-page">
     <header class="page-intro">
       <div>
-        <p>NOTICE EDITOR</p>
+        <p>公告编录</p>
         <h1>{{ noticeOperation === "save" ? "发布公告" : "修改公告" }}</h1>
       </div>
       <div class="header-actions">

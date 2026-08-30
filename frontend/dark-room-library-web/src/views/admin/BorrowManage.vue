@@ -49,33 +49,36 @@
     </el-row>
     <el-row style="margin: 10px 20px">
       <el-table :data="tableData" style="width: 100%" row-key="id">
-        <el-table-column prop="id" label="ID" width="80"></el-table-column>
+        <el-table-column v-if="!isCompactViewport" prop="id" label="ID" width="80"></el-table-column>
         <el-table-column
           prop="userName"
           label="用户名"
-          width="120"
+          :width="isCompactViewport ? 86 : 120"
         ></el-table-column>
         <el-table-column
           prop="bookName"
           label="书名"
-          min-width="180"
+          :min-width="isCompactViewport ? 104 : 180"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="borrowTime"
           label="借阅时间"
           width="180"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="dueDate"
           label="应还日期"
           width="180"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="returnTime"
           label="归还时间"
           width="180"
         ></el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="status" label="状态" :width="isCompactViewport ? 78 : 100">
           <template #default="scope">
             <el-tag
               :class="[
@@ -91,11 +94,12 @@
           </template>
         </el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="fineAmount"
           label="罚款(元)"
           width="100"
         ></el-table-column>
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" :width="isCompactViewport ? 72 : 100" fixed="right">
           <template #default="scope">
             <el-button
               v-if="!scope.row.status"
@@ -122,7 +126,10 @@
 </template>
 
 <script>
+import compactViewport from "@/mixins/compactViewport.js";
+
 export default {
+  mixins: [compactViewport],
   data() {
     return {
       currentPage: 1,

@@ -1,9 +1,9 @@
 <template>
   <section class="reader-page">
     <div class="page-title">
-      <p>WAITING QUEUE</p>
+      <p>候书签</p>
       <h1>我的预约</h1>
-      <span>当灯暂时不在架上，可以先排队等待它归来。</span>
+      <span>当一本书暂离书架，可以先留下候书签，等它归来。</span>
     </div>
 
     <div v-loading="loading" class="table-card">

@@ -2,7 +2,7 @@
   <section class="export-page">
     <header class="page-intro">
       <div>
-        <p>DATA EXPORT</p>
+        <p>数据导出</p>
         <h1>数据导出</h1>
       </div>
       <span>按业务范围筛选并生成 Excel 文件</span>

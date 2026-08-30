@@ -5,7 +5,7 @@
   >
     <div class="page-hero">
       <div>
-        <p class="eyebrow">THE CATALOGUE DESK</p>
+        <p class="eyebrow">馆藏检索</p>
         <h1>检索台</h1>
         <p>按书名、作者或分类寻找图书。打开书页后，再决定借阅、预约或收藏。</p>
       </div>
@@ -828,13 +828,13 @@ export default {
   font-size: 12px;
 
   &.ok {
-    color: #29483e;
+    color: var(--status-positive-text);
     border: 1px solid rgba(65, 105, 88, 0.28);
     background: rgba(88, 119, 109, 0.14);
   }
 
   &.wait {
-    color: #70471f;
+    color: var(--status-warning-text);
     border: 1px solid rgba(143, 94, 43, 0.25);
     background: rgba(181, 138, 80, 0.16);
   }
@@ -908,7 +908,7 @@ export default {
 }
 
 .overdue {
-  color: #ff9b8f;
+  color: var(--status-danger-text);
 }
 
 .muted {
@@ -1225,7 +1225,20 @@ export default {
   }
 
   .search-panel {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .search-panel > *,
+  .search-panel :deep(.el-input),
+  .search-panel :deep(.el-select),
+  .search-panel :deep(.el-button) {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .search-panel :deep(.el-button + .el-button) {
+    margin-left: 0;
   }
 
   .book-card {

@@ -1,5 +1,10 @@
 <template>
-  <aside v-if="visible" class="demo-toolbar" :class="{ open }" aria-label="在线演示控制">
+  <aside
+    v-if="visible"
+    class="demo-toolbar"
+    :class="[{ open }, surfaceClass]"
+    aria-label="在线演示控制"
+  >
     <button
       class="demo-toggle"
       type="button"
@@ -14,7 +19,7 @@
     <section v-if="open" class="demo-panel">
       <header>
         <div>
-          <small>BROWSER DEMO</small>
+          <small>在线验收</small>
           <strong>{{ activeIdentity?.label || "选择身份" }}</strong>
         </div>
         <button type="button" title="关闭演示控制" @click="open = false">
@@ -72,6 +77,13 @@ export default {
   computed: {
     visible() {
       return DEMO_MODE && this.authenticated;
+    },
+    surfaceClass() {
+      const parentPath = this.$route.matched[0]?.path;
+      if (parentPath === "/user") return "demo-toolbar--reader";
+      if (parentPath === "/admin") return "demo-toolbar--admin";
+      if (parentPath === "/procurement") return "demo-toolbar--staff";
+      return "demo-toolbar--standalone";
     },
   },
   watch: {
@@ -229,17 +241,42 @@ export default {
 
 @media (max-width: 820px) {
   .demo-toolbar {
-    top: 68px;
+    top: auto;
     right: 10px;
-    bottom: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     left: auto;
   }
 
-  .demo-panel {
-    top: 44px;
-    right: 0;
+  .demo-toolbar--reader {
+    top: 12px;
+    right: 124px;
     bottom: auto;
+  }
+
+  .demo-toolbar--admin {
+    top: 14px;
+    right: 14px;
+    bottom: auto;
+  }
+
+  .demo-toolbar--staff {
+    top: 23px;
+    right: 136px;
+    bottom: auto;
+  }
+
+  .demo-panel {
+    top: auto;
+    right: 0;
+    bottom: 44px;
     left: auto;
+  }
+
+  .demo-toolbar--reader .demo-panel,
+  .demo-toolbar--admin .demo-panel,
+  .demo-toolbar--staff .demo-panel {
+    top: 44px;
+    bottom: auto;
   }
 
   .demo-toggle span {

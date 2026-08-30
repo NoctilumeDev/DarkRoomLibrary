@@ -12,6 +12,13 @@ function loadSwal() {
 }
 
 export async function swalConfirm(options = {}) {
+  const {
+    quiet = false,
+    customClass = {},
+    showClass,
+    hideClass,
+    ...dialogOptions
+  } = options;
   const defaultOptions = {
     title: "提示",
     text: "",
@@ -22,8 +29,22 @@ export async function swalConfirm(options = {}) {
     cancelButtonText: "取消",
     customClass: {
       confirmButton: "sweet-btn-primary",
+      ...customClass,
     },
-    ...options,
+    ...(quiet
+      ? {
+          showClass: { popup: "sweet-popup-enter" },
+          hideClass: { popup: "sweet-popup-exit" },
+          customClass: {
+            popup: "sweet-popup--quiet",
+            confirmButton: "sweet-btn-primary",
+            ...customClass,
+          },
+        }
+      : {}),
+    ...(showClass ? { showClass } : {}),
+    ...(hideClass ? { hideClass } : {}),
+    ...dialogOptions,
   };
 
   const result = await swalFire(defaultOptions);

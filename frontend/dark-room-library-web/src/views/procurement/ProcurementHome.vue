@@ -36,7 +36,14 @@ export default {
       this.userInfo = { id: user.id, role: user.userRole, name: user.userName, email: user.userEmail, url: user.userAvatar };
     },
     async logout() {
-      const confirmed = await this.$swalConfirm({ title: "退出工作台？", text: "退出后需要重新登录。", icon: "warning" });
+      const confirmed = await this.$swalConfirm({
+        title: "退出采购工作台？",
+        text: "当前账号将退出，下次进入需要重新登录。",
+        icon: undefined,
+        confirmButtonText: "退出",
+        cancelButtonText: "留下",
+        quiet: true,
+      });
       if (!confirmed) return;
       clearAuthSession(); this.$router.push("/login");
     },

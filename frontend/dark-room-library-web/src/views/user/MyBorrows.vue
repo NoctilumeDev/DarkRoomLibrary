@@ -1,7 +1,7 @@
 <template>
   <section class="reader-page">
     <div class="page-title">
-      <p>LOOK BACK</p>
+      <p>借阅回望</p>
       <h1>我的借阅</h1>
       <span>查看当前借阅、历史归还、续借与逾期状态。</span>
     </div>
@@ -335,7 +335,7 @@ export default {
 }
 
 .overdue {
-  color: #ff9b8f;
+  color: var(--status-danger-text);
 }
 
 .muted {

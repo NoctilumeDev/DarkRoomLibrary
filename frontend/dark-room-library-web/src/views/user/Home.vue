@@ -193,9 +193,12 @@ export default {
     },
     async loginOut() {
       const confirmed = await this.$swalConfirm({
-        title: "退出登录？",
-        text: "退出后需要重新登录。",
-        icon: "warning",
+        title: "退出暗室？",
+        text: "当前账号将退出，下次进入需要重新登录。",
+        icon: undefined,
+        confirmButtonText: "退出",
+        cancelButtonText: "留下",
+        quiet: true,
       });
       if (!confirmed) return;
       clearAuthSession();

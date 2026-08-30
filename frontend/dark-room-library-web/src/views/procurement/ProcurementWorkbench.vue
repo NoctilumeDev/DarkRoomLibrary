@@ -240,7 +240,7 @@ export default {
     isLogistics() { return this.role === USER_ROLE.LOGISTICS; },
     canCreate() { return this.isAdmin; },
     pageTitle() { return this.isLogistics ? "物流入库工作台" : this.isPurchaser ? "采购协作工作台" : "采购物流管理"; },
-    sectionLabel() { return this.isLogistics ? "LOGISTICS" : this.isPurchaser ? "PROCUREMENT" : "WORKFLOW"; },
+    sectionLabel() { return this.isLogistics ? "物流协作" : this.isPurchaser ? "采购协作" : "协作流转"; },
     roleDescription() { return this.isLogistics ? "接收已分配任务，登记运输、到馆与入库进度" : this.isPurchaser ? "接下馆内需求，推进采购并将图书交接给物流人员" : "发起采购需求、指派协作人员，并查看每一步流转留痕"; },
     activeCount() { return this.orders.filter(item => item.status > 0 && item.status < 6).length; },
     unreadTotal() { return this.orders.reduce((sum, item) => sum + (item.unreadCount || 0), 0); },
@@ -465,6 +465,15 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.procurement-page :deep(.el-empty__image) {
+  display: none;
+}
+
+.procurement-page :deep(.el-empty) {
+  min-height: 140px;
+  padding: 34px 0;
+}
+
 .procurement-page {
   --workbench-ink: var(--admin-text, #2d2923);
   --workbench-ink-soft: var(--admin-text-secondary, #4f473c);

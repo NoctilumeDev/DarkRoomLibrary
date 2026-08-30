@@ -68,10 +68,10 @@
         class="notice-table"
         @selection-change="selectedRows = $event"
       >
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="name" width="508" label="公告" />
-        <el-table-column prop="createTime" width="188" label="发布时间" />
-        <el-table-column label="操作">
+        <el-table-column type="selection" :width="isCompactViewport ? 42 : 55" />
+        <el-table-column prop="name" :width="isCompactViewport ? 140 : 508" label="公告" />
+        <el-table-column v-if="!isCompactViewport" prop="createTime" width="188" label="发布时间" />
+        <el-table-column label="操作" :width="isCompactViewport ? 104 : 140" fixed="right">
           <template #default="{ row }">
             <span class="text-button" @click="openEditPage(row)">修改</span>
             <span class="text-button" @click="deleteOne(row)">删除</span>
@@ -95,12 +95,14 @@
 
 <script>
 import { toDayRange } from "@/utils/pageQuery.js";
+import compactViewport from "@/mixins/compactViewport.js";
 
 const NOTICE_OPERATION_KEY = "noticeOperation";
 const NOTICE_DRAFT_KEY = "noticeInfo";
 
 export default {
   name: "NoticeManage",
+  mixins: [compactViewport],
   data() {
     return {
       currentPage: 1,
@@ -243,5 +245,34 @@ export default {
 .notice-pagination {
   margin: 20px 0;
   margin-left: auto;
+}
+
+@media (max-width: 760px) {
+  .notice-toolbar {
+    width: 100%;
+    padding: 0;
+  }
+
+  .notice-toolbar__controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+
+  .notice-toolbar__controls > .top-bar {
+    display: none;
+  }
+
+  .notice-title-filter,
+  .notice-toolbar__controls :deep(.notice-date-filter) {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .notice-toolbar__controls :deep(.el-button) {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 </style>

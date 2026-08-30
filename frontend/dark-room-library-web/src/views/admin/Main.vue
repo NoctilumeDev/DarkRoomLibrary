@@ -2,7 +2,7 @@
   <section class="admin-dashboard">
     <header class="page-intro">
       <div>
-        <p>OVERVIEW</p>
+        <p>馆务总览</p>
         <h1>数据总览</h1>
       </div>
       <span>快速掌握馆藏、读者与借阅运行情况</span>
@@ -99,7 +99,7 @@
     <section class="notice-section">
       <div class="section-head">
         <div>
-          <p>RECENT NOTICE</p>
+          <p>近日公告</p>
           <h2>最新公告</h2>
         </div>
         <span>最近发布的馆内信息</span>

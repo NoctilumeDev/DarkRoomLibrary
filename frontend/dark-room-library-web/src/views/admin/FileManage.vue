@@ -2,7 +2,7 @@
   <section class="file-page">
     <header class="page-head">
       <div>
-        <p>FILE LIFECYCLE</p>
+        <p>文件流转</p>
         <h2>文件管理</h2>
       </div>
       <el-button
@@ -40,19 +40,19 @@
     </div>
 
     <el-table :data="tableData" row-key="fileName" v-loading="loading">
-      <el-table-column prop="originalName" label="原始文件名" min-width="190" show-overflow-tooltip />
-      <el-table-column prop="extension" label="类型" width="72" />
-      <el-table-column label="大小" width="96">
+      <el-table-column prop="originalName" label="原始文件名" :min-width="isCompactViewport ? 130 : 190" show-overflow-tooltip />
+      <el-table-column v-if="!isCompactViewport" prop="extension" label="类型" width="72" />
+      <el-table-column v-if="!isCompactViewport" label="大小" width="96">
         <template #default="scope">{{ formatSize(scope.row.fileSize) }}</template>
       </el-table-column>
-      <el-table-column label="状态" width="96">
+      <el-table-column label="状态" :width="isCompactViewport ? 80 : 96">
         <template #default="scope">
           <el-tag :type="statusInfo(scope.row.status).type" size="small">
             {{ statusInfo(scope.row.status).label }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="业务引用" min-width="150">
+      <el-table-column v-if="!isCompactViewport" label="业务引用" min-width="150">
         <template #default="scope">
           <span v-if="scope.row.refType">
             {{ refTypeName(scope.row.refType) }} #{{ scope.row.refId }}
@@ -60,20 +60,20 @@
           <span v-else class="muted">未绑定</span>
         </template>
       </el-table-column>
-      <el-table-column label="上传人" width="120">
+      <el-table-column v-if="!isCompactViewport" label="上传人" width="120">
         <template #default="scope">
           {{ scope.row.uploaderName || (scope.row.uploaderId ? `#${scope.row.uploaderId}` : "已删除用户") }}
         </template>
       </el-table-column>
-      <el-table-column label="磁盘" width="82">
+      <el-table-column v-if="!isCompactViewport" label="磁盘" width="82">
         <template #default="scope">
           <el-tag :type="scope.row.diskExists ? 'success' : 'danger'" size="small">
             {{ scope.row.diskExists ? "正常" : "缺失" }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" label="上传时间" width="170" />
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column v-if="!isCompactViewport" prop="createTime" label="上传时间" width="170" />
+      <el-table-column v-if="tableData.length" label="操作" :width="isCompactViewport ? 112 : 150" fixed="right">
         <template #default="scope">
           <el-button
             text
@@ -110,11 +110,13 @@
 
 <script>
 import { DEMO_MODE } from "@/demo/runtime.js";
+import compactViewport from "@/mixins/compactViewport.js";
 import { Delete } from "@element-plus/icons-vue";
 import { resolveFileUrl, toApiRequestPath } from "@/utils/fileUrl.js";
 
 export default {
   name: "FileManage",
+  mixins: [compactViewport],
   components: { Delete },
   data() {
     return {

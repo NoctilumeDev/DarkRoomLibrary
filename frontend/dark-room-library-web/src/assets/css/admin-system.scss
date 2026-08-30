@@ -245,7 +245,7 @@ body[data-admin-theme="night"] {
 }
 
 .admin-shell .paper-workspace::after {
-  content: "ACCESSION  /  DARKROOM LIBRARY";
+  content: "馆藏编目  ·  暗室藏书";
   position: absolute;
   right: 8px;
   top: 50%;
@@ -358,6 +358,24 @@ body[data-admin-theme="night"] {
   color: var(--admin-ink-soft) !important;
   background: color-mix(in srgb, var(--admin-paper-wash) 74%, transparent) !important;
   font-weight: 600;
+}
+
+.admin-shell .el-table td.el-table-fixed-column--right,
+.admin-shell .el-table td.el-table-fixed-column--left {
+  background: var(--admin-paper-light) !important;
+}
+
+.admin-shell .el-table th.el-table-fixed-column--right,
+.admin-shell .el-table th.el-table-fixed-column--left {
+  background: color-mix(in srgb, var(--admin-paper-wash) 92%, var(--admin-paper-light)) !important;
+}
+
+.admin-shell .el-table .el-table-fixed-column--right {
+  box-shadow: -8px 0 14px -14px color-mix(in srgb, var(--admin-ink) 58%, transparent);
+}
+
+.admin-shell .el-table .el-table-fixed-column--left {
+  box-shadow: 8px 0 14px -14px color-mix(in srgb, var(--admin-ink) 58%, transparent);
 }
 
 .admin-shell .el-table__row .cell,
@@ -577,6 +595,15 @@ body[data-admin-theme="night"] {
 .admin-shell .el-empty__description p,
 .admin-shell .muted {
   color: var(--admin-ink-muted) !important;
+}
+
+.admin-shell .el-empty__image {
+  display: none !important;
+}
+
+.admin-shell .el-empty {
+  min-height: 150px;
+  padding: 38px 0 !important;
 }
 
 body[data-admin-theme] .el-overlay-dialog .el-dialog,
@@ -821,6 +848,39 @@ body[data-admin-theme] .swal2-popup {
   .admin-shell .admin-table-page > .el-row:first-child {
     align-items: stretch;
   }
+
+  .admin-shell .admin-table-page > .el-row:first-child > .el-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-table-page > .el-row:first-child > .el-row > .top-bar {
+    display: none;
+  }
+
+  .admin-shell .admin-table-page > .el-row:first-child > .el-row > .el-input,
+  .admin-shell .admin-table-page > .el-row:first-child > .el-row > .el-select,
+  .admin-shell .admin-table-page > .el-row:first-child > .el-row > .el-date-editor {
+    grid-column: 1 / -1;
+    width: 100% !important;
+    min-width: 0;
+    margin-right: 0 !important;
+  }
+
+  .admin-shell .admin-table-page > .el-row:first-child > .el-row > .el-button {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .admin-shell .admin-table-page > .el-row:nth-child(2),
+  .admin-shell .notice-table-section,
+  .admin-shell .user-table-section {
+    width: 100%;
+    min-width: 0;
+    margin-inline: 0 !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -922,7 +982,7 @@ body[data-admin-theme] .swal2-popup {
 
 .admin-shell .admin-dashboard .chart-note::after,
 .admin-shell .statistics-page .insight-note::after {
-  content: "LIVE CATALOGUE";
+  content: "在册目录";
   position: absolute;
   right: 18px;
   bottom: 13px;
@@ -1055,6 +1115,37 @@ body[data-admin-theme] .swal2-popup {
 }
 
 @media (max-width: 760px) {
+  .admin-shell .el-pagination {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 4px;
+  }
+
+  .admin-shell .el-pagination__jump {
+    display: none !important;
+  }
+
+  .admin-shell .el-pagination__sizes {
+    display: none !important;
+  }
+
+  .admin-shell .el-pagination {
+    float: none !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  .admin-shell .el-table .cell {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .admin-shell .el-table .el-button + .el-button {
+    margin-left: 4px;
+  }
+
   .admin-shell .admin-dashboard .metric-grid,
   .admin-shell .statistics-page .metric-grid {
     border: 0;

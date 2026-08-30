@@ -1,6 +1,6 @@
 <template>
   <div class="admin-page message-manage-page">
-    <el-row style="margin-bottom: 16px">
+    <el-row class="message-toolbar">
       <el-input
         v-model="filterKeyword"
         placeholder="搜索留言内容"
@@ -14,10 +14,10 @@
     </el-row>
 
     <el-table :data="tableData" @selection-change="handleSelectionChange" row-key="id" style="width: 100%">
-      <el-table-column type="selection" width="50"></el-table-column>
-      <el-table-column prop="userName" width="100" label="用户"></el-table-column>
+      <el-table-column type="selection" :width="isCompactViewport ? 42 : 50"></el-table-column>
+      <el-table-column prop="userName" :width="isCompactViewport ? 72 : 100" label="用户"></el-table-column>
       <el-table-column prop="content" label="留言内容" show-overflow-tooltip></el-table-column>
-      <el-table-column width="130" label="附件">
+      <el-table-column v-if="!isCompactViewport" width="130" label="附件">
         <template #default="scope">
           <el-button v-if="scope.row.attachmentUrl" text type="warning" @click="downloadAttachment(scope.row)">
             {{ scope.row.attachmentName || '下载' }}
@@ -25,14 +25,14 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="reply" label="回复" show-overflow-tooltip></el-table-column>
-      <el-table-column width="160" label="留言时间">
+      <el-table-column v-if="!isCompactViewport" prop="reply" label="回复" show-overflow-tooltip></el-table-column>
+      <el-table-column v-if="!isCompactViewport" width="160" label="留言时间">
         <template #default="scope">{{ scope.row.createTime }}</template>
       </el-table-column>
-      <el-table-column width="140" label="操作">
+      <el-table-column :width="isCompactViewport ? 108 : 140" label="操作" fixed="right">
         <template #default="scope">
-          <el-button size="small" @click="openReply(scope.row)">回复</el-button>
-          <el-button size="small" type="danger" @click="deleteOne(scope.row.id)">删除</el-button>
+          <el-button text size="small" @click="openReply(scope.row)">回复</el-button>
+          <el-button text size="small" type="danger" @click="deleteOne(scope.row.id)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -75,10 +75,12 @@
 
 <script>
 import { DEMO_MODE } from "@/demo/runtime.js";
+import compactViewport from "@/mixins/compactViewport.js";
 import { toApiRequestPath } from "@/utils/fileUrl.js";
 
 export default {
   name: "MessageManage",
+  mixins: [compactViewport],
   data() {
     return {
       tableData: [],
@@ -208,6 +210,10 @@ export default {
   padding: 0;
 }
 
+.message-toolbar {
+  margin-bottom: 16px;
+}
+
 .reply-context {
   margin-bottom: 12px;
   padding: 10px 12px;
@@ -215,5 +221,25 @@ export default {
   border-left: 3px solid var(--admin-gold);
   background: var(--admin-surface-muted);
   line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .message-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+
+  .message-toolbar :deep(.el-input) {
+    grid-column: 1 / -1;
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+
+  .message-toolbar :deep(.el-button) {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 </style>

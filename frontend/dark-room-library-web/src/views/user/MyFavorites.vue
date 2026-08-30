@@ -1,7 +1,7 @@
 <template>
   <section class="reader-page">
     <div class="page-title">
-      <p>SAVED LIGHTS</p>
+      <p>藏光</p>
       <h1>我的收藏</h1>
       <span>把暂时不借的书先藏起来，等合适的时候再接过它。</span>
     </div>
@@ -305,11 +305,11 @@ export default {
 }
 
 .ok {
-  color: #9fd3a8;
+  color: var(--status-positive-text);
 }
 
 .wait {
-  color: #f0cb8c;
+  color: var(--status-warning-text);
 }
 
 .muted {

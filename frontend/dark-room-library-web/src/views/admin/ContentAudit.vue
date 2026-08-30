@@ -2,7 +2,7 @@
   <section class="content-audit">
     <header class="page-head">
       <div>
-        <p>CONTENT AUDIT</p>
+        <p>内容复核</p>
         <h1>内容审核</h1>
       </div>
       <el-button class="refresh-button" :loading="loading" @click="fetchData">
@@ -44,31 +44,31 @@
     </section>
 
     <el-table v-loading="loading" :data="tableData" row-key="id" class="audit-table">
-      <el-table-column width="92" label="状态">
+      <el-table-column :width="isCompactViewport ? 64 : 92" label="状态">
         <template #default="scope">
           <el-tag :type="statusTag(scope.row.status)" effect="light">
             {{ statusText(scope.row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="bookName" min-width="150" label="图书" show-overflow-tooltip />
-      <el-table-column prop="reviewUserName" width="110" label="评论人" />
-      <el-table-column min-width="220" label="书评内容" show-overflow-tooltip>
+      <el-table-column prop="bookName" :min-width="isCompactViewport ? 72 : 150" label="图书" show-overflow-tooltip />
+      <el-table-column v-if="!isCompactViewport" prop="reviewUserName" width="110" label="评论人" />
+      <el-table-column :min-width="isCompactViewport ? 92 : 220" label="书评内容" show-overflow-tooltip>
         <template #default="scope">
           <span :class="{ muted: scope.row.reviewStatus === 1 }">
             {{ scope.row.reviewContent }}
           </span>
         </template>
       </el-table-column>
-      <el-table-column prop="reason" min-width="180" label="举报原因" show-overflow-tooltip />
-      <el-table-column prop="reportUserName" width="110" label="举报人" />
-      <el-table-column prop="createTime" width="168" label="举报时间" />
-      <el-table-column prop="handleTime" width="168" label="处理时间">
+      <el-table-column v-if="!isCompactViewport" prop="reason" min-width="180" label="举报原因" show-overflow-tooltip />
+      <el-table-column v-if="!isCompactViewport" prop="reportUserName" width="110" label="举报人" />
+      <el-table-column v-if="!isCompactViewport" prop="createTime" width="168" label="举报时间" />
+      <el-table-column v-if="!isCompactViewport" prop="handleTime" width="168" label="处理时间">
         <template #default="scope">
           {{ scope.row.handleTime || "-" }}
         </template>
       </el-table-column>
-      <el-table-column width="180" fixed="right" label="操作">
+      <el-table-column :width="isCompactViewport ? 108 : 180" fixed="right" label="操作">
         <template #default="scope">
           <el-button
             v-if="scope.row.status === 0"
@@ -105,8 +105,11 @@
 </template>
 
 <script>
+import compactViewport from "@/mixins/compactViewport.js";
+
 export default {
   name: "ContentAudit",
+  mixins: [compactViewport],
   data() {
     return {
       loading: false,
@@ -259,6 +262,25 @@ export default {
   align-items: center;
   padding: 14px;
   border-radius: 6px;
+}
+
+@media (max-width: 760px) {
+  .filter-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+  }
+
+  .filter-bar :deep(.el-select),
+  .filter-bar :deep(.el-input) {
+    grid-column: 1 / -1;
+    width: 100% !important;
+  }
+
+  .filter-bar :deep(.el-button) {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 .audit-table {
