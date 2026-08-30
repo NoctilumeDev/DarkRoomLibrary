@@ -206,6 +206,11 @@ export default {
 .review-pager { margin-top: 24px; justify-content: flex-end; }
 @media (max-width: 620px) {
   .review-toolbar { align-items: stretch; flex-direction: column; }
+  .review-toolbar .reader-segmented {
+    width: max-content;
+    max-width: 100%;
+    align-self: flex-start;
+  }
   .review-entry > header { grid-template-columns: 40px 1fr; }
   .review-entry > header :deep(.el-rate) { grid-column: 2; }
   .review-entry > p, .review-entry > footer, .reply-ink, .reply-row { margin-left: 0; }
