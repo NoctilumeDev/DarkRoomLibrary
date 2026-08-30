@@ -37,7 +37,7 @@
           <p>读者登录 · 使用账号、密码与验证题</p>
         </header>
 
-        <el-form label-width="60px" @submit.prevent>
+        <el-form label-width="72px" @submit.prevent>
           <el-form-item label="登录账号">
             <el-input
               v-model.trim="act"
@@ -677,11 +677,15 @@ export default {
 .auth-card header p { margin: 8px 0 0; color: var(--paper-ink-faint); font-size: 12px; }
 .auth-card :deep(.el-form-item) { margin-bottom: 16px; }
 .auth-card :deep(.el-form-item__content) { min-width: 0; }
-.auth-card :deep(.el-form-item__label) { color: var(--paper-ink-soft); font-size: 12px; }
+.auth-card :deep(.el-form-item__label) {
+  justify-content: flex-start;
+  color: var(--paper-ink-soft);
+  font-size: 12px;
+  white-space: nowrap;
+}
 .captcha-label {
   display: inline-block;
-  margin-right: -6px;
-  letter-spacing: 6px;
+  letter-spacing: 0.18em;
   white-space: nowrap;
 }
 

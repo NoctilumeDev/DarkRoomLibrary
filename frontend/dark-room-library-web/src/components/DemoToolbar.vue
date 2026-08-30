@@ -266,17 +266,23 @@ export default {
   }
 
   .demo-panel {
+    position: fixed;
     top: auto;
-    right: 0;
-    bottom: 44px;
-    left: auto;
+    right: 12px;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    width: auto;
+    max-width: none;
+    box-sizing: border-box;
   }
 
   .demo-toolbar--reader .demo-panel,
   .demo-toolbar--admin .demo-panel,
   .demo-toolbar--staff .demo-panel {
-    top: 44px;
+    top: 66px;
+    right: 12px;
     bottom: auto;
+    left: 12px;
   }
 
   .demo-toggle span {

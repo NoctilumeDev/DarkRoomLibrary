@@ -48,37 +48,45 @@
       </el-row>
     </el-row>
     <el-row style="margin: 10px 20px">
-      <el-table :data="tableData" style="width: 100%" row-key="id">
-        <el-table-column v-if="!isCompactViewport" prop="id" label="ID" width="80"></el-table-column>
+      <div
+        class="admin-table-scroll admin-table-scroll--borrows"
+        role="region"
+        aria-label="借阅数据表，可左右滑动查看完整信息"
+        tabindex="0"
+      >
+      <el-table
+        :data="tableData"
+        class="admin-data-table admin-data-table--borrows"
+        style="width: 100%"
+        row-key="id"
+      >
+        <el-table-column prop="id" label="ID" width="80"></el-table-column>
         <el-table-column
           prop="userName"
           label="用户名"
-          :width="isCompactViewport ? 86 : 120"
+          width="120"
         ></el-table-column>
         <el-table-column
           prop="bookName"
           label="书名"
-          :min-width="isCompactViewport ? 104 : 180"
+          min-width="180"
         ></el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="borrowTime"
           label="借阅时间"
           width="180"
         ></el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="dueDate"
           label="应还日期"
           width="180"
         ></el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="returnTime"
           label="归还时间"
           width="180"
         ></el-table-column>
-        <el-table-column prop="status" label="状态" :width="isCompactViewport ? 78 : 100">
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="scope">
             <el-tag
               :class="[
@@ -94,12 +102,11 @@
           </template>
         </el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="fineAmount"
           label="罚款(元)"
           width="100"
         ></el-table-column>
-        <el-table-column label="操作" :width="isCompactViewport ? 72 : 100" fixed="right">
+        <el-table-column label="操作" width="100" :fixed="isCompactViewport ? false : 'right'">
           <template #default="scope">
             <el-button
               v-if="!scope.row.status"
@@ -111,6 +118,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
       <el-pagination
         style="margin: 20px 0; float: right"
         @size-change="handleSizeChange"

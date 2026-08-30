@@ -1,6 +1,6 @@
 <template>
   <el-row class="admin-table-page">
-    <el-row class="book-toolbar">
+    <el-row class="book-toolbar" :class="{ 'book-toolbar--deleted': showDeleted }">
       <div class="toolbar-field name-field">
         <span class="top-bar">图书名称</span>
         <el-input
@@ -52,7 +52,7 @@
         >
         </el-date-picker>
       </div>
-      <div class="toolbar-action">
+      <div class="toolbar-action query-action">
         <el-button
           size="small"
           class="customer"
@@ -61,9 +61,8 @@
           >立即查询</el-button
         >
       </div>
-      <div class="toolbar-action add-action">
+      <div v-if="!showDeleted" class="toolbar-action add-action">
         <el-button
-          v-show="!showDeleted"
           size="small"
           class="customer admin-add-button"
           type="info"
@@ -103,14 +102,21 @@
       </div>
     </el-row>
     <el-row style="margin: 10px 20px">
-      <el-table
-        row-key="id"
-        @selection-change="handleSelectionChange"
-        :data="tableData"
-        style="width: 100%"
+      <div
+        class="admin-table-scroll admin-table-scroll--books"
+        role="region"
+        aria-label="图书数据表，可左右滑动查看完整信息"
+        tabindex="0"
       >
-        <el-table-column type="selection" :width="isCompactViewport ? 42 : 55"></el-table-column>
-        <el-table-column v-if="!isCompactViewport" prop="cover" width="70" label="封面">
+        <el-table
+          row-key="id"
+          @selection-change="handleSelectionChange"
+          :data="tableData"
+          class="admin-data-table admin-data-table--books"
+          style="width: 100%"
+        >
+        <el-table-column type="selection" width="55"></el-table-column>
+        <el-table-column prop="cover" width="70" label="封面">
           <template #default="scope">
             <el-avatar
               :size="40"
@@ -125,40 +131,36 @@
         </el-table-column>
         <el-table-column
           prop="name"
-          :width="isCompactViewport ? 100 : 150"
+          width="150"
           label="图书名称"
         ></el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="author"
           width="100"
           label="作者"
         ></el-table-column>
-        <el-table-column v-if="!isCompactViewport" prop="isbn" width="130" label="ISBN"></el-table-column>
+        <el-table-column prop="isbn" width="130" label="ISBN"></el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="publisher"
           width="130"
           label="出版社"
         ></el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="category"
           width="80"
           label="分类"
         ></el-table-column>
-        <el-table-column v-if="!isCompactViewport" width="90" label="书架">
+        <el-table-column width="90" label="书架">
           <template #default="scope">
             <span>{{ getBookshelfName(scope.row.bookshelfId) }}</span>
           </template>
         </el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="totalCount"
           width="60"
           label="总量"
         ></el-table-column>
-        <el-table-column prop="availableCount" :width="isCompactViewport ? 56 : 60" label="可借">
+        <el-table-column prop="availableCount" width="60" label="可借">
           <template #default="scope">
             <span
               class="stock-count"
@@ -169,20 +171,18 @@
           </template>
         </el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           prop="description"
           width="160"
           label="简介"
           show-overflow-tooltip
         ></el-table-column>
         <el-table-column
-          v-if="!isCompactViewport"
           :sortable="true"
           prop="createTime"
           width="160"
           label="入库时间"
         ></el-table-column>
-        <el-table-column label="操作" :width="isCompactViewport ? 100 : 140" fixed="right">
+        <el-table-column label="操作" width="140" :fixed="isCompactViewport ? false : 'right'">
           <template #default="scope">
             <span v-if="!showDeleted" class="text-button" @click="handleEdit(scope.row)">编辑</span>
             <span v-if="!showDeleted" class="text-button" @click="handleDelete(scope.row)"
@@ -191,7 +191,8 @@
             <span v-else class="text-button" @click="restoreRows([scope.row.id])">恢复</span>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
       <el-pagination
         style="margin: 20px 0; float: right"
         @size-change="handleSizeChange"
@@ -769,6 +770,10 @@ export default {
   }
 
   .view-action {
+    grid-column: 1 / -1;
+  }
+
+  .book-toolbar--deleted .query-action {
     grid-column: 1 / -1;
   }
 

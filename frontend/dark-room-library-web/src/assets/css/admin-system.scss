@@ -389,6 +389,22 @@ body[data-admin-theme="night"] {
   background-color: var(--admin-line);
 }
 
+.admin-shell .admin-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-shell .admin-table-scroll:focus-visible {
+  outline: 1px solid var(--admin-line-strong);
+  outline-offset: 3px;
+}
+
 .admin-shell .el-input__wrapper,
 .admin-shell .el-select__wrapper,
 .admin-shell .el-textarea__inner,
@@ -840,6 +856,14 @@ body[data-admin-theme] .swal2-popup {
 }
 
 @media (max-width: 760px) {
+  .admin-shell .admin-data-table--books {
+    min-width: 1335px;
+  }
+
+  .admin-shell .admin-data-table--borrows {
+    min-width: 1140px;
+  }
+
   .admin-shell .paper-workspace {
     margin: 14px 10px 24px;
     padding: 18px 14px;
