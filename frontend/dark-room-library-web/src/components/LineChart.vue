@@ -108,7 +108,6 @@ export default {
             right: 16,
             top: 26,
             bottom: 18,
-            containLabel: true,
           },
           tooltip: {
             trigger: "axis",

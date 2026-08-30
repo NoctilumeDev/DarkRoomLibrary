@@ -1,9 +1,9 @@
 <template>
   <section class="reader-page">
     <div class="page-title">
-      <p>LEAVE A NOTE</p>
+      <p>写给守夜人</p>
       <h1>留言处</h1>
-      <span>写给守夜人，也可以附上 PDF、Word、图片或 HTML 文件。</span>
+      <span>把想说的话留在这里，守夜人会在灯下读到。</span>
     </div>
 
     <div class="composer">
@@ -15,6 +15,7 @@
         maxlength="1000"
         show-word-limit
       />
+      <p class="attachment-hint">如需附卷，可上传 PDF、Word、图片或 HTML 文件。</p>
       <div class="message-actions">
         <el-upload
           :action="uploadUrl"
@@ -336,6 +337,13 @@ export default {
   flex-wrap: wrap;
 }
 
+.attachment-hint {
+  margin: 10px 0 0;
+  color: var(--paper-ink-faint, rgba(239, 229, 213, 0.58));
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 .selected-attachment {
   display: flex;
   align-items: center;
@@ -394,7 +402,7 @@ export default {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #f0cb8c;
+  color: var(--status-warning-text);
   text-decoration: none;
   cursor: pointer;
 }
@@ -429,7 +437,7 @@ export default {
   padding: 1px 8px;
   border-radius: 4px;
   background: rgba(95, 154, 119, 0.25);
-  color: #5f9a77;
+  color: var(--status-positive-text);
   font-size: 12px;
   font-weight: 600;
 }

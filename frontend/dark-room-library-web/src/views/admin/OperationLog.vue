@@ -56,13 +56,13 @@
         style="width: 100%"
         v-loading="loading"
       >
-        <el-table-column prop="id" label="ID" width="80"></el-table-column>
+        <el-table-column v-if="!isCompactViewport" prop="id" label="ID" width="80"></el-table-column>
         <el-table-column
           prop="userName"
           label="操作者"
-          width="120"
+          :width="isCompactViewport ? 72 : 120"
         ></el-table-column>
-        <el-table-column prop="operation" label="操作类型" width="100">
+        <el-table-column prop="operation" label="操作类型" :width="isCompactViewport ? 74 : 100">
           <template #default="scope">
             <el-tag
               v-if="scope.row.operation === '新增'"
@@ -90,16 +90,17 @@
         <el-table-column
           prop="target"
           label="操作目标"
-          width="140"
+          :width="isCompactViewport ? 80 : 140"
         ></el-table-column>
         <el-table-column
           prop="detail"
           label="操作详情"
-          min-width="280"
+          :min-width="isCompactViewport ? 90 : 280"
           show-overflow-tooltip
         ></el-table-column>
-        <el-table-column prop="ip" label="IP地址" width="140"></el-table-column>
+        <el-table-column v-if="!isCompactViewport" prop="ip" label="IP地址" width="140"></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="createTime"
           label="操作时间"
           width="168"
@@ -121,8 +122,10 @@
 
 <script>
 import { toDayRange } from "@/utils/pageQuery.js";
+import compactViewport from "@/mixins/compactViewport.js";
 
 export default {
+  mixins: [compactViewport],
   data() {
     return {
       tableData: [],

@@ -2,7 +2,7 @@
   <section class="statistics-page">
     <header class="page-intro">
       <div>
-        <p>STATISTICS</p>
+        <p>馆务统计</p>
         <h1>统计看板</h1>
       </div>
       <span>从借阅、馆藏与风险三个方向观察系统运行</span>
@@ -268,7 +268,7 @@ export default {
       return sum(this.overdueUsers.map((user) => user.totalFine)).toFixed(2);
     },
     gridOption() {
-      return { left: 16, right: 18, top: 34, bottom: 14, containLabel: true };
+      return { left: 16, right: 18, top: 34, bottom: 14 };
     },
   },
   mounted() {

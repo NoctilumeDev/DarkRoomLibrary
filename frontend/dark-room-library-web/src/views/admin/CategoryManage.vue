@@ -50,19 +50,20 @@
         :data="tableData"
         style="width: 100%"
       >
-        <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="id" label="ID" width="80"></el-table-column>
+        <el-table-column type="selection" :width="isCompactViewport ? 42 : 55"></el-table-column>
+        <el-table-column v-if="!isCompactViewport" prop="id" label="ID" width="80"></el-table-column>
         <el-table-column
           prop="name"
           label="分类名称"
-          width="200"
+          :width="isCompactViewport ? 116 : 200"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="createTime"
           label="创建时间"
           width="180"
         ></el-table-column>
-        <el-table-column label="操作">
+        <el-table-column label="操作" :width="isCompactViewport ? 110 : 140" fixed="right">
           <template #default="scope">
             <span class="text-button" @click="handleEdit(scope.row)">编辑</span>
             <span
@@ -132,7 +133,10 @@
 </template>
 
 <script>
+import compactViewport from "@/mixins/compactViewport.js";
+
 export default {
+  mixins: [compactViewport],
   data() {
     return {
       form: { name: "" },

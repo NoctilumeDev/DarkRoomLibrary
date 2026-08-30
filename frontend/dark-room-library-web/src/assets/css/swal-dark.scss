@@ -18,6 +18,47 @@
   color: rgba(238, 228, 210, 0.76) !important;
 }
 
+.swal2-popup.sweet-popup--quiet {
+  width: min(430px, calc(100vw - 28px));
+  padding: 34px 32px 28px;
+}
+
+.sweet-popup--quiet .swal2-title {
+  padding: 0;
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+  font-size: clamp(25px, 4vw, 31px);
+  font-weight: 500 !important;
+  letter-spacing: 0.03em;
+}
+
+.sweet-popup--quiet .swal2-html-container {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.sweet-popup--quiet .swal2-actions {
+  margin-top: 24px;
+}
+
+.sweet-popup-enter {
+  animation: sweetQuietEnter 220ms cubic-bezier(0.2, 0.72, 0.24, 1) both;
+}
+
+.sweet-popup-exit {
+  animation: sweetQuietExit 160ms ease-in both;
+}
+
+@keyframes sweetQuietEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sweetQuietExit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(5px); }
+}
+
 .swal2-icon.swal2-success {
   border-color: #5f9a77 !important;
   color: #5f9a77 !important;
@@ -69,4 +110,11 @@
 
 .swal2-timer-progress-bar {
   background: rgba(216, 164, 95, 0.5) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweet-popup-enter,
+  .sweet-popup-exit {
+    animation: none;
+  }
 }

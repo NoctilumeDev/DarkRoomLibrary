@@ -136,11 +136,15 @@ body {
 }
 
 .drl-evidence-nav a {
-  min-height: 36px;
-  padding: 9px 10px;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 10px;
   color: rgba(238, 229, 213, 0.78) !important;
   border-radius: 3px;
   font-size: 12px;
+  line-height: 1;
   text-decoration: none !important;
 }
 
@@ -432,10 +436,15 @@ body {
 }
 
 a:focus-visible,
-input:focus-visible,
 [tabindex]:focus-visible {
   outline: 3px solid rgba(135, 59, 52, 0.48) !important;
   outline-offset: 3px !important;
+}
+
+.drl-report-body input[type="search"]:focus-visible {
+  border-color: rgba(79, 120, 111, 0.62);
+  outline: 0 !important;
+  box-shadow: 0 0 0 2px rgba(79, 120, 111, 0.14);
 }
 
 @media (max-width: 820px) {

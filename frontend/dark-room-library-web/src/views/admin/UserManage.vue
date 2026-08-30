@@ -70,10 +70,10 @@
       >
         <el-table-column
           type="selection"
-          width="55"
+          :width="isCompactViewport ? 42 : 55"
           :selectable="canDeleteUser"
         />
-        <el-table-column prop="userAvatar" width="68" label="头像">
+        <el-table-column v-if="!isCompactViewport" prop="userAvatar" width="68" label="头像">
           <template #default="{ row }">
             <el-avatar
               :size="30"
@@ -82,15 +82,15 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="userName" width="148" label="名称" />
-        <el-table-column prop="userAccount" width="128" label="账号" />
-        <el-table-column prop="userEmail" width="168" label="用户邮箱" />
-        <el-table-column prop="userRole" width="88" label="角色">
+        <el-table-column prop="userName" :width="isCompactViewport ? 82 : 148" label="名称" />
+        <el-table-column v-if="!isCompactViewport" prop="userAccount" width="128" label="账号" />
+        <el-table-column v-if="!isCompactViewport" prop="userEmail" width="168" label="用户邮箱" />
+        <el-table-column prop="userRole" :width="isCompactViewport ? 68 : 88" label="角色">
           <template #default="{ row }">
             <span>{{ roleName(row.userRole) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="isCoordinatorAdmin" width="96" label="馆务协调">
+        <el-table-column v-if="!isCompactViewport" prop="isCoordinatorAdmin" width="96" label="馆务协调">
           <template #default="{ row }">
             <span
               v-if="
@@ -102,7 +102,7 @@
             <span v-else class="muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="isLogin" width="108" label="冻结">
+        <el-table-column v-if="!isCompactViewport" prop="isLogin" width="108" label="冻结">
           <template #default="{ row }">
             <el-switch
               v-model="row.isLogin"
@@ -113,12 +113,13 @@
           </template>
         </el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="createTime"
           width="168"
           label="注册时间"
           sortable
         />
-        <el-table-column label="操作">
+        <el-table-column label="操作" :width="isCompactViewport ? 96 : 140" fixed="right">
           <template #default="{ row }">
             <span
               v-if="canEditUser(row)"
@@ -282,6 +283,7 @@
 
 <script>
 import { DEMO_MODE } from "@/demo/runtime.js";
+import compactViewport from "@/mixins/compactViewport.js";
 import { Plus } from "@element-plus/icons-vue";
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
 import { toDayRange } from "@/utils/pageQuery.js";
@@ -306,6 +308,7 @@ function createEmptyUser() {
 
 export default {
   name: "UserManage",
+  mixins: [compactViewport],
   components: { Plus },
   data() {
     return {
@@ -662,5 +665,36 @@ export default {
 :deep(.coordinator-admin-switch.is-checked .el-switch__core) {
   border-color: var(--admin-accent-solid) !important;
   background-color: var(--admin-accent-solid) !important;
+}
+
+@media (max-width: 760px) {
+  .user-toolbar {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  .user-toolbar__controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+
+  .user-toolbar__controls > .top-bar {
+    display: none;
+  }
+
+  .user-name-filter,
+  .user-toolbar__controls :deep(.user-date-filter) {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .user-toolbar__controls :deep(.el-button) {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 </style>

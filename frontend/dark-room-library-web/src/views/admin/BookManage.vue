@@ -109,8 +109,8 @@
         :data="tableData"
         style="width: 100%"
       >
-        <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="cover" width="70" label="封面">
+        <el-table-column type="selection" :width="isCompactViewport ? 42 : 55"></el-table-column>
+        <el-table-column v-if="!isCompactViewport" prop="cover" width="70" label="封面">
           <template #default="scope">
             <el-avatar
               :size="40"
@@ -125,36 +125,40 @@
         </el-table-column>
         <el-table-column
           prop="name"
-          width="150"
+          :width="isCompactViewport ? 100 : 150"
           label="图书名称"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="author"
           width="100"
           label="作者"
         ></el-table-column>
-        <el-table-column prop="isbn" width="130" label="ISBN"></el-table-column>
+        <el-table-column v-if="!isCompactViewport" prop="isbn" width="130" label="ISBN"></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="publisher"
           width="130"
           label="出版社"
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="category"
           width="80"
           label="分类"
         ></el-table-column>
-        <el-table-column width="90" label="书架">
+        <el-table-column v-if="!isCompactViewport" width="90" label="书架">
           <template #default="scope">
             <span>{{ getBookshelfName(scope.row.bookshelfId) }}</span>
           </template>
         </el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="totalCount"
           width="60"
           label="总量"
         ></el-table-column>
-        <el-table-column prop="availableCount" width="60" label="可借">
+        <el-table-column prop="availableCount" :width="isCompactViewport ? 56 : 60" label="可借">
           <template #default="scope">
             <span
               class="stock-count"
@@ -165,18 +169,20 @@
           </template>
         </el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           prop="description"
           width="160"
           label="简介"
           show-overflow-tooltip
         ></el-table-column>
         <el-table-column
+          v-if="!isCompactViewport"
           :sortable="true"
           prop="createTime"
           width="160"
           label="入库时间"
         ></el-table-column>
-        <el-table-column label="操作" width="140">
+        <el-table-column label="操作" :width="isCompactViewport ? 100 : 140" fixed="right">
           <template #default="scope">
             <span v-if="!showDeleted" class="text-button" @click="handleEdit(scope.row)">编辑</span>
             <span v-if="!showDeleted" class="text-button" @click="handleDelete(scope.row)"
@@ -341,12 +347,14 @@
 
 <script>
 import { DEMO_MODE } from "@/demo/runtime.js";
+import compactViewport from "@/mixins/compactViewport.js";
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
 import { toDayRange } from "@/utils/pageQuery.js";
 import { getToken } from "@/utils/storage.js";
 import { Plus } from "@element-plus/icons-vue";
 
 export default {
+  mixins: [compactViewport],
   components: { Plus },
   data() {
     return {
@@ -732,7 +740,10 @@ export default {
 
 @media (max-width: 760px) {
   .book-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
+    gap: 10px;
   }
 
   .toolbar-field,
@@ -740,11 +751,33 @@ export default {
   .author-field,
   .category-field,
   .date-field {
-    width: min(100%, 280px);
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
-  .add-action {
-    width: 72px;
+  .toolbar-action,
+  .add-action,
+  .view-action {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toolbar-action :deep(.el-button),
+  .collection-view-toggle {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .view-action {
+    grid-column: 1 / -1;
+  }
+
+  .collection-view-toggle :deep(.el-radio-button) {
+    flex: 1;
+  }
+
+  .collection-view-toggle :deep(.el-radio-button__inner) {
+    width: 100%;
   }
 
   .book-form-scroll {

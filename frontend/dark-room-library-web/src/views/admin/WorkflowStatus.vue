@@ -2,7 +2,7 @@
   <section class="workflow-page">
     <header class="page-head">
       <div>
-        <p>WORKFLOW</p>
+        <p>流程状态</p>
         <h1>审核状态与后台流程</h1>
       </div>
       <el-button size="large" class="refresh-button" :loading="loading" @click="loadAll">

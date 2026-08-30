@@ -1,7 +1,7 @@
 <template>
   <section class="reader-page">
     <header class="page-title review-title">
-      <p>READER'S INK</p>
+      <p>读者留墨</p>
       <h1>书评回廊</h1>
       <span>读完一本书之后，总有人愿意在这里留下一点墨迹。</span>
     </header>
