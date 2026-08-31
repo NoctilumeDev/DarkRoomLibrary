@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "targetRelease": "v1.2.7",
   "status": "released",
-  "verifiedOn": "2026-08-28",
+  "verifiedOn": "2026-08-31",
   "backend": {
     "tests": 290,
     "failures": 0,
@@ -15,8 +15,8 @@
     "lineCoverageMinimum": 70
   },
   "frontend": {
-    "criticalLogicTests": 68,
-    "lineCoverage": 71.47,
+    "criticalLogicTests": 70,
+    "lineCoverage": 74.81,
     "lineCoverageMinimum": 70,
     "eslintErrors": 0,
     "productionBuild": "passed",

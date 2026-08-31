@@ -4,6 +4,16 @@ All notable changes to DarkRoomLibrary are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevented the shared SweetAlert theme from forcing dark dialogs into daytime reader and administration views.
+- Restored complete mobile review evidence and aligned administration actions without changing desktop table behavior.
+- Completed Demo query filtering, content-audit state semantics, and blocked attachment uploads that the public Demo cannot persist.
+
+### Verification
+
+- Expanded the frontend critical-logic suite to `70/70`; the scoped V8 report now covers `511/683` lines (`74.81%`), with ESLint, production build, Demo build, protected CI, and CodeQL checks passing.
+
 ### Documentation
 
 - Synchronized the repository overview, technical documents, presentation, PDFs, and interactive module map with the released v1.2.7 implementation without changing product behavior.
