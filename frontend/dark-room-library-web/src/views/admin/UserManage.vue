@@ -121,26 +121,28 @@
         />
         <el-table-column label="操作" :width="isCompactViewport ? 96 : 140" fixed="right">
           <template #default="{ row }">
-            <span
-              v-if="canEditUser(row)"
-              class="text-button"
-              @click="openEditDialog(row)"
-            >
-              编辑
-            </span>
-            <span
-              v-if="canDeleteUser(row)"
-              class="text-button"
-              @click="deleteOne(row)"
-            >
-              删除
-            </span>
-            <span
-              v-if="!canEditUser(row) && !canDeleteUser(row)"
-              class="muted"
-            >
-              -
-            </span>
+            <div class="user-row-actions">
+              <span
+                v-if="canEditUser(row)"
+                class="text-button"
+                @click="openEditDialog(row)"
+              >
+                编辑
+              </span>
+              <span
+                v-if="canDeleteUser(row)"
+                class="text-button"
+                @click="deleteOne(row)"
+              >
+                删除
+              </span>
+              <span
+                v-if="!canEditUser(row) && !canDeleteUser(row)"
+                class="muted"
+              >
+                -
+              </span>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -611,6 +613,22 @@ export default {
 
 .user-table {
   width: 100%;
+}
+
+.user-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 24px;
+  white-space: nowrap;
+}
+
+.user-row-actions .text-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin: 0;
 }
 
 .user-table-avatar {

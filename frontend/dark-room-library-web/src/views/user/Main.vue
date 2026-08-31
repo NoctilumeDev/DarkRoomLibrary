@@ -26,7 +26,7 @@
           :before-upload="beforeAttachmentUpload"
           :on-success="handleAttachmentSuccess"
         >
-          <el-button class="ghost-button">上传附件</el-button>
+          <el-button class="ghost-button" :disabled="demoMode">上传附件</el-button>
         </el-upload>
         <div v-if="attachment.url" class="selected-attachment">
           <span>{{ attachment.name }}</span>

@@ -848,13 +848,6 @@ body[data-admin-theme] .el-select-dropdown__item.is-selected {
   color: var(--admin-seal) !important;
 }
 
-body[data-admin-theme] .swal2-popup {
-  color: var(--admin-ink);
-  border: 1px solid var(--admin-line);
-  border-radius: 4px;
-  background: var(--admin-paper-light);
-}
-
 @media (max-width: 760px) {
   .admin-shell .admin-data-table--books {
     min-width: 1335px;

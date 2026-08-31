@@ -31,8 +31,10 @@
       </el-table-column>
       <el-table-column :width="isCompactViewport ? 108 : 140" label="操作" fixed="right">
         <template #default="scope">
-          <el-button text size="small" @click="openReply(scope.row)">回复</el-button>
-          <el-button text size="small" type="danger" @click="deleteOne(scope.row.id)">删除</el-button>
+          <div class="message-row-actions">
+            <el-button text size="small" @click="openReply(scope.row)">回复</el-button>
+            <el-button text size="small" type="danger" @click="deleteOne(scope.row.id)">删除</el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -221,6 +223,18 @@ export default {
   border-left: 3px solid var(--admin-gold);
   background: var(--admin-surface-muted);
   line-height: 1.6;
+}
+
+.message-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.message-row-actions :deep(.el-button) {
+  margin: 0;
 }
 
 @media (max-width: 760px) {

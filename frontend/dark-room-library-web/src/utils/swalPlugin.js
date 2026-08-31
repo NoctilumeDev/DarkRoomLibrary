@@ -1,5 +1,32 @@
 let swalPromise;
 
+function resolveSwalThemeClass() {
+  if (typeof document === "undefined") return "swal-theme--night";
+
+  const bodyTheme =
+    document.body?.dataset.adminTheme || document.body?.dataset.readerTheme;
+  const hasDayThemeHost = document.querySelector(
+    '[data-admin-theme="day"], [data-reader-theme="day"]',
+  );
+
+  return bodyTheme === "day" || hasDayThemeHost
+    ? "swal-theme--day"
+    : "swal-theme--night";
+}
+
+function appendPopupClass(customClass = {}, className) {
+  const popupClasses = Array.isArray(customClass.popup)
+    ? customClass.popup
+    : customClass.popup
+      ? [customClass.popup]
+      : [];
+
+  return {
+    ...customClass,
+    popup: [...popupClasses, className],
+  };
+}
+
 function loadSwal() {
   if (!swalPromise) {
     swalPromise = Promise.all([
@@ -54,7 +81,13 @@ export async function swalConfirm(options = {}) {
 export async function swalFire(options = {}) {
   try {
     const Swal = await loadSwal();
-    return await Swal.fire(options);
+    return await Swal.fire({
+      ...options,
+      customClass: appendPopupClass(
+        options.customClass,
+        resolveSwalThemeClass(),
+      ),
+    });
   } catch (error) {
     console.error("Swal Error:", error);
     return { isConfirmed: false, value: false };
