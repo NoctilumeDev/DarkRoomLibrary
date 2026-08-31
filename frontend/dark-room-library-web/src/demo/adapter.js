@@ -114,15 +114,50 @@ function paginateResponse(items, payload) {
   return ok(clone(result.items), "查询成功", result.total);
 }
 
+function matchesText(value, query) {
+  const needle = String(query ?? "").trim().toLocaleLowerCase();
+  if (!needle) return true;
+  return String(value ?? "").toLocaleLowerCase().includes(needle);
+}
+
+function comparableTime(value) {
+  return String(value ?? "").trim().replace("T", " ");
+}
+
+function matchesTimeRange(value, startTime, endTime) {
+  const current = comparableTime(value);
+  if (!current) return !startTime && !endTime;
+  const start = comparableTime(startTime);
+  const end = comparableTime(endTime);
+  return (!start || current >= start) && (!end || current <= end);
+}
+
+function reviewReportView(state, report) {
+  const review = state.reviews.find(
+    (item) => item.id === Number(report.reviewId)
+  );
+  return {
+    ...report,
+    reportUserName: report.reportUserName || report.reporterName || "",
+    reviewUserName: report.reviewUserName || report.reviewerName || review?.userName || "",
+    bookId: report.bookId || review?.bookId || null,
+    bookName: report.bookName || review?.bookName || "",
+    rating: report.rating ?? review?.rating ?? null,
+    reviewContent: report.reviewContent || review?.content || "",
+    reviewStatus: report.reviewStatus ?? review?.status ?? 0,
+    handleTime: report.handleTime || null,
+  };
+}
+
 function queryBooks(state, payload) {
   let books = state.books.filter(
     (book) => Boolean(book.deleted) === Boolean(payload.deleted)
   );
   if (payload.name) {
-    books = books.filter((book) => book.name.includes(String(payload.name)));
+    books = books.filter((book) => matchesText(book.name, payload.name));
   }
   if (payload.author) {
-    books = books.filter((book) => book.author.includes(String(payload.author)));
+    books = books.filter((book) => matchesText(book.author, payload.author));
   }
   if (payload.category) {
     books = books.filter((book) => book.category === payload.category);
@@ -601,9 +636,19 @@ export async function demoAdapter(config) {
   } else if (path === "/bookshelf/queryAll") {
     result = ok(clone(state.bookshelves));
   } else if (path === "/category/query") {
-    result = paginateResponse(state.categories, payload);
+    result = paginateResponse(
+      state.categories.filter((item) => matchesText(item.name, payload.name)),
+      payload
+    );
   } else if (path === "/bookshelf/query") {
-    result = paginateResponse(state.bookshelves, payload);
+    result = paginateResponse(
+      state.bookshelves.filter(
+        (item) =>
+          matchesText(item.name, payload.name) &&
+          matchesText(item.location, payload.location)
+      ),
+      payload
+    );
   } else if (path === "/book/query") {
     result = queryBooks(state, payload);
   } else if (path === "/recommendation/feed") {
@@ -818,31 +863,77 @@ export async function demoAdapter(config) {
       state.reviewReports.unshift({
         id: nextId(state),
         reviewId: review.id,
+        bookId: review.bookId,
         bookName: review.bookName,
-        reviewerName: review.userName,
-        reporterName: user.userName,
+        rating: review.rating,
+        reviewContent: review.content,
+        reviewStatus: review.status,
+        reviewUserName: review.userName,
+        reportUserName: user.userName,
         reason: payload.reason,
         status: 0,
         createTime: "2026-07-27 20:38:00",
+        handleTime: null,
       });
       writeState(state);
       result = ok(null, "举报已进入演示审核队列。");
     }
   } else if (path === "/bookReviewReport/query") {
-    result = paginateResponse(state.reviewReports, payload);
+    const reports = state.reviewReports
+      .map((report) => reviewReportView(state, report))
+      .filter(
+        (report) =>
+          (payload.status === null ||
+            payload.status === undefined ||
+            report.status === Number(payload.status)) &&
+          matchesText(report.bookName, payload.bookName) &&
+          matchesText(report.reviewContent, payload.reviewContent)
+      );
+    result = paginateResponse(reports, payload);
   } else if (path.startsWith("/bookReviewReport/")) {
+    const action = path.split("/")[2];
     const reportId = Number(path.split("/").pop());
     const report = state.reviewReports.find((item) => item.id === reportId);
     if (!report) result = rejected("未找到举报记录。");
+    else if (Number(report.status) !== 0) result = rejected("该举报已处理。");
     else {
-      report.status = 1;
-      writeState(state);
-      result = ok(null, "举报审核状态已更新。");
+      const review = state.reviews.find(
+        (item) => item.id === Number(report.reviewId)
+      );
+      if (action === "ignore") {
+        report.status = 2;
+      } else if (action === "hideReview" && review) {
+        report.status = 1;
+        review.status = 1;
+        report.reviewStatus = 1;
+      } else {
+        result = rejected("无法处理这条举报记录。");
+      }
+      if (!result) {
+        report.handleTime = "2026-07-27 20:40:00";
+        writeState(state);
+        result = ok(
+          null,
+          action === "ignore" ? "已忽略举报。" : "已隐藏书评。"
+        );
+      }
     }
   } else if (path === "/notice/query") {
-    result = paginateResponse(state.notices, payload);
+    result = paginateResponse(
+      state.notices.filter(
+        (item) =>
+          matchesText(item.name, payload.name) &&
+          matchesTimeRange(item.createTime, payload.startTime, payload.endTime)
+      ),
+      payload
+    );
   } else if (path === "/messageBoard/query") {
-    result = paginateResponse(state.messageBoard, payload);
+    result = paginateResponse(
+      state.messageBoard.filter((item) =>
+        matchesText(item.content, payload.content)
+      ),
+      payload
+    );
   } else if (path === "/messageBoard/save") {
     if (!user) result = body(401, null, "请先选择演示身份。");
     else {
@@ -860,16 +951,21 @@ export async function demoAdapter(config) {
       result = ok(null, "留言已保存在当前演示会话。");
     }
   } else if (path === "/user/query") {
-    result = paginateResponse(state.users, payload);
+    result = paginateResponse(
+      state.users.filter(
+        (item) =>
+          matchesText(item.userName, payload.userName) &&
+          matchesTimeRange(item.createTime, payload.startTime, payload.endTime)
+      ),
+      payload
+    );
   } else if (path === "/user/collaborationUsers") {
     const role = Number(params.get("role"));
     result = ok(clone(state.users.filter((item) => item.userRole === role)));
   } else if (path === "/procurement/query") {
     let orders = filterOrdersForIdentity(state.procurementOrders, identity);
     if (payload.bookName) {
-      orders = orders.filter((order) =>
-        order.bookName.includes(String(payload.bookName))
-      );
+      orders = orders.filter((order) => matchesText(order.bookName, payload.bookName));
     }
     if (payload.status !== null && payload.status !== undefined) {
       orders = orders.filter((order) => order.status === Number(payload.status));

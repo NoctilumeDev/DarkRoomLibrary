@@ -231,6 +231,91 @@ describe("browser demo adapter", () => {
     expect(result.msg).toContain("不上传、下载或导出");
   });
 
+  it("applies every visible demo list filter before pagination", async () => {
+    activateDemoIdentity("root");
+
+    const cases = [
+      ["/category/query", { name: "文学" }, "文学"],
+      ["/bookshelf/query", { location: "南侧" }, "青梧二架"],
+      ["/book/query", { name: "不存在的书" }, null],
+      ["/user/query", { userName: "纸月" }, "纸月听澜"],
+      ["/notice/query", { name: "新书" }, "新书到馆"],
+      ["/procurement/query", { bookName: "不存在的书" }, null],
+      [
+        "/bookReviewReport/query",
+        { status: 0, bookName: "雾灯", reviewContent: "目录" },
+        "雾灯索引",
+      ],
+      ["/messageBoard/query", { content: "地方史" }, "希望下一批新书"],
+    ];
+
+    for (const [url, query, expectedText] of cases) {
+      const response = await call("post", url, {
+        current: 1,
+        size: 20,
+        ...query,
+      });
+      expect(response.code).toBe(200);
+      if (expectedText === null) {
+        expect(response.data).toHaveLength(0);
+        expect(response.total).toBe(0);
+      } else {
+        expect(JSON.stringify(response.data)).toContain(expectedText);
+      }
+    }
+
+    const datedUsers = await call("post", "/user/query", {
+      current: 1,
+      size: 20,
+      startTime: "2026-07-26T00:00:00",
+      endTime: "2026-07-26T23:59:59",
+    });
+    expect(datedUsers.data.map((item) => item.userName)).toEqual(["纸月听澜"]);
+
+    const datedNotices = await call("post", "/notice/query", {
+      current: 1,
+      size: 20,
+      startTime: "2026-07-24T00:00:00",
+      endTime: "2026-07-24T23:59:59",
+    });
+    expect(datedNotices.data.map((item) => item.name)).toEqual(["新书到馆"]);
+  });
+
+  it("keeps review-report actions and readback semantics distinct", async () => {
+    activateDemoIdentity("root");
+
+    const ignored = await call("post", "/bookReviewReport/ignore/901");
+    expect(ignored.code).toBe(200);
+    expect(ignored.msg).toContain("忽略");
+    const ignoredReadback = await call("post", "/bookReviewReport/query", {
+      current: 1,
+      size: 20,
+      status: 2,
+    });
+    expect(ignoredReadback.data[0]).toMatchObject({
+      status: 2,
+      reviewUserName: "纸月听澜",
+      reportUserName: "砚灯拾页",
+      reviewContent: expect.stringContaining("目录"),
+    });
+    expect(ignoredReadback.data[0].handleTime).toBeTruthy();
+
+    resetDemoStateForTest();
+    const hidden = await call("post", "/bookReviewReport/hideReview/901");
+    expect(hidden.code).toBe(200);
+    expect(hidden.msg).toContain("隐藏书评");
+    const hiddenReadback = await call("post", "/bookReviewReport/query", {
+      current: 1,
+      size: 20,
+      status: 1,
+    });
+    expect(hiddenReadback.data[0]).toMatchObject({
+      status: 1,
+      reviewStatus: 1,
+    });
+    expect(hiddenReadback.data[0].handleTime).toBeTruthy();
+  });
+
   it("serves the dashboard datasets from the same in-memory state", async () => {
     activateDemoIdentity("root");
 
