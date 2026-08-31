@@ -108,6 +108,34 @@
   &:hover { background: rgba(238, 228, 210, 0.14) !important; color: #eee4d2 !important; }
 }
 
+// SweetAlert2 挂在 body 下，不能继承页面局部主题节点的样式。
+// 由 swalPlugin 在打开瞬间标记实际主题，避免日间页面被全局暗色覆盖串色。
+.swal2-popup.swal-theme--day {
+  background: var(--admin-paper-light, #f7f4ed) !important;
+  border-color: var(--admin-line-strong, rgba(48, 60, 60, 0.2)) !important;
+  color: var(--admin-ink, #252b2c) !important;
+  box-shadow: 0 24px 60px rgba(38, 44, 45, 0.22) !important;
+}
+
+.swal2-popup.swal-theme--day .swal2-title {
+  color: var(--admin-ink, #252b2c) !important;
+}
+
+.swal2-popup.swal-theme--day .swal2-html-container {
+  color: var(--admin-ink-soft, #465251) !important;
+}
+
+.swal2-popup.swal-theme--day .swal2-cancel {
+  background: rgba(70, 82, 81, 0.06) !important;
+  color: var(--admin-ink-soft, #465251) !important;
+  border-color: var(--admin-line-strong, rgba(48, 60, 60, 0.2)) !important;
+
+  &:hover {
+    background: rgba(70, 82, 81, 0.11) !important;
+    color: var(--admin-ink, #252b2c) !important;
+  }
+}
+
 .swal2-timer-progress-bar {
   background: rgba(216, 164, 95, 0.5) !important;
 }

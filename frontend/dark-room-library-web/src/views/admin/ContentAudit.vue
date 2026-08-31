@@ -43,7 +43,13 @@
       <el-button @click="resetFilter">重置</el-button>
     </section>
 
-    <el-table v-loading="loading" :data="tableData" row-key="id" class="audit-table">
+    <el-table
+      v-if="!isCompactViewport"
+      v-loading="loading"
+      :data="tableData"
+      row-key="id"
+      class="audit-table"
+    >
       <el-table-column :width="isCompactViewport ? 64 : 92" label="状态">
         <template #default="scope">
           <el-tag :type="statusTag(scope.row.status)" effect="light">
@@ -91,6 +97,80 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <section
+      v-else
+      v-loading="loading"
+      class="audit-mobile-list"
+      aria-label="内容审核记录"
+    >
+      <article
+        v-for="row in tableData"
+        :key="row.id"
+        class="audit-mobile-record"
+      >
+        <header class="audit-mobile-record__head">
+          <div>
+            <span class="audit-mobile-record__label">图书</span>
+            <strong>{{ row.bookName }}</strong>
+          </div>
+          <el-tag :type="statusTag(row.status)" effect="light">
+            {{ statusText(row.status) }}
+          </el-tag>
+        </header>
+
+        <dl class="audit-mobile-record__details">
+          <div class="audit-mobile-record__review">
+            <dt>书评内容</dt>
+            <dd :class="{ muted: row.reviewStatus === 1 }">
+              {{ row.reviewContent || "-" }}
+            </dd>
+          </div>
+          <div>
+            <dt>评论人</dt>
+            <dd>{{ row.reviewUserName || "-" }}</dd>
+          </div>
+          <div>
+            <dt>举报人</dt>
+            <dd>{{ row.reportUserName || "-" }}</dd>
+          </div>
+          <div class="audit-mobile-record__wide">
+            <dt>举报原因</dt>
+            <dd>{{ row.reason || "-" }}</dd>
+          </div>
+          <div>
+            <dt>举报时间</dt>
+            <dd>{{ row.createTime || "-" }}</dd>
+          </div>
+          <div>
+            <dt>处理时间</dt>
+            <dd>{{ row.handleTime || "-" }}</dd>
+          </div>
+        </dl>
+
+        <footer class="audit-mobile-record__actions">
+          <template v-if="row.status === 0">
+            <el-button
+              size="small"
+              type="warning"
+              plain
+              @click="ignoreReport(row)"
+            >
+              忽略
+            </el-button>
+            <el-button size="small" type="danger" @click="hideReview(row)">
+              隐藏书评
+            </el-button>
+          </template>
+          <span v-else class="muted">已处理</span>
+        </footer>
+      </article>
+
+      <el-empty
+        v-if="!loading && !tableData.length"
+        description="暂无审核记录"
+      />
+    </section>
 
     <div class="pager-row">
       <el-pagination
@@ -279,6 +359,90 @@ export default {
 
   .filter-bar :deep(.el-button) {
     width: 100%;
+    margin-left: 0;
+  }
+
+  .audit-mobile-list {
+    border-top: 1px solid var(--admin-line-strong);
+  }
+
+  .audit-mobile-record {
+    padding: 16px 2px;
+    border-bottom: 1px solid var(--admin-line-strong);
+  }
+
+  .audit-mobile-record__head {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .audit-mobile-record__head > div {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .audit-mobile-record__head strong {
+    color: var(--admin-ink);
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .audit-mobile-record__label,
+  .audit-mobile-record__details dt {
+    color: var(--admin-gold);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .audit-mobile-record__details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 18px;
+    margin: 16px 0 0;
+  }
+
+  .audit-mobile-record__details > div {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .audit-mobile-record__details dt,
+  .audit-mobile-record__details dd {
+    margin: 0;
+  }
+
+  .audit-mobile-record__details dd {
+    overflow-wrap: anywhere;
+    color: var(--admin-ink-soft);
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .audit-mobile-record__review,
+  .audit-mobile-record__wide {
+    grid-column: 1 / -1;
+  }
+
+  .audit-mobile-record__review dd {
+    color: var(--admin-ink);
+    font-size: 14px;
+  }
+
+  .audit-mobile-record__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--admin-line);
+  }
+
+  .audit-mobile-record__actions :deep(.el-button) {
+    min-width: 92px;
     margin-left: 0;
   }
 }
