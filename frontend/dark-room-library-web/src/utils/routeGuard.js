@@ -31,6 +31,7 @@ export function createRouteGuard(overrides = {}) {
         token,
         decoded.role
       );
+      if (dependencies.getToken() !== token) return false;
       if (authorizedRole === null) return "/login";
 
       if (to.meta.roles && !to.meta.roles.includes(authorizedRole)) {
@@ -38,6 +39,7 @@ export function createRouteGuard(overrides = {}) {
       }
       return true;
     } catch {
+      if (dependencies.getToken() !== token) return false;
       dependencies.clearAuthSession();
       return "/login";
     }

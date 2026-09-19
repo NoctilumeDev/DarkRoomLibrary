@@ -24,6 +24,7 @@
     "test:e2e:email-quota": "node tests/e2e/email-quota-consistency.mjs",
     "test:e2e:recommendation": "node tests/e2e/recommendation-loop.mjs",
     "test:e2e:edge-regressions": "node tests/e2e/release-edge-regressions.mjs",
+    "test:e2e:session-generation": "node tests/e2e/session-generation-ownership.mjs",
     "test:e2e:diagnostics": "node tests/e2e/browser-diagnostics.mjs",
     "test:e2e:full": "node tests/e2e/full-workflow.mjs",
     "docs:screenshots": "node tests/e2e/capture-readme-screenshots.mjs"

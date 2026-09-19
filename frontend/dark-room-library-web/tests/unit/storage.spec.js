@@ -1,9 +1,12 @@
 import {
   clearAuthSession,
+  clearAuthSessionIfToken,
   getToken,
   getUserProfile,
+  isCurrentToken,
   setToken,
   setUserProfile,
+  setUserProfileIfToken,
 } from "../../src/utils/storage.js";
 
 class MemoryStorage {
@@ -53,6 +56,20 @@ describe("storage", () => {
     setUserProfile(profile);
 
     expect(getUserProfile()).toEqual(profile);
+  });
+
+  it("lets only the current token mutate authentication state", () => {
+    setToken("new-token");
+    setUserProfile({ id: 9, name: "新会话", role: 2 });
+
+    expect(isCurrentToken("old-token")).toBe(false);
+    expect(setUserProfileIfToken("old-token", { id: 7 })).toBe(false);
+    expect(clearAuthSessionIfToken("old-token")).toBe(false);
+    expect(getToken()).toBe("new-token");
+    expect(getUserProfile()).toEqual({ id: 9, name: "新会话", role: 2 });
+
+    expect(clearAuthSessionIfToken("new-token")).toBe(true);
+    expect(getToken()).toBeNull();
   });
 
   it("resolves the role from the token before auth profile hydration", async () => {
