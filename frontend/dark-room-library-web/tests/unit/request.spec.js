@@ -98,12 +98,30 @@ describe("Axios request boundary", () => {
     { status: 200, data: { code: 500, msg: "身份认证异常" } },
     { status: 200, data: { code: 500, msg: "请先登录后操作" } },
   ])("clears rejected authentication for %#", async ({ status, data }) => {
-    const error = { response: { status, data } };
+    mocks.getToken.mockReturnValue("current-token");
+    const config = mocks.handlers.requestFulfilled({ headers: {} });
+    const error = { config, response: { status, data } };
 
     await expect(mocks.handlers.responseRejected(error)).rejects.toBe(error);
 
     expect(mocks.clearAuthSession).toHaveBeenCalledTimes(1);
     expect(mocks.push).toHaveBeenCalledWith("/login");
+  });
+
+  it("does not let an old request clear or redirect a newer login", async () => {
+    mocks.getToken
+      .mockReturnValueOnce("old-token")
+      .mockReturnValue("new-token");
+    const config = mocks.handlers.requestFulfilled({ headers: {} });
+    const error = {
+      config,
+      response: { status: 401, data: { code: 401, msg: "身份认证异常" } },
+    };
+
+    await expect(mocks.handlers.responseRejected(error)).rejects.toBe(error);
+
+    expect(mocks.clearAuthSession).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it("retains the session for server and transport failures", async () => {

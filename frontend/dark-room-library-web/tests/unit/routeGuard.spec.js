@@ -67,6 +67,19 @@ describe("route guard", () => {
     await expect(guard({ meta: { requireAuth: true } })).resolves.toBe("/login");
   });
 
+  it("cancels an old guard when a newer token becomes current", async () => {
+    const deps = dependencies({
+      getToken: vi.fn()
+        .mockReturnValueOnce("old-token")
+        .mockReturnValue("new-token"),
+      resolveAuthorizedRole: vi.fn(async () => null),
+    });
+    const guard = createRouteGuard(deps);
+
+    await expect(guard({ meta: { requireAuth: true } })).resolves.toBe(false);
+    expect(deps.clearAuthSession).not.toHaveBeenCalled();
+  });
+
   it("clears malformed tokens before redirecting", async () => {
     const deps = dependencies({
       jwtDecode: vi.fn(() => {

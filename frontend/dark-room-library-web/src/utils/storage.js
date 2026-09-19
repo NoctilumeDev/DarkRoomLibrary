@@ -74,6 +74,22 @@ export function setUserProfile(profile) {
   );
 }
 
+export function isCurrentToken(expectedToken) {
+  return getToken() === expectedToken;
+}
+
+export function setUserProfileIfToken(expectedToken, profile) {
+  if (!isCurrentToken(expectedToken)) return false;
+  setUserProfile(profile);
+  return true;
+}
+
 export function clearAuthSession() {
   Object.values(SESSION_KEYS).forEach((key) => write(key, null));
+}
+
+export function clearAuthSessionIfToken(expectedToken) {
+  if (!isCurrentToken(expectedToken)) return false;
+  clearAuthSession();
+  return true;
 }

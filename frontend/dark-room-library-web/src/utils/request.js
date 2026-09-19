@@ -3,6 +3,8 @@ import { getToken, clearAuthSession } from "@/utils/storage.js";
 import router from "@/router";
 import { API_BASE_URL } from "@/utils/fileUrl.js";
 
+const REQUEST_TOKEN_KEY = "__darkRoomRequestToken";
+
 const demoAdapter =
   import.meta.env.VITE_DEMO_MODE === "true"
     ? async (config) => {
@@ -20,6 +22,7 @@ const request = axios.create({
 request.interceptors.request.use(
   (config) => {
     const token = getToken();
+    config[REQUEST_TOKEN_KEY] = token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -40,8 +43,14 @@ request.interceptors.response.use(
         authMessage.includes("身份认证") ||
         authMessage.includes("请先登录")
       ) {
-        clearAuthSession();
-        router.push("/login");
+        const failedToken = error.config?.[REQUEST_TOKEN_KEY];
+        const ownsCurrentSession =
+          Object.prototype.hasOwnProperty.call(error.config ?? {}, REQUEST_TOKEN_KEY) &&
+          failedToken === getToken();
+        if (ownsCurrentSession) {
+          clearAuthSession();
+          router.push("/login");
+        }
       }
     }
     return Promise.reject(error);

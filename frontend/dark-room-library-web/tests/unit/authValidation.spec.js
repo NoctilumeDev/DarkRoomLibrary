@@ -4,6 +4,7 @@ import {
   getToken,
   getUserProfile,
   setToken,
+  setUserProfile,
 } from "../../src/utils/storage.js";
 
 describe("live authorization validation", () => {
@@ -60,5 +61,48 @@ describe("live authorization validation", () => {
 
     await expect(resolveAuthorizedRole("current-token", 3)).resolves.toBe(3);
     expect(getToken()).toBe("current-token");
+  });
+
+  it("does not let a rejected old token clear a newer login", async () => {
+    let resolveFetch;
+    setToken("old-token");
+    vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => {
+      resolveFetch = resolve;
+    })));
+
+    const pending = resolveAuthorizedRole("old-token", 2);
+    setToken("new-token");
+    resolveFetch({
+      ok: false,
+      status: 401,
+      json: async () => ({ code: 401, msg: "身份认证异常" }),
+    });
+
+    await expect(pending).resolves.toBeNull();
+    expect(getToken()).toBe("new-token");
+  });
+
+  it("does not let a successful old profile overwrite a newer login", async () => {
+    let resolveFetch;
+    setToken("old-token");
+    vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => {
+      resolveFetch = resolve;
+    })));
+
+    const pending = resolveAuthorizedRole("old-token", 2);
+    setToken("new-token");
+    setUserProfile({ id: 9, name: "新会话", role: 3 });
+    resolveFetch({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        code: 200,
+        data: { id: 7, userName: "旧会话", userRole: 2 },
+      }),
+    });
+
+    await expect(pending).resolves.toBeNull();
+    expect(getToken()).toBe("new-token");
+    expect(getUserProfile()).toEqual({ id: 9, name: "新会话", role: 3 });
   });
 });
