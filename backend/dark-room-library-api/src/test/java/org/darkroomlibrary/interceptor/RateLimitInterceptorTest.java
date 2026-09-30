@@ -5,6 +5,7 @@ import org.darkroomlibrary.infrastructure.cache.CacheService;
 import org.darkroomlibrary.infrastructure.security.ClientIpResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -20,6 +21,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class RateLimitInterceptorTest {
+
+    @BeforeEach
+    void resetThreadContext() {
+        CurrentUserContext.clear();
+    }
 
     @AfterEach
     void clearThreadContext() {
