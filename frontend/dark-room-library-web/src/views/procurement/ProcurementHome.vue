@@ -1,5 +1,5 @@
 <template>
-  <div class="staff-shell">
+  <div class="staff-shell" data-staff-theme="paper">
     <header class="staff-header">
       <button class="brand" type="button" @click="$router.push('/procurementWorkbench')">
         <span class="seal">{{ roleSeal }}</span>
@@ -37,7 +37,7 @@ export default {
     },
     async logout() {
       const confirmed = await this.$swalConfirm({
-        title: "退出采购工作台？",
+        title: `退出${this.roleLabel}工作台？`,
         text: "当前账号将退出，下次进入需要重新登录。",
         icon: undefined,
         confirmButtonText: "退出",
