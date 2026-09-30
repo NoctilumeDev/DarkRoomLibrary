@@ -1,7 +1,11 @@
 let swalPromise;
 
-function resolveSwalThemeClass() {
+export function resolveSwalThemeClass() {
   if (typeof document === "undefined") return "swal-theme--night";
+
+  if (document.querySelector('[data-staff-theme="paper"]')) {
+    return "swal-theme--staff-paper";
+  }
 
   const bodyTheme =
     document.body?.dataset.adminTheme || document.body?.dataset.readerTheme;

@@ -136,6 +136,47 @@
   }
 }
 
+// 采购与物流工作台使用固定的暖色宣纸界面。SweetAlert2 挂载在 body 下，
+// 无法继承 .staff-shell 的 scoped 变量，因此在弹窗主题上显式复刻该色板。
+.swal2-popup.swal-theme--staff-paper {
+  background:
+    radial-gradient(ellipse at 18% 0%, rgba(255, 252, 243, 0.72), transparent 38%),
+    repeating-linear-gradient(0deg, rgba(74, 58, 38, 0.016) 0 1px, transparent 1px 9px),
+    #f3eadb !important;
+  border-color: rgba(72, 58, 41, 0.28) !important;
+  color: #2d2923 !important;
+  box-shadow: 0 24px 60px rgba(75, 57, 36, 0.24) !important;
+}
+
+.swal2-popup.swal-theme--staff-paper .swal2-title {
+  color: #2d2923 !important;
+}
+
+.swal2-popup.swal-theme--staff-paper .swal2-html-container {
+  color: #665d51 !important;
+}
+
+.swal2-popup.swal-theme--staff-paper .swal2-confirm {
+  background: #824034 !important;
+  color: #fffaf0 !important;
+
+  &:hover { background: #93483a !important; }
+  &:focus { box-shadow: 0 0 0 3px rgba(130, 64, 52, 0.2) !important; }
+}
+
+.swal2-popup.swal-theme--staff-paper .swal2-cancel {
+  background: rgba(255, 250, 240, 0.4) !important;
+  color: #4f473c !important;
+  border-color: rgba(72, 58, 41, 0.28) !important;
+
+  &:hover {
+    background: rgba(130, 64, 52, 0.08) !important;
+    color: #2d2923 !important;
+  }
+
+  &:focus { box-shadow: 0 0 0 3px rgba(72, 58, 41, 0.14) !important; }
+}
+
 .swal2-timer-progress-bar {
   background: rgba(216, 164, 95, 0.5) !important;
 }
