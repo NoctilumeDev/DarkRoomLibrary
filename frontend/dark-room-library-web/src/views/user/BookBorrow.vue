@@ -135,7 +135,16 @@
       <el-empty
         v-if="!bookLoading && bookTableData.length === 0"
         description="这里暂时没有与你同频的灯。"
-      />
+      >
+        <div class="empty-recovery" aria-label="无检索结果操作">
+          <el-button class="ghost-button" @click="returnToPreviousContext">
+            返回上一处
+          </el-button>
+          <el-button class="warm-button" @click="resetCondition">
+            显示全部藏书
+          </el-button>
+        </div>
+      </el-empty>
     </div>
 
     <el-pagination
@@ -309,7 +318,15 @@
 
 <script>
 import { resolveFileUrl } from "@/utils/fileUrl.js";
+import { returnToPreviousOr } from "@/utils/navigation.js";
+import {
+  pageSizeFromQuery,
+  positiveIntegerFromQuery,
+} from "@/utils/pageQuery.js";
 import { runViewTransition } from "@/utils/viewTransition.js";
+
+const DEFAULT_PAGE_SIZE = 6;
+const PAGE_SIZES = [6, 10, 18];
 
 export default {
   name: "BookBorrow",
@@ -346,6 +363,12 @@ export default {
       author: this.$route.query.author || "",
       category: this.$route.query.category || "",
     };
+    this.currentPage = positiveIntegerFromQuery(this.$route.query.page, 1);
+    this.pageSize = pageSizeFromQuery(
+      this.$route.query.size,
+      PAGE_SIZES,
+      DEFAULT_PAGE_SIZE
+    );
     this.fetchCategories();
     this.fetchBooks();
   },
@@ -664,23 +687,30 @@ export default {
     resetCondition() {
       this.queryDto = {};
       this.currentPage = 1;
-      this.$router.replace({ path: "/bookSearch" });
+      this.syncSearchRoute();
       this.fetchBooks();
+    },
+    returnToPreviousContext() {
+      returnToPreviousOr(this.$router, "/readerRoom");
     },
     syncSearchRoute() {
       const query = {};
       if (this.queryDto.name) query.name = this.queryDto.name;
       if (this.queryDto.author) query.author = this.queryDto.author;
       if (this.queryDto.category) query.category = this.queryDto.category;
+      if (this.currentPage > 1) query.page = String(this.currentPage);
+      if (this.pageSize !== DEFAULT_PAGE_SIZE) query.size = String(this.pageSize);
       this.$router.replace({ path: "/bookSearch", query });
     },
     handleSizeChange(val) {
       this.pageSize = val;
       this.currentPage = 1;
+      this.syncSearchRoute();
       this.fetchBooks();
     },
     handleCurrentChange(val) {
       this.currentPage = val;
+      this.syncSearchRoute();
       this.fetchBooks();
     },
   },
@@ -691,6 +721,17 @@ export default {
 .reader-page {
   display: grid;
   gap: 22px;
+}
+
+.empty-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.empty-recovery :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 
 .page-hero,
