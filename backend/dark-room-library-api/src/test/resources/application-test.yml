@@ -67,6 +67,11 @@ cors:
 file:
   upload-dir: ./test-upload
 
+recycle-bin:
+  retention-days: 30
+  cleanup-batch-size: 100
+
 # API
 app:
   api-prefix: /api/test
+  time-zone: Asia/Shanghai

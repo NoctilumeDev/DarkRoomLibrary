@@ -37,7 +37,10 @@
               {{ review.liked ? "已点赞" : "点赞" }} · {{ review.likeCount || 0 }}
             </button>
             <button type="button" @click="toggleReply(review)">回复</button>
-            <button class="report" type="button" :disabled="review.reported" @click="report(review)">
+            <button v-if="isOwnReview(review)" class="report" type="button" @click="deleteReview(review)">
+              移入回收笺
+            </button>
+            <button v-else class="report" type="button" :disabled="review.reported" @click="report(review)">
               {{ review.reported ? "已举报" : "举报" }}
             </button>
           </div>
@@ -71,6 +74,8 @@
 </template>
 
 <script>
+import { getUserProfile } from "@/utils/storage.js";
+
 export default {
   name: "BookReviews",
   data() {
@@ -84,6 +89,7 @@ export default {
       replyId: null,
       replyDrafts: {},
       reviewRequestId: 0,
+      currentUserId: Number(getUserProfile()?.id || 0),
     };
   },
   created() {
@@ -95,6 +101,29 @@ export default {
   methods: {
     initials(name) {
       return (name || "读").slice(0, 1);
+    },
+    isOwnReview(review) {
+      return Number(review.userId) === this.currentUserId;
+    },
+    async deleteReview(review) {
+      const confirmed = await this.$swalConfirm({
+        title: "收起这条书评？",
+        text: "书评会进入回收笺，30 天内可以恢复；回复、点赞和举报记录不会被清空。",
+        icon: "warning",
+        confirmButtonText: "移入回收笺",
+        cancelButtonText: "保留",
+        quiet: true,
+      });
+      if (!confirmed) return;
+      try {
+        const response = await this.$axios.post("/bookReview/batchDelete", [review.id]);
+        if (response.data.code === 200) {
+          this.$message.success(response.data.msg);
+          await this.fetchReviews(this.currentPage);
+        } else this.$message.error(response.data.msg);
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || "书评删除失败。");
+      }
     },
     async fetchReviews(page = this.currentPage) {
       const requestId = ++this.reviewRequestId;

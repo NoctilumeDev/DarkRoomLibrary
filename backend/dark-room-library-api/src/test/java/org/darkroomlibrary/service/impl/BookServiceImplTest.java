@@ -12,6 +12,7 @@ import org.darkroomlibrary.domain.model.BookReservation;
 import org.darkroomlibrary.domain.model.Bookshelf;
 import org.darkroomlibrary.domain.model.Category;
 import org.darkroomlibrary.domain.model.ProcurementOrder;
+import org.darkroomlibrary.domain.type.UserRole;
 import org.darkroomlibrary.service.BookService;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,6 +47,9 @@ public class BookServiceImplTest extends BaseTest {
 
     @Resource
     private CategoryMapper categoryMapper;
+
+    @Resource
+    private RecycleBinExpiryService recycleBinExpiryService;
 
     @BeforeEach
     void setUp() {
@@ -385,5 +389,36 @@ public class BookServiceImplTest extends BaseTest {
         assertEquals("管理员甲已更新书名", stored.getName());
         assertEquals(firstSnapshot.getAuthor(), stored.getAuthor());
         assertEquals(1, stored.getVersion());
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("图书回收站仅管理员可见且过期后不可恢复")
+    void testBookRecycleBinAuthorityAndExpiry() {
+        Book book = createTestBook("恢复期图书", "恢复期作者", 1);
+        assertEquals(200, bookService.batchDelete(List.of(book.getId())).getCode());
+
+        BookPageQuery recycleQuery = new BookPageQuery();
+        recycleQuery.setDeleted(true);
+        recycleQuery.setCurrent(0);
+        recycleQuery.setSize(10);
+        clearContext();
+        assertEquals(400, bookService.query(recycleQuery).getCode());
+
+        var admin = createTestUser("book_recycle_admin", "回收站管理员", "book-recycle@example.test");
+        setCurrentUser(admin.getId(), UserRole.ADMIN.code());
+        assertTrue(bookService.query(recycleQuery).getData().stream()
+                .anyMatch(item -> book.getId().equals(item.getId())));
+
+        bookMapper.update(Book.builder()
+                .id(book.getId())
+                .restoreDeadline(LocalDateTime.now().minusSeconds(1))
+                .build());
+        recycleBinExpiryService.cleanupExpiredEntries();
+
+        assertNotNull(bookMapper.getById(book.getId()).getExpiredAt());
+        assertEquals(400, bookService.restore(List.of(book.getId())).getCode());
+        assertTrue(bookService.query(recycleQuery).getData().stream()
+                .noneMatch(item -> book.getId().equals(item.getId())));
     }
 }

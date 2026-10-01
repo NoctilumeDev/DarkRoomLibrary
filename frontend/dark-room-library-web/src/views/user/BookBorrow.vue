@@ -264,6 +264,15 @@
               回复
             </button>
             <button
+              v-if="isOwnReview(review)"
+              type="button"
+              class="danger-link"
+              @click="deleteReview(review)"
+            >
+              移入回收笺
+            </button>
+            <button
+              v-else
               type="button"
               class="danger-link"
               :disabled="review.reported"
@@ -318,6 +327,7 @@
 
 <script>
 import { resolveFileUrl } from "@/utils/fileUrl.js";
+import { getUserProfile } from "@/utils/storage.js";
 import { returnToPreviousOr } from "@/utils/navigation.js";
 import {
   pageSizeFromQuery,
@@ -355,6 +365,7 @@ export default {
       },
       replyBoxId: null,
       replyDrafts: {},
+      currentUserId: Number(getUserProfile()?.id || 0),
     };
   },
   created() {
@@ -610,6 +621,29 @@ export default {
         }
       } catch {
         this.$message.error("点赞操作失败。");
+      }
+    },
+    isOwnReview(review) {
+      return Number(review.userId) === this.currentUserId;
+    },
+    async deleteReview(review) {
+      const confirmed = await this.$swalConfirm({
+        title: "收起这条书评？",
+        text: "书评会进入回收笺，30 天内可以恢复；现有互动与审核记录会保留。",
+        icon: "warning",
+        confirmButtonText: "移入回收笺",
+        cancelButtonText: "保留",
+        quiet: true,
+      });
+      if (!confirmed) return;
+      try {
+        const response = await this.$axios.post("/bookReview/batchDelete", [review.id]);
+        if (response.data.code === 200) {
+          this.$message.success(response.data.msg);
+          await this.fetchReviews(this.reviewCurrentPage);
+        } else this.$message.error(response.data.msg);
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || "书评删除失败。");
       }
     },
     async reportReview(review) {

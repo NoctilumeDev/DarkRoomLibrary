@@ -96,6 +96,21 @@ public class Book {
      */
     private Boolean isDeleted;
     /**
+     * 进入回收站时间。
+     */
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime deletedAt;
+    /**
+     * 可恢复截止时间；过期后记录继续保留，但不再允许恢复。
+     */
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime restoreDeadline;
+    /**
+     * 恢复资格失效时间。
+     */
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime expiredAt;
+    /**
      * 所在书架ID
      */
     private Integer bookshelfId;

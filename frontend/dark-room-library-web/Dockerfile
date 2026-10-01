@@ -6,7 +6,9 @@ RUN npm ci --registry=https://registry.npmjs.org
 
 COPY . .
 ARG VITE_API_BASE_URL=/api/dark-room-library/v1
+ARG VITE_APP_TIME_ZONE=Asia/Shanghai
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_APP_TIME_ZONE=$VITE_APP_TIME_ZONE
 RUN npm run build
 
 FROM nginx:1.28-alpine

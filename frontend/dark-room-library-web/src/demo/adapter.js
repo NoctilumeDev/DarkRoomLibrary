@@ -6,6 +6,7 @@ import {
   getActiveDemoIdentity,
   toDemoUser,
 } from "@/demo/runtime.js";
+import { toAppSqlDateTime } from "@/utils/dateTime.js";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -122,6 +123,16 @@ function matchesText(value, query) {
 
 function comparableTime(value) {
   return String(value ?? "").trim().replace("T", " ");
+}
+
+function demoTime(date = new Date()) {
+  return toAppSqlDateTime(date);
+}
+
+function restoreDeadline(days = 30) {
+  const deadline = new Date();
+  deadline.setDate(deadline.getDate() + days);
+  return demoTime(deadline);
 }
 
 function matchesTimeRange(value, startTime, endTime) {
@@ -328,7 +339,9 @@ function queryReservations(state, payload, user) {
 }
 
 function queryReviews(state, payload) {
-  let reviews = state.reviews.filter((review) => review.status !== 1);
+  let reviews = state.reviews.filter(
+    (review) => review.status !== 1 && !review.deleted
+  );
   if (payload.bookId) {
     reviews = reviews.filter(
       (review) => review.bookId === Number(payload.bookId)
@@ -651,6 +664,28 @@ export async function demoAdapter(config) {
     );
   } else if (path === "/book/query") {
     result = queryBooks(state, payload);
+  } else if (path === "/book/batchDelete") {
+    const ids = new Set((Array.isArray(payload) ? payload : []).map(Number));
+    state.books.forEach((book) => {
+      if (ids.has(book.id)) {
+        book.deleted = true;
+        book.deletedAt = demoTime();
+        book.restoreDeadline = restoreDeadline();
+      }
+    });
+    writeState(state);
+    result = ok(null, "图书已移入回收站，可在30天内恢复");
+  } else if (path === "/book/restore") {
+    const ids = new Set((Array.isArray(payload) ? payload : []).map(Number));
+    state.books.forEach((book) => {
+      if (ids.has(book.id) && book.deleted) {
+        book.deleted = false;
+        book.deletedAt = null;
+        book.restoreDeadline = null;
+      }
+    });
+    writeState(state);
+    result = ok(null, "图书已恢复");
   } else if (path === "/recommendation/feed") {
     result = user?.userRole === 2
       ? recommendationFeed(state, user, params.get("size"))
@@ -733,7 +768,7 @@ export async function demoAdapter(config) {
     else {
       const due = new Date(record.dueDate);
       due.setDate(due.getDate() + 14);
-      record.dueDate = due.toISOString().replace("T", " ").slice(0, 19);
+      record.dueDate = toAppSqlDateTime(due);
       record.renewCount = Number(record.renewCount || 0) + 1;
       writeState(state);
       result = ok(null, "续借成功，到期时间已延长 14 天。");
@@ -798,6 +833,47 @@ export async function demoAdapter(config) {
     result = ok(null, path.includes("/add/") ? "收藏成功。" : "已取消收藏。");
   } else if (path === "/bookReview/query") {
     result = queryReviews(state, payload);
+  } else if (path === "/bookReview/recycle/query") {
+    result = paginateResponse(
+      state.reviews.filter(
+        (review) => review.userId === user?.id && review.deleted && review.status !== 1
+      ),
+      payload
+    );
+  } else if (path === "/bookReview/batchDelete") {
+    const ids = new Set((Array.isArray(payload) ? payload : []).map(Number));
+    const selected = state.reviews.filter((review) => ids.has(review.id));
+    if (user?.userRole === 2 && selected.some((review) => review.userId !== user.id)) {
+      result = rejected("只能删除自己的评价");
+    } else {
+      selected.forEach((review) => {
+        if (user?.userRole === 2) {
+          review.deleted = true;
+          review.deletedAt = demoTime();
+          review.restoreDeadline = restoreDeadline();
+        } else {
+          review.status = 1;
+        }
+      });
+      writeState(state);
+      result = ok(null, user?.userRole === 2
+        ? "评价已移入回收站，可在30天内恢复"
+        : "书评已移出公开区域");
+    }
+  } else if (path === "/bookReview/restore") {
+    const ids = new Set((Array.isArray(payload) ? payload : []).map(Number));
+    const selected = state.reviews.filter((review) => ids.has(review.id));
+    if (selected.some((review) => review.userId !== user?.id || review.status === 1)) {
+      result = rejected("评价已不可恢复");
+    } else {
+      selected.forEach((review) => {
+        review.deleted = false;
+        review.deletedAt = null;
+        review.restoreDeadline = null;
+      });
+      writeState(state);
+      result = ok(null, "评价已恢复");
+    }
   } else if (path === "/bookReview/save") {
     const book = findBook(state, payload.bookId);
     if (!book || user?.userRole !== 2) result = rejected("当前身份不能提交书评。");
@@ -816,6 +892,7 @@ export async function demoAdapter(config) {
         reported: false,
         reportCount: 0,
         status: 0,
+        deleted: false,
         replies: [],
       });
       writeState(state);
@@ -929,11 +1006,54 @@ export async function demoAdapter(config) {
     );
   } else if (path === "/messageBoard/query") {
     result = paginateResponse(
-      state.messageBoard.filter((item) =>
-        matchesText(item.content, payload.content)
+      state.messageBoard.filter(
+        (item) => !item.deleted && item.moderationStatus !== 1
+          && matchesText(item.content, payload.content)
       ),
       payload
     );
+  } else if (path === "/messageBoard/recycle/query") {
+    result = paginateResponse(
+      state.messageBoard.filter(
+        (item) => item.userId === user?.id && item.deleted && item.moderationStatus !== 1
+      ),
+      payload
+    );
+  } else if (path === "/messageBoard/batchDelete") {
+    const ids = new Set((Array.isArray(payload) ? payload : []).map(Number));
+    const selected = state.messageBoard.filter((item) => ids.has(item.id));
+    if (user?.userRole === 2 && selected.some((item) => item.userId !== user.id)) {
+      result = rejected("只能删除自己的留言");
+    } else {
+      selected.forEach((item) => {
+        if (user?.userRole === 2) {
+          item.deleted = true;
+          item.deletedAt = demoTime();
+          item.restoreDeadline = restoreDeadline();
+        } else {
+          item.moderationStatus = 1;
+          item.attachmentUrl = "";
+        }
+      });
+      writeState(state);
+      result = ok(null, user?.userRole === 2
+        ? "留言已移入回收站，可在30天内恢复"
+        : "留言已移出公开区域");
+    }
+  } else if (path === "/messageBoard/restore") {
+    const ids = new Set((Array.isArray(payload) ? payload : []).map(Number));
+    const selected = state.messageBoard.filter((item) => ids.has(item.id));
+    if (selected.some((item) => item.userId !== user?.id || item.moderationStatus === 1)) {
+      result = rejected("留言已不可恢复");
+    } else {
+      selected.forEach((item) => {
+        item.deleted = false;
+        item.deletedAt = null;
+        item.restoreDeadline = null;
+      });
+      writeState(state);
+      result = ok(null, "留言已恢复");
+    }
   } else if (path === "/messageBoard/save") {
     if (!user) result = body(401, null, "请先选择演示身份。");
     else {
@@ -946,6 +1066,8 @@ export async function demoAdapter(config) {
         createTime: "2026-07-27 20:39:00",
         attachmentUrl: "",
         attachmentName: "",
+        deleted: false,
+        moderationStatus: 0,
       });
       writeState(state);
       result = ok(null, "留言已保存在当前演示会话。");

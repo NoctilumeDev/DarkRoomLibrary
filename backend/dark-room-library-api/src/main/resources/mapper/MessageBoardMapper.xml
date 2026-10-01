@@ -4,6 +4,8 @@
 
     <!-- ==================== 公共 SQL 片段 ==================== -->
     <sql id="queryWhere">
+        AND mb.is_deleted = 0
+        AND mb.moderation_status = 0
         <if test="userId != null">
             AND mb.user_id = #{userId}
         </if>
@@ -21,6 +23,60 @@
         WHERE mb.id = #{id}
         FOR UPDATE
     </select>
+
+    <update id="moveToRecycleBin">
+        UPDATE message_board
+        SET is_deleted = 1,
+            deleted_at = #{deletedAt},
+            restore_deadline = #{restoreDeadline},
+            expired_at = NULL
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND user_id = #{userId}
+          AND moderation_status = 0
+          AND is_deleted = 0
+    </update>
+
+    <update id="hideByAdministrator">
+        UPDATE message_board
+        SET moderation_status = 1
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+          </foreach>
+          AND moderation_status = 0
+          AND is_deleted = 0
+    </update>
+
+    <update id="restoreFromRecycleBin">
+        UPDATE message_board
+        SET is_deleted = 0,
+            deleted_at = NULL,
+            restore_deadline = NULL,
+            expired_at = NULL
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND user_id = #{userId}
+          AND moderation_status = 0
+          AND is_deleted = 1
+          AND expired_at IS NULL
+          AND restore_deadline &gt; #{now}
+    </update>
+
+    <update id="markExpired">
+        UPDATE message_board
+        SET expired_at = #{now}
+        WHERE id = #{id}
+          AND is_deleted = 1
+          AND moderation_status = 0
+          AND expired_at IS NULL
+          AND restore_deadline = #{restoreDeadline}
+          AND restore_deadline &lt;= #{now}
+    </update>
 
     <select id="findByIdsForUpdate" resultMap="BaseResultMap">
         SELECT mb.*
@@ -57,6 +113,40 @@
         </where>
     </select>
 
+    <select id="queryRecycleBin" resultMap="MessageBoardViewMap">
+        SELECT mb.*, u.user_name, u.user_avatar
+        FROM message_board mb
+        LEFT JOIN user u ON mb.user_id = u.id
+        WHERE mb.user_id = #{userId}
+          AND mb.is_deleted = 1
+          AND mb.moderation_status = 0
+          AND mb.expired_at IS NULL
+          AND mb.restore_deadline &gt; #{now}
+        ORDER BY mb.deleted_at DESC, mb.id DESC
+        LIMIT #{size} OFFSET #{current}
+    </select>
+
+    <select id="queryRecycleBinCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM message_board mb
+        WHERE mb.user_id = #{userId}
+          AND mb.is_deleted = 1
+          AND mb.moderation_status = 0
+          AND mb.expired_at IS NULL
+          AND mb.restore_deadline &gt; #{now}
+    </select>
+
+    <select id="findExpirationCandidates" resultType="integer">
+        SELECT id
+        FROM message_board
+        WHERE is_deleted = 1
+          AND moderation_status = 0
+          AND expired_at IS NULL
+          AND restore_deadline &lt;= #{now}
+        ORDER BY restore_deadline, id
+        LIMIT #{limit}
+    </select>
+
     <!-- ==================== 结果映射 ==================== -->
     <resultMap id="BaseResultMap" type="org.darkroomlibrary.domain.model.MessageBoard">
         <id column="id" property="id"/>
@@ -67,6 +157,11 @@
         <result column="attachment_type" property="attachmentType"/>
         <result column="create_time" property="createTime"/>
         <result column="reply" property="reply"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="moderation_status" property="moderationStatus"/>
+        <result column="deleted_at" property="deletedAt"/>
+        <result column="restore_deadline" property="restoreDeadline"/>
+        <result column="expired_at" property="expiredAt"/>
     </resultMap>
 
     <resultMap id="MessageBoardViewMap" type="org.darkroomlibrary.web.view.MessageBoardView">
@@ -80,6 +175,10 @@
         <result column="user_name" property="userName"/>
         <result column="user_avatar" property="userAvatar"/>
         <result column="reply" property="reply"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="moderation_status" property="moderationStatus"/>
+        <result column="deleted_at" property="deletedAt"/>
+        <result column="restore_deadline" property="restoreDeadline"/>
     </resultMap>
 
 </mapper>

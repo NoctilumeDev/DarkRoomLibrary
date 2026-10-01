@@ -46,6 +46,14 @@
             <strong>{{ item.userName || "匿名读者" }}</strong>
             <span>{{ item.createTime }}</span>
           </div>
+          <button
+            v-if="isOwnMessage(item)"
+            type="button"
+            class="message-delete"
+            @click="deleteMessage(item)"
+          >
+            移入回收笺
+          </button>
         </div>
         <p>{{ item.content }}</p>
         <div v-if="item.reply" class="reply-box">
@@ -97,7 +105,7 @@ import {
   resolveFileUrl,
   toApiRequestPath,
 } from "@/utils/fileUrl.js";
-import { getToken } from "@/utils/storage.js";
+import { getToken, getUserProfile } from "@/utils/storage.js";
 
 export default {
   name: "MessageBoard",
@@ -116,6 +124,7 @@ export default {
       pageSize: 10,
       totalItems: 0,
       attachmentObjectUrls: [],
+      currentUserId: Number(getUserProfile()?.id || 0),
     };
   },
   created() {
@@ -136,6 +145,29 @@ export default {
   methods: {
     getAvatarUrl(url) {
       return resolveFileUrl(url);
+    },
+    isOwnMessage(item) {
+      return Number(item.userId) === this.currentUserId;
+    },
+    async deleteMessage(item) {
+      const confirmed = await this.$swalConfirm({
+        title: "收起这条留言？",
+        text: "留言和附件会在回收笺中保留 30 天，期间可以恢复。",
+        icon: "warning",
+        confirmButtonText: "移入回收笺",
+        cancelButtonText: "保留",
+        quiet: true,
+      });
+      if (!confirmed) return;
+      try {
+        const response = await this.$axios.post("/messageBoard/batchDelete", [item.id]);
+        if (response.data.code === 200) {
+          this.$message.success(response.data.msg);
+          await this.fetchData();
+        } else this.$message.error(response.data.msg);
+      } catch (error) {
+        this.$message.error(error.response?.data?.msg || "留言删除失败。");
+      }
     },
     isImageAttachment(item) {
       const type = (item.attachmentType || "").toLowerCase();
@@ -386,6 +418,15 @@ export default {
     color: rgba(239, 229, 213, 0.52);
     font-size: 12px;
   }
+}
+
+.message-delete {
+  margin-left: auto;
+  padding: 4px 0;
+  border: 0;
+  color: var(--seal);
+  background: transparent;
+  cursor: pointer;
 }
 
 .message-attachment {

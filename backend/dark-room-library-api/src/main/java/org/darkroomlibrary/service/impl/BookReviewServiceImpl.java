@@ -10,6 +10,7 @@ import org.darkroomlibrary.mapper.UserMapper;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
 import org.darkroomlibrary.web.dto.query.BookReviewPageQuery;
+import org.darkroomlibrary.web.dto.query.PageQuery;
 import org.darkroomlibrary.web.dto.command.BookReviewCreateDto;
 import org.darkroomlibrary.web.dto.command.BookReviewUpdateDto;
 import org.darkroomlibrary.domain.model.Book;
@@ -25,6 +26,7 @@ import org.darkroomlibrary.service.ContentPostingPolicy;
 import org.darkroomlibrary.service.OperationAuditService;
 import org.darkroomlibrary.service.BookReviewService;
 import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
+import org.darkroomlibrary.service.support.RecycleBinPolicy;
 import org.darkroomlibrary.utils.ContentSanitizer;
 import org.darkroomlibrary.utils.IdListUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -65,6 +67,8 @@ public class BookReviewServiceImpl implements BookReviewService {
     private UserMapper userMapper;
     @Resource
     private RecommendationSourceVersionService recommendationSourceVersionService;
+    @Resource
+    private RecycleBinPolicy recycleBinPolicy;
 
     @Override
     @Transactional
@@ -118,8 +122,11 @@ public class BookReviewServiceImpl implements BookReviewService {
             return ApiResponse.error(postingError);
         }
         BookReview exist = bookReviewMapper.findByIdForUpdate(dto.getId());
-        if (exist == null) {
+        if (exist == null || Boolean.TRUE.equals(exist.getIsDeleted())) {
             return ApiResponse.error("评价不存在");
+        }
+        if (!Objects.equals(exist.getStatus(), 0)) {
+            return ApiResponse.error("评价已被管理员隐藏，不能修改");
         }
         Integer userId = CurrentUserContext.userId();
         if (!exist.getUserId().equals(userId)) {
@@ -166,20 +173,33 @@ public class BookReviewServiceImpl implements BookReviewService {
         if (reviews.size() != normalizedIds.size()) {
             return ApiResponse.error("部分评价不存在");
         }
-        // 非管理员只能删除自己的评价
-        if (!CurrentUserContext.isAdministrator()) {
+        boolean adminOperation = CurrentUserContext.isAdministrator();
+        int changed;
+        if (adminOperation) {
+            if (reviews.stream().anyMatch(review -> !Objects.equals(review.getStatus(), 0)
+                    || Boolean.TRUE.equals(review.getIsDeleted()))) {
+                return ApiResponse.error("部分书评已被处理，请刷新后重试");
+            }
+            changed = bookReviewMapper.hideByAdministrator(normalizedIds);
+        } else {
             Integer currentUserId = CurrentUserContext.userId();
             for (BookReview review : reviews) {
                 if (!Objects.equals(review.getUserId(), currentUserId)) {
                     return ApiResponse.error("只能删除自己的评价");
                 }
+                if (!Objects.equals(review.getStatus(), 0)
+                        || Boolean.TRUE.equals(review.getIsDeleted())) {
+                    return ApiResponse.error("部分评价状态已变化，请刷新后重试");
+                }
             }
+            LocalDateTime deletedAt = recycleBinPolicy.now();
+            changed = bookReviewMapper.moveToRecycleBin(
+                    normalizedIds,
+                    currentUserId,
+                    deletedAt,
+                    recycleBinPolicy.restoreDeadline(deletedAt));
         }
-        boolean adminOperation = CurrentUserContext.isAdministrator();
-        bookReviewLikeMapper.deleteByReviewIds(normalizedIds);
-        int deletedReplyCount = bookReviewReplyMapper.deleteByReviewIds(normalizedIds);
-        bookReviewReportMapper.deleteByReviewIds(normalizedIds);
-        if (bookReviewMapper.batchDelete(normalizedIds) != normalizedIds.size()) {
+        if (changed != normalizedIds.size()) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("评价状态已变化，请刷新后重试");
         }
@@ -187,12 +207,12 @@ public class BookReviewServiceImpl implements BookReviewService {
         reviews.stream().map(BookReview::getUserId).filter(Objects::nonNull).distinct()
                 .forEach(recommendationSourceVersionService::invalidateUserAfterCommit);
         if (adminOperation) {
-            operationAuditService.record("删除", "书评及回复",
-                    "书评ID=" + normalizedIds + "，删除书评数=" + normalizedIds.size()
-                            + "，删除关联回复数=" + deletedReplyCount
-                            + "，关联点赞和举报记录已清理");
+            operationAuditService.record("审核", "书评",
+                    "书评ID=" + normalizedIds + "，处理结果=移出公开书评；回复、点赞和举报记录保留");
         }
-        return ApiResponse.success("删除评价成功");
+        return ApiResponse.success(adminOperation
+                ? "书评已移出公开区域"
+                : "评价已移入回收站，可在" + recycleBinPolicy.retentionDays() + "天内恢复");
     }
 
     @Override
@@ -204,6 +224,56 @@ public class BookReviewServiceImpl implements BookReviewService {
     }
 
     @Override
+    public ApiResponse<List<BookReviewView>> queryRecycleBin(PageQuery dto) {
+        LocalDateTime now = recycleBinPolicy.now();
+        Integer userId = CurrentUserContext.userId();
+        List<BookReviewView> list = bookReviewMapper.queryRecycleBin(
+                userId, dto.getCurrent(), dto.getSize(), now);
+        for (BookReviewView review : list) {
+            review.setContent(ContentSanitizer.plainText(review.getContent()));
+        }
+        return PageResponse.success(
+                list, bookReviewMapper.queryRecycleBinCount(userId, now));
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<Void> restore(List<Integer> ids) {
+        List<Integer> normalizedIds = IdListUtils.normalize(ids);
+        if (normalizedIds.isEmpty()) {
+            return ApiResponse.error("请选择要恢复的评价");
+        }
+        if (IdListUtils.exceedsBatchLimit(normalizedIds)) {
+            return ApiResponse.error("单次最多恢复" + IdListUtils.MAX_BATCH_SIZE + "条评价");
+        }
+        Integer userId = CurrentUserContext.userId();
+        List<BookReview> reviews = bookReviewMapper.findByIdsForUpdate(normalizedIds);
+        if (reviews.size() != normalizedIds.size()) {
+            return ApiResponse.error("部分评价不存在");
+        }
+        LocalDateTime now = recycleBinPolicy.now();
+        for (BookReview review : reviews) {
+            if (!Objects.equals(review.getUserId(), userId)) {
+                return ApiResponse.error("只能恢复自己的评价");
+            }
+            if (!Boolean.TRUE.equals(review.getIsDeleted())
+                    || !Objects.equals(review.getStatus(), 0)
+                    || review.getExpiredAt() != null
+                    || review.getRestoreDeadline() == null
+                    || !review.getRestoreDeadline().isAfter(now)) {
+                return ApiResponse.error("评价已不可恢复");
+            }
+        }
+        if (bookReviewMapper.restoreFromRecycleBin(normalizedIds, userId, now)
+                != normalizedIds.size()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ApiResponse.error("评价状态已变化，请刷新后重试");
+        }
+        recommendationSourceVersionService.invalidateUserAndGlobalAfterCommit(userId);
+        return ApiResponse.success("评价已恢复");
+    }
+
+    @Override
     @Transactional
     public ApiResponse<Boolean> toggleLike(Integer reviewId) {
         String accountError = contentPostingPolicy.currentUserAccountRejectionReason();
@@ -211,7 +281,8 @@ public class BookReviewServiceImpl implements BookReviewService {
             return ApiResponse.error(accountError);
         }
         BookReview review = reviewId == null ? null : bookReviewMapper.findByIdForUpdate(reviewId);
-        if (review == null || !Objects.equals(review.getStatus(), 0)) {
+        if (review == null || !Objects.equals(review.getStatus(), 0)
+                || Boolean.TRUE.equals(review.getIsDeleted())) {
             return ApiResponse.error("评价不存在或已隐藏");
         }
         Integer userId = CurrentUserContext.userId();
@@ -257,6 +328,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         BookReview review = reviewId == null ? null : bookReviewMapper.findByIdForUpdate(reviewId);
         if (review == null
                 || !Objects.equals(review.getStatus(), 0)
+                || Boolean.TRUE.equals(review.getIsDeleted())
                 || !Objects.equals(review.getUserId(), snapshot.getUserId())) {
             return ApiResponse.error("评价状态已变化，请刷新后重试");
         }
@@ -291,7 +363,8 @@ public class BookReviewServiceImpl implements BookReviewService {
             return ApiResponse.error(accountError);
         }
         BookReview review = reviewId == null ? null : bookReviewMapper.findByIdForUpdate(reviewId);
-        if (review == null || !Objects.equals(review.getStatus(), 0)) {
+        if (review == null || !Objects.equals(review.getStatus(), 0)
+                || Boolean.TRUE.equals(review.getIsDeleted())) {
             return ApiResponse.error("评价不存在或已隐藏");
         }
         Integer userId = CurrentUserContext.userId();

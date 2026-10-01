@@ -6,16 +6,19 @@ All notable changes to DarkRoomLibrary are documented in this file.
 
 ### Fixed
 
+- Closed the existing soft-delete lifecycle for books and reader-authored content: books, reviews, and messages now have an explicit 30-day restore deadline, while administrator moderation remains a separate non-restorable state.
+- Kept review interactions and audit history when readers retract content; message attachments remain bound during the restore window and are released only after expiry or administrator removal.
 - Prevented the shared SweetAlert theme from forcing dark dialogs into daytime reader and administration views.
 - Restored complete mobile review evidence and aligned administration actions without changing desktop table behavior.
 - Completed Demo query filtering, content-audit state semantics, and blocked attachment uploads that the public Demo cannot persist.
 
 ### Verification
 
-- Expanded the frontend critical-logic suite to `70/70`; the scoped V8 report now covers `511/683` lines (`74.81%`), with ESLint, production build, Demo build, protected CI, and CodeQL checks passing.
+- Expanded the maintenance suite to `299/299` backend tests with `3996/5453` lines covered (`73.28%`) and `83/83` frontend tests with `650/824` key-logic lines covered (`78.88%`); ESLint, production build, Demo build, Compose rendering, real MySQL lifecycle readback, and focused desktop/mobile browser acceptance pass. Published v1.2.7 and earlier full-chain evidence remains historical rather than being rewritten as a rerun.
 
 ### Documentation
 
+- Updated the README, system design, deployment upgrade path, acceptance checklist, and both module diagrams for the recycle-bin lifecycle without rewriting historical release evidence.
 - Synchronized the repository overview, technical documents, presentation, PDFs, and interactive module map with the released v1.2.7 implementation without changing product behavior.
 - Corrected the v1.2.7 backend coverage evidence to the JaCoCo report-level unique source-line total: `3837/5293` (`72.49%`). The former CSV class-row sum double-counted source lines shared by outer and nested classes; the `290/290` test result and 70% gate are unchanged.
 

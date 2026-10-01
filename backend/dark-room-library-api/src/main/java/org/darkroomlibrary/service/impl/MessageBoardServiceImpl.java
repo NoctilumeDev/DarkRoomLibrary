@@ -5,12 +5,15 @@ import org.darkroomlibrary.mapper.MessageBoardMapper;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.response.PageResponse;
 import org.darkroomlibrary.web.dto.query.MessageBoardPageQuery;
+import org.darkroomlibrary.web.dto.query.PageQuery;
 import org.darkroomlibrary.domain.type.FileReferenceType;
 import org.darkroomlibrary.domain.model.MessageBoard;
 import org.darkroomlibrary.web.view.MessageBoardView;
 import org.darkroomlibrary.service.ContentPostingPolicy;
 import org.darkroomlibrary.service.MessageBoardService;
 import org.darkroomlibrary.service.FileStorageService;
+import org.darkroomlibrary.service.OperationAuditService;
+import org.darkroomlibrary.service.support.RecycleBinPolicy;
 import org.darkroomlibrary.utils.ContentSanitizer;
 import org.darkroomlibrary.utils.IdListUtils;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,12 @@ public class MessageBoardServiceImpl implements MessageBoardService {
 
     @Resource
     private ContentPostingPolicy contentPostingPolicy;
+
+    @Resource
+    private OperationAuditService operationAuditService;
+
+    @Resource
+    private RecycleBinPolicy recycleBinPolicy;
 
     @Override
     @Transactional
@@ -83,6 +92,8 @@ public class MessageBoardServiceImpl implements MessageBoardService {
         messageBoard.setUserId(userId);
         messageBoard.setContent(hasContent ? cleanContent : "");
         messageBoard.setReply(null);
+        messageBoard.setIsDeleted(false);
+        messageBoard.setModerationStatus(0);
         messageBoard.setCreateTime(LocalDateTime.now());
         if (messageBoardMapper.insert(messageBoard) != 1) {
             return ApiResponse.error("留言失败，请重试");
@@ -120,48 +131,108 @@ public class MessageBoardServiceImpl implements MessageBoardService {
         if (messages.size() != normalizedIds.size()) {
             return ApiResponse.error("部分留言不存在");
         }
-        // 非管理员只能删除自己的留言
-        if (!CurrentUserContext.isAdministrator()) {
+        boolean adminOperation = CurrentUserContext.isAdministrator();
+        int changed;
+        if (adminOperation) {
+            if (messages.stream().anyMatch(message -> !Objects.equals(message.getModerationStatus(), 0)
+                    || Boolean.TRUE.equals(message.getIsDeleted()))) {
+                return ApiResponse.error("部分留言已被处理，请刷新后重试");
+            }
+            changed = messageBoardMapper.hideByAdministrator(normalizedIds);
+        } else {
             Integer currentUserId = CurrentUserContext.userId();
             for (MessageBoard message : messages) {
                 if (!Objects.equals(message.getUserId(), currentUserId)) {
                     return ApiResponse.error("只能删除自己的留言");
                 }
+                if (Boolean.TRUE.equals(message.getIsDeleted())
+                        || !Objects.equals(message.getModerationStatus(), 0)) {
+                    return ApiResponse.error("部分留言状态已变化，请刷新后重试");
+                }
             }
+            LocalDateTime deletedAt = recycleBinPolicy.now();
+            changed = messageBoardMapper.moveToRecycleBin(
+                    normalizedIds,
+                    currentUserId,
+                    deletedAt,
+                    recycleBinPolicy.restoreDeadline(deletedAt));
         }
-        fileStorageService.releaseReferences(FileReferenceType.MESSAGE_ATTACHMENT, normalizedIds);
-        if (messageBoardMapper.batchDelete(normalizedIds) != normalizedIds.size()) {
+        if (changed != normalizedIds.size()) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("留言状态已变化，请刷新后重试");
         }
-        return ApiResponse.success("删除留言成功");
+        if (adminOperation) {
+            fileStorageService.releaseReferences(FileReferenceType.MESSAGE_ATTACHMENT, normalizedIds);
+            operationAuditService.record("审核", "留言",
+                    "留言ID=" + normalizedIds + "，处理结果=移出公开留言；附件引用已释放");
+            return ApiResponse.success("留言已移出公开区域");
+        }
+        operationAuditService.record("删除", "留言回收站", "留言ID=" + normalizedIds);
+        return ApiResponse.success(
+                "留言已移入回收站，可在" + recycleBinPolicy.retentionDays() + "天内恢复");
     }
 
     @Override
     public ApiResponse<List<MessageBoardView>> query(MessageBoardPageQuery dto) {
         List<MessageBoardView> list = messageBoardMapper.query(dto);
-        for (MessageBoardView item : list) {
-            item.setContent(ContentSanitizer.plainText(item.getContent()));
-            item.setReply(ContentSanitizer.plainText(item.getReply()));
-            item.setAttachmentName(ContentSanitizer.plainText(item.getAttachmentName()));
-            item.setAttachmentUrl(fileStorageService.toDownloadUrl(item.getAttachmentUrl()));
-            if (item.getAttachmentUrl() != null
-                    && !ContentSanitizer.isSafeMessageAttachment(
-                    item.getAttachmentUrl(), item.getAttachmentType())) {
-                item.setAttachmentUrl(null);
-                item.setAttachmentName(null);
-                item.setAttachmentType(null);
-            }
-        }
+        sanitizeMessages(list);
         Integer total = messageBoardMapper.queryCount(dto);
         return PageResponse.success(list, total);
+    }
+
+    @Override
+    public ApiResponse<List<MessageBoardView>> queryRecycleBin(PageQuery dto) {
+        LocalDateTime now = recycleBinPolicy.now();
+        Integer userId = CurrentUserContext.userId();
+        List<MessageBoardView> list = messageBoardMapper.queryRecycleBin(
+                userId, dto.getCurrent(), dto.getSize(), now);
+        sanitizeMessages(list);
+        return PageResponse.success(
+                list, messageBoardMapper.queryRecycleBinCount(userId, now));
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<Void> restore(List<Integer> ids) {
+        List<Integer> normalizedIds = IdListUtils.normalize(ids);
+        if (normalizedIds.isEmpty()) {
+            return ApiResponse.error("请选择要恢复的留言");
+        }
+        if (IdListUtils.exceedsBatchLimit(normalizedIds)) {
+            return ApiResponse.error("单次最多恢复" + IdListUtils.MAX_BATCH_SIZE + "条留言");
+        }
+        Integer userId = CurrentUserContext.userId();
+        List<MessageBoard> messages = messageBoardMapper.findByIdsForUpdate(normalizedIds);
+        if (messages.size() != normalizedIds.size()) {
+            return ApiResponse.error("部分留言不存在");
+        }
+        LocalDateTime now = recycleBinPolicy.now();
+        for (MessageBoard message : messages) {
+            if (!Objects.equals(message.getUserId(), userId)) {
+                return ApiResponse.error("只能恢复自己的留言");
+            }
+            if (!Boolean.TRUE.equals(message.getIsDeleted())
+                    || !Objects.equals(message.getModerationStatus(), 0)
+                    || message.getExpiredAt() != null
+                    || message.getRestoreDeadline() == null
+                    || !message.getRestoreDeadline().isAfter(now)) {
+                return ApiResponse.error("留言已不可恢复");
+            }
+        }
+        if (messageBoardMapper.restoreFromRecycleBin(normalizedIds, userId, now)
+                != normalizedIds.size()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ApiResponse.error("留言状态已变化，请刷新后重试");
+        }
+        return ApiResponse.success("留言已恢复");
     }
 
     @Override
     @Transactional
     public ApiResponse<Void> reply(Integer id, String reply) {
         MessageBoard msg = id == null ? null : messageBoardMapper.findByIdForUpdate(id);
-        if (msg == null) {
+        if (msg == null || Boolean.TRUE.equals(msg.getIsDeleted())
+                || !Objects.equals(msg.getModerationStatus(), 0)) {
             return ApiResponse.error("留言不存在");
         }
         if (ContentSanitizer.exceedsLength(reply, ContentSanitizer.MESSAGE_REPLY_MAX_LENGTH)) {
@@ -175,5 +246,21 @@ public class MessageBoardServiceImpl implements MessageBoardService {
             return ApiResponse.error("留言状态已变化，请刷新后重试");
         }
         return ApiResponse.success("回复成功");
+    }
+
+    private void sanitizeMessages(List<MessageBoardView> list) {
+        for (MessageBoardView item : list) {
+            item.setContent(ContentSanitizer.plainText(item.getContent()));
+            item.setReply(ContentSanitizer.plainText(item.getReply()));
+            item.setAttachmentName(ContentSanitizer.plainText(item.getAttachmentName()));
+            item.setAttachmentUrl(fileStorageService.toDownloadUrl(item.getAttachmentUrl()));
+            if (item.getAttachmentUrl() != null
+                    && !ContentSanitizer.isSafeMessageAttachment(
+                    item.getAttachmentUrl(), item.getAttachmentType())) {
+                item.setAttachmentUrl(null);
+                item.setAttachmentName(null);
+                item.setAttachmentType(null);
+            }
+        }
     }
 }

@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS `book` (
     `description` TEXT,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `is_deleted` TINYINT DEFAULT 0,
+    `deleted_at` DATETIME,
+    `restore_deadline` DATETIME,
+    `expired_at` DATETIME,
     `bookshelf_id` INT DEFAULT NULL,
     CONSTRAINT `chk_book_stock`
       CHECK (`total_count` >= 0 AND `available_count` >= 0 AND `available_count` <= `total_count`)
@@ -75,6 +78,10 @@ CREATE TABLE IF NOT EXISTS `book_review` (
     `rating` TINYINT DEFAULT 5,
     `content` TEXT,
     `status` TINYINT DEFAULT 0,
+    `is_deleted` TINYINT DEFAULT 0,
+    `deleted_at` DATETIME,
+    `restore_deadline` DATETIME,
+    `expired_at` DATETIME,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -114,7 +121,12 @@ CREATE TABLE IF NOT EXISTS `message_board` (
     `attachment_name` VARCHAR(255),
     `attachment_type` VARCHAR(50),
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `reply` TEXT
+    `reply` TEXT,
+    `is_deleted` TINYINT DEFAULT 0,
+    `moderation_status` TINYINT DEFAULT 0,
+    `deleted_at` DATETIME,
+    `restore_deadline` DATETIME,
+    `expired_at` DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS `book_reservation` (

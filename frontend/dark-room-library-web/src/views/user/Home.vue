@@ -91,6 +91,7 @@ import { getReaderTheme, toggleReaderTheme } from "@/utils/readerTheme.js";
 import ProfileDialog from "@/components/ProfileDialog.vue";
 import {
   Collection,
+  Delete as DeleteIcon,
   House,
   Menu as MoreIcon,
   Message,
@@ -112,6 +113,7 @@ const READER_NAV_ITEMS = Object.freeze([
   { key: "favorites", path: "/myFavorites", label: "我的收藏", mobileLabel: "收藏", functional: "私人书架", icon: markRaw(Star) },
   { key: "reviews", path: "/bookReviews", label: "书评", mobileLabel: "书评", functional: "读者书评", icon: markRaw(Reading) },
   { key: "message", path: "/messageBoard", label: "留言", mobileLabel: "留言", functional: "读者留言", icon: markRaw(Message) },
+  { key: "recycle", path: "/recycleBin", label: "回收笺", mobileLabel: "回收", functional: "恢复主动删除的内容", icon: markRaw(DeleteIcon) },
 ]);
 
 export default {
@@ -143,7 +145,7 @@ export default {
       return [this.navItems[0], this.navItems[1], this.navItems[2], this.navItems[5]];
     },
     mobileMoreItems() {
-      return [this.navItems[3], this.navItems[4], this.navItems[6]];
+      return [this.navItems[3], this.navItems[4], this.navItems[6], this.navItems[7]];
     },
   },
   watch: {

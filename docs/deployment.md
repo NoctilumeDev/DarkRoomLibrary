@@ -17,7 +17,7 @@
 
 公开地址为 <https://noctilumedev.github.io/DarkRoomLibrary/>。`main` 分支更新后，`.github/workflows/pages.yml` 使用 `npm run build:demo` 自动部署；该构建启用 Hash 路由和 `/DarkRoomLibrary/` 资源基路径。
 
-浏览器演示通过 Axios adapter 提供会话级数据，只用于低门槛查看界面、六个固定身份和关键业务状态变化。状态保存在 `sessionStorage`，不会上传到 GitHub，也不会持久化到服务器。上传下载、邮件、注册、注销和导出均明确禁用。
+浏览器演示通过 Axios adapter 提供会话级数据，只用于低门槛查看界面、六个固定身份和关键业务状态变化，包含图书回收、读者书评/留言回收与恢复。状态保存在 `sessionStorage`，不会上传到 GitHub，也不会持久化到服务器。上传下载、邮件、注册、注销、真实定时过期和导出均明确禁用。
 
 这一路径不运行 Spring Boot、MySQL、Redis 或 RabbitMQ，不能用于证明真实事务、并发一致性、文件治理、健康检查或中间件降级。此类能力必须使用 Compose 或本机完整环境验证。
 
@@ -64,6 +64,14 @@ ALTER TABLE `user`
 ```
 
 全新安装不需要执行该命令，初始化 SQL 已直接包含该列。`auth_version` 只用于密码、角色和账号状态变化后让旧 JWT 在三个实例上立即失效，不保存令牌或敏感信息。
+
+已有数据卷升级到包含回收笺生命周期的版本时，必须先备份数据库，再**只执行一次**：
+
+```powershell
+cmd /c "mysql --default-character-set=utf8mb4 -u root -p dark_room_library < sql\upgrade-recycle-bin-lifecycle.sql"
+```
+
+该脚本为 `book`、`book_review` 与 `message_board` 增加恢复期限、过期时间和治理状态。历史上已经软删除、但没有期限的图书会从迁移执行时起获得一次 30 天恢复窗口。脚本不是可重复迁移；执行前应核对目标库，并在执行后检查三张表的新列和索引。全新数据卷不执行此脚本，因为初始化 SQL 已包含最终结构。
 
 普通停止：
 
@@ -133,6 +141,10 @@ $env:DB_PASSWORD="replace-me"
 $env:JWT_SECRET="at-least-32-random-bytes"
 $env:CORS_ORIGINS="https://library.example.com"
 $env:FILE_UPLOAD_DIR="D:\DarkRoomLibrary\upload"
+$env:RECYCLE_BIN_RETENTION_DAYS="30"
+$env:RECYCLE_BIN_CLEANUP_CRON="0 15 3 * * ?"
+$env:RECYCLE_BIN_CLEANUP_BATCH_SIZE="100"
+$env:APP_TIME_ZONE="Asia/Shanghai"
 ```
 
 生产数据库应使用权限受限的应用账号，不应沿用 Compose 的 MySQL root 账号。
@@ -194,7 +206,13 @@ RabbitMQ 消费异常不会无限重新入队，而是分别进入
 
 ## 6. 数据库版本演进
 
-当前公开版本继续保留一份可直接执行的 `init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 24 张物理表（23 张业务与派生表及 1 张邮箱配额技术控制表）和演示数据初始化。`v1.2.1` 对已有 `v1.2.0` 数据卷只有上方一条认证版本列升级；`v1.2.2` 与 `v1.2.3` 没有新增数据库结构变更，不为首次安装拆出额外 SQL 文件。
+仓库继续保留一份可直接执行的 `init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 24 张物理表（23 张业务与派生表及 1 张邮箱配额技术控制表）和演示数据初始化。已有长期数据卷则按明确边界执行增量脚本：`v1.2.1` 的 `auth_version` 单列升级，以及本版本的 `upgrade-recycle-bin-lifecycle.sql`。两者都必须在数据库备份后按需执行一次，不能把全新安装快照当成已有库的覆盖脚本。
+
+回收策略默认保留 30 天，每天 03:15 分批撤销过期恢复资格；分别由 `RECYCLE_BIN_RETENTION_DAYS`、`RECYCLE_BIN_CLEANUP_CRON` 和 `RECYCLE_BIN_CLEANUP_BATCH_SIZE` 配置。业务墙上时间由 `APP_TIME_ZONE` 统一解释，默认 `Asia/Shanghai`；Compose 通过同一个 `DRL_APP_TIME_ZONE` 同时配置 MySQL、RabbitMQ、后端运行环境、后端应用时钟与前端构建，不能只改其中一层。前后端展示和回收截止判断都使用该配置，不依赖浏览器、宿主 JVM 或容器碰巧采用的本地时区。
+
+数据库现有时间列使用 MySQL `DATETIME` 与 Java `LocalDateTime`，保存的是应用时区下的墙上时间，而不是自带偏移量的绝对瞬间。回收生命周期因此不直接使用数据库 `CURRENT_TIMESTAMP` 判断恢复资格，而由后端注入的应用 `Clock` 产生同一次请求的判断时点。若独立部署时修改应用时区，必须同时迁移既有时间数据或保持原时区；仅改配置会改变旧墙上时间的解释，不属于无损切换。
+
+多个实例可以同时触发清理，但留言过期会在行锁与条件更新成功后才释放附件引用，旧清理者不能覆盖已经恢复的新状态。期限调整只影响调整后新进入回收站的内容，不追溯改写现有记录已经保存的 `restore_deadline`。
 
 暂不强制引入 Flyway，原因是当前没有多版本生产数据库需要滚动升级。出现以下条件时再引入更合理：
 

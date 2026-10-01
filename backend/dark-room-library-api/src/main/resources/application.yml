@@ -9,6 +9,7 @@ server:
 # API 地址前缀，用于接口拦截放行和文件访问地址生成
 app:
   api-prefix: /api/dark-room-library/v1
+  time-zone: ${APP_TIME_ZONE:Asia/Shanghai}
 
 # MySQL 与文件上传限制配置
 spring:
@@ -118,6 +119,12 @@ borrow:
 reservation:
   max-count: 3
   reconcile-delay-ms: ${RESERVATION_RECONCILE_DELAY_MS:60000}
+
+# Recoverable deletion window. Expiry revokes restore authority; core rows remain as tombstones.
+recycle-bin:
+  retention-days: ${RECYCLE_BIN_RETENTION_DAYS:30}
+  cleanup-cron: "${RECYCLE_BIN_CLEANUP_CRON:0 15 3 * * ?}"
+  cleanup-batch-size: ${RECYCLE_BIN_CLEANUP_BATCH_SIZE:100}
 
 # CORS配置
 cors:

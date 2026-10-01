@@ -112,10 +112,14 @@ CREATE TABLE IF NOT EXISTS `book` (
   `description` varchar(2000) DEFAULT NULL COMMENT 'description',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT 'created time',
   `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT 'soft delete flag',
+  `deleted_at` datetime DEFAULT NULL COMMENT 'entered recycle bin time',
+  `restore_deadline` datetime DEFAULT NULL COMMENT 'restore eligibility deadline',
+  `expired_at` datetime DEFAULT NULL COMMENT 'restore eligibility revoked time',
   `bookshelf_id` int unsigned DEFAULT NULL COMMENT 'bookshelf id',
   PRIMARY KEY (`id`),
   KEY `idx_category` (`category`),
   KEY `idx_is_deleted` (`is_deleted`),
+  KEY `idx_book_recycle_expiry` (`is_deleted`, `expired_at`, `restore_deadline`),
   KEY `idx_name` (`name`),
   KEY `idx_bookshelf_id` (`bookshelf_id`),
   CONSTRAINT `fk_book_bookshelf`
@@ -178,11 +182,16 @@ CREATE TABLE IF NOT EXISTS `book_review` (
   `rating` tinyint unsigned NOT NULL DEFAULT 5 COMMENT 'rating 1-5',
   `content` longtext COMMENT 'review content',
   `status` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '0=normal,1=hidden',
+  `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT 'reader recycle-bin flag',
+  `deleted_at` datetime DEFAULT NULL COMMENT 'entered recycle bin time',
+  `restore_deadline` datetime DEFAULT NULL COMMENT 'restore eligibility deadline',
+  `expired_at` datetime DEFAULT NULL COMMENT 'restore eligibility revoked time',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT 'created time',
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_book_id` (`book_id`),
   KEY `idx_status` (`status`),
+  KEY `idx_review_recycle_owner` (`user_id`, `is_deleted`, `expired_at`, `restore_deadline`),
   CONSTRAINT `fk_review_user`
     FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -399,9 +408,16 @@ CREATE TABLE IF NOT EXISTS `message_board` (
   `attachment_type` varchar(50) DEFAULT NULL COMMENT 'attachment type',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT 'created time',
   `reply` longtext COMMENT 'admin reply',
+  `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT 'reader recycle-bin flag',
+  `moderation_status` tinyint NOT NULL DEFAULT 0 COMMENT '0=public,1=removed by administrator',
+  `deleted_at` datetime DEFAULT NULL COMMENT 'entered recycle bin time',
+  `restore_deadline` datetime DEFAULT NULL COMMENT 'restore eligibility deadline',
+  `expired_at` datetime DEFAULT NULL COMMENT 'restore eligibility revoked time',
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_create_time` (`create_time`),
+  KEY `idx_message_visible` (`is_deleted`, `moderation_status`, `create_time`),
+  KEY `idx_message_recycle_owner` (`user_id`, `is_deleted`, `moderation_status`, `expired_at`, `restore_deadline`),
   CONSTRAINT `fk_message_user`
     FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE

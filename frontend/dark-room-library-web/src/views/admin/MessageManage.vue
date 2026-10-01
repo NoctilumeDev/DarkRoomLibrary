@@ -10,7 +10,7 @@
         @keyup.enter="fetchData"
       />
       <el-button type="primary" @click="fetchData">搜索</el-button>
-      <el-button type="danger" :disabled="!selectedRows.length" @click="batchDelete">批量删除</el-button>
+      <el-button type="danger" :disabled="!selectedRows.length" @click="batchDelete">批量移出公开区</el-button>
     </el-row>
 
     <el-table :data="tableData" @selection-change="handleSelectionChange" row-key="id" style="width: 100%">
@@ -33,7 +33,7 @@
         <template #default="scope">
           <div class="message-row-actions">
             <el-button text size="small" @click="openReply(scope.row)">回复</el-button>
-            <el-button text size="small" type="danger" @click="deleteOne(scope.row.id)">删除</el-button>
+            <el-button text size="small" type="danger" @click="deleteOne(scope.row.id)">移出公开区</el-button>
           </div>
         </template>
       </el-table-column>
@@ -160,8 +160,8 @@ export default {
     },
     async deleteOne(id) {
       const confirmed = await this.$swal.fire({
-        title: "确认删除",
-        text: "删除后不可恢复",
+        title: "移出公开留言？",
+        text: "这是管理员治理动作：留言将不再公开，读者不能从回收笺恢复；正文保留供审计，附件引用会释放。",
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: "确认",
@@ -171,7 +171,7 @@ export default {
       try {
         const response = await this.$axios.post("/messageBoard/batchDelete", [id]);
         if (response.data.code === 200) {
-          this.$message.success("删除成功");
+          this.$message.success(response.data.msg || "已移出公开区");
           this.fetchData();
         } else {
           this.$message.error(response.data.msg);
@@ -182,8 +182,8 @@ export default {
     },
     async batchDelete() {
       const confirmed = await this.$swal.fire({
-        title: "确认批量删除",
-        text: "删除后不可恢复",
+        title: "批量移出公开留言？",
+        text: "这是管理员治理动作：所选留言将不再公开，读者不能从回收笺恢复；正文保留供审计，附件引用会释放。",
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: "确认",
@@ -194,7 +194,7 @@ export default {
       try {
         const response = await this.$axios.post("/messageBoard/batchDelete", ids);
         if (response.data.code === 200) {
-          this.$message.success("删除成功");
+          this.$message.success(response.data.msg || "已移出公开区");
           this.fetchData();
         } else {
           this.$message.error(response.data.msg);
