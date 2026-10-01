@@ -5,6 +5,7 @@ import org.darkroomlibrary.web.dto.query.BookReviewPageQuery;
 import org.darkroomlibrary.web.dto.command.BookReviewCreateDto;
 import org.darkroomlibrary.web.dto.command.BookReviewUpdateDto;
 import org.darkroomlibrary.web.view.BookReviewView;
+import org.darkroomlibrary.web.dto.query.PageQuery;
 
 import java.util.List;
 
@@ -20,6 +21,10 @@ public interface BookReviewService {
     ApiResponse<Void> batchDelete(List<Integer> ids);
 
     ApiResponse<List<BookReviewView>> query(BookReviewPageQuery dto);
+
+    ApiResponse<List<BookReviewView>> queryRecycleBin(PageQuery dto);
+
+    ApiResponse<Void> restore(List<Integer> ids);
 
     ApiResponse<Boolean> toggleLike(Integer reviewId);
 

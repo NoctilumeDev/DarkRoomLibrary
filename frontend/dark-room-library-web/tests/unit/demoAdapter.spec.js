@@ -341,10 +341,66 @@ describe("browser demo adapter", () => {
     expect(backendFlow.data).toHaveLength(3);
   });
 
-  it("rejects unimplemented writes instead of returning an empty success", async () => {
+  it("keeps demo recycle-bin transitions observable and reversible", async () => {
     activateDemoIdentity("root");
-    const result = await call("delete", "/book/batchDelete", [1]);
-    expect(result.code).toBe(409);
-    expect(result.msg).toContain("不会伪造成功");
+    const deletedBook = await call("delete", "/book/batchDelete", [1]);
+    expect(deletedBook.code).toBe(200);
+    expect(deletedBook.msg).toContain("回收站");
+
+    const bookRecycleBin = await call("post", "/book/query", {
+      current: 1,
+      size: 20,
+      deleted: true,
+    });
+    expect(bookRecycleBin.data.find((book) => book.id === 1)).toMatchObject({
+      deleted: true,
+      restoreDeadline: expect.any(String),
+    });
+
+    expect((await call("post", "/book/restore", [1])).code).toBe(200);
+    const restoredBooks = await call("post", "/book/query", {
+      current: 1,
+      size: 20,
+      deleted: false,
+    });
+    expect(restoredBooks.data.find((book) => book.id === 1)?.deleted).toBe(false);
+
+    activateDemoIdentity("reader");
+    const reader = (await call("get", "/user/auth")).data;
+    const activeReviews = await call("post", "/bookReview/query", {
+      current: 1,
+      size: 20,
+    });
+    const ownReview = activeReviews.data.find((review) => review.userId === reader.id);
+    expect(ownReview).toBeTruthy();
+    expect((await call("delete", "/bookReview/batchDelete", [ownReview.id])).code).toBe(200);
+
+    const reviewRecycleBin = await call("post", "/bookReview/recycle/query", {
+      current: 1,
+      size: 20,
+    });
+    expect(reviewRecycleBin.data.find((review) => review.id === ownReview.id)).toMatchObject({
+      deleted: true,
+      restoreDeadline: expect.any(String),
+    });
+    expect((await call("post", "/bookReview/restore", [ownReview.id])).code).toBe(200);
+
+    const activeMessages = await call("post", "/messageBoard/query", {
+      current: 1,
+      size: 20,
+    });
+    const ownMessage = activeMessages.data.find((message) => message.userId === reader.id);
+    expect(ownMessage).toBeTruthy();
+    expect((await call("delete", "/messageBoard/batchDelete", [ownMessage.id])).code).toBe(200);
+
+    const messageRecycleBin = await call("post", "/messageBoard/recycle/query", {
+      current: 1,
+      size: 20,
+    });
+    expect(messageRecycleBin.data.find((message) => message.id === ownMessage.id)).toMatchObject({
+      deleted: true,
+      restoreDeadline: expect.any(String),
+    });
+    expect((await call("post", "/messageBoard/restore", [ownMessage.id])).code).toBe(200);
   });
 });

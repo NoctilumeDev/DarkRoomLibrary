@@ -3,6 +3,7 @@ package org.darkroomlibrary.service.impl;
 import org.darkroomlibrary.BaseTest;
 import org.darkroomlibrary.mapper.OperationLogMapper;
 import org.darkroomlibrary.mapper.BookReviewMapper;
+import org.darkroomlibrary.domain.model.BookReview;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.dto.query.BookReviewPageQuery;
 import org.darkroomlibrary.web.dto.query.BookReviewReportPageQuery;
@@ -40,6 +41,8 @@ public class BookReviewServiceImplTest extends BaseTest {
     private OperationLogMapper operationLogMapper;
     @Resource
     private BookReviewMapper bookReviewMapper;
+    @Resource
+    private RecycleBinExpiryService recycleBinExpiryService;
 
     private static Integer bookId;
     private static Integer userId;
@@ -266,7 +269,7 @@ public class BookReviewServiceImplTest extends BaseTest {
                 .rating(5)
                 .content("隐藏后修改内容不应改变审核状态")
                 .build();
-        assertEquals(200, bookReviewService.update(ownerUpdate).getCode());
+        assertEquals(400, bookReviewService.update(ownerUpdate).getCode());
         assertEquals(1, bookReviewMapper.getById(reviewId).getStatus());
     }
 
@@ -283,20 +286,35 @@ public class BookReviewServiceImplTest extends BaseTest {
 
     @Test
     @Order(11)
-    @DisplayName("管理员删除评价及关联回复并写入审计日志")
+    @DisplayName("管理员治理书评不会把审核记录变成读者可恢复删除")
     void testAdminDeleteReviewIsAudited() {
+        var owner = createTestUser("admin_hide_owner", "治理书评作者", "admin-hide-owner@example.test");
+        var book = createTestBook("治理书评图书", "测试作者", 1);
+        BookReview review = BookReview.builder()
+                .userId(owner.getId())
+                .bookId(book.getId())
+                .rating(4)
+                .content("需要由管理员移出公开区域的书评")
+                .status(0)
+                .isDeleted(false)
+                .createTime(java.time.LocalDateTime.now())
+                .build();
+        bookReviewMapper.insert(review);
         var admin = createTestUser("review_admin_03", "审核管理员三", "review_admin_03@example.test");
         setCurrentUser(admin.getId(), UserRole.ADMIN.code());
 
-        ApiResponse<Void> result = bookReviewService.batchDelete(Arrays.asList(reviewId));
+        ApiResponse<Void> result = bookReviewService.batchDelete(List.of(review.getId()));
         assertEquals(200, result.getCode());
+        BookReview governed = bookReviewMapper.getById(review.getId());
+        assertEquals(1, governed.getStatus());
+        assertFalse(Boolean.TRUE.equals(governed.getIsDeleted()));
         OperationLog deleteLog = operationLogMapper.selectList(null).stream()
-                .filter(log -> "删除".equals(log.getOperation())
-                        && "书评及回复".equals(log.getTarget())
-                        && log.getDetail().contains("书评ID=[" + reviewId + "]"))
+                .filter(log -> "审核".equals(log.getOperation())
+                        && "书评".equals(log.getTarget())
+                        && log.getDetail().contains("书评ID=[" + review.getId() + "]"))
                 .findFirst()
                 .orElseThrow();
-        assertTrue(deleteLog.getDetail().contains("删除关联回复数=1"));
+        assertTrue(deleteLog.getDetail().contains("回复、点赞和举报记录保留"));
     }
 
     @Test
@@ -305,7 +323,8 @@ public class BookReviewServiceImplTest extends BaseTest {
     void testReviewDeletedBookRejected() {
         var user = createTestUser("reviewer_deleted", "下架书评读者", "reviewer_deleted@example.test");
         var book = createTestBook("已下架书评图书", "下架作者", 1);
-        bookMapper.softDelete(List.of(book.getId()));
+        java.time.LocalDateTime deletedAt = java.time.LocalDateTime.now();
+        bookMapper.softDelete(List.of(book.getId()), deletedAt, deletedAt.plusDays(30));
         setCurrentUser(user.getId(), user.getUserRole());
 
         ApiResponse<Void> result = bookReviewService.save(BookReviewCreateDto.builder()
@@ -363,6 +382,75 @@ public class BookReviewServiceImplTest extends BaseTest {
                 review.getId(), "不应写入的回复", owner.getId()).getCode());
         assertEquals(400, bookReviewService.report(
                 review.getId(), "不应写入的举报").getCode());
+    }
+
+    @Test
+    @Order(15)
+    @DisplayName("读者书评进入回收站后可恢复，过期后失去恢复资格")
+    void testReaderReviewRecycleLifecycle() {
+        var owner = createTestUser("recycle_review_owner", "回收书评作者", "recycle-review@example.test");
+        var book = createTestBook("回收书评图书", "测试作者", 1);
+        BookReview review = BookReview.builder()
+                .userId(owner.getId())
+                .bookId(book.getId())
+                .rating(5)
+                .content("进入回收站的书评")
+                .status(0)
+                .isDeleted(false)
+                .createTime(java.time.LocalDateTime.now())
+                .build();
+        bookReviewMapper.insert(review);
+        setCurrentUser(owner.getId(), owner.getUserRole());
+
+        assertEquals(200, bookReviewService.batchDelete(List.of(review.getId())).getCode());
+        org.darkroomlibrary.web.dto.query.PageQuery page = new org.darkroomlibrary.web.dto.query.PageQuery();
+        page.setCurrent(0);
+        page.setSize(10);
+        assertTrue(bookReviewService.queryRecycleBin(page).getData().stream()
+                .anyMatch(item -> review.getId().equals(item.getId())));
+        assertEquals(200, bookReviewService.restore(List.of(review.getId())).getCode());
+        assertFalse(Boolean.TRUE.equals(bookReviewMapper.getById(review.getId()).getIsDeleted()));
+
+        assertEquals(200, bookReviewService.batchDelete(List.of(review.getId())).getCode());
+        bookReviewMapper.update(BookReview.builder()
+                .id(review.getId())
+                .restoreDeadline(java.time.LocalDateTime.now().minusSeconds(1))
+                .build());
+        recycleBinExpiryService.cleanupExpiredEntries();
+
+        assertNotNull(bookReviewMapper.getById(review.getId()).getExpiredAt());
+        assertEquals(400, bookReviewService.restore(List.of(review.getId())).getCode());
+        assertTrue(bookReviewService.queryRecycleBin(page).getData().stream()
+                .noneMatch(item -> review.getId().equals(item.getId())));
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("管理员迟到的治理请求不能覆盖读者已经建立的回收状态")
+    void testStaleAdministratorModerationCannotOverrideReaderRecycleState() {
+        var owner = createTestUser("stale_admin_review_owner", "旧治理书评作者", "stale-review@example.test");
+        var book = createTestBook("旧治理书评图书", "测试作者", 1);
+        BookReview review = BookReview.builder()
+                .userId(owner.getId())
+                .bookId(book.getId())
+                .rating(4)
+                .content("先由读者移入回收站")
+                .status(0)
+                .isDeleted(false)
+                .createTime(java.time.LocalDateTime.now())
+                .build();
+        bookReviewMapper.insert(review);
+        setCurrentUser(owner.getId(), owner.getUserRole());
+        assertEquals(200, bookReviewService.batchDelete(List.of(review.getId())).getCode());
+
+        var admin = createTestUser("stale_review_admin", "旧治理管理员", "stale-review-admin@example.test");
+        setCurrentUser(admin.getId(), UserRole.ADMIN.code());
+        assertEquals(400, bookReviewService.batchDelete(List.of(review.getId())).getCode());
+
+        BookReview retained = bookReviewMapper.getById(review.getId());
+        assertEquals(0, retained.getStatus());
+        assertTrue(Boolean.TRUE.equals(retained.getIsDeleted()));
+        assertNotNull(retained.getRestoreDeadline());
     }
 
 }

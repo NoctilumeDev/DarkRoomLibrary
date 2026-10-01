@@ -52,4 +52,18 @@ public class MessageBoard {
      * 管理员回复
      */
     private String reply;
+    /**
+     * 读者主动删除标记。管理员治理使用 moderationStatus，不进入读者回收站。
+     */
+    private Boolean isDeleted;
+    /**
+     * 管理员治理状态：0=公开，1=已移出公开留言。
+     */
+    private Integer moderationStatus;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime deletedAt;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime restoreDeadline;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime expiredAt;
 }

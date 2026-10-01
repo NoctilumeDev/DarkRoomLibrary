@@ -4,6 +4,7 @@ import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.dto.query.MessageBoardPageQuery;
 import org.darkroomlibrary.domain.model.MessageBoard;
 import org.darkroomlibrary.web.view.MessageBoardView;
+import org.darkroomlibrary.web.dto.query.PageQuery;
 
 import java.util.List;
 
@@ -17,6 +18,10 @@ public interface MessageBoardService {
     ApiResponse<Void> batchDelete(List<Integer> ids);
 
     ApiResponse<List<MessageBoardView>> query(MessageBoardPageQuery dto);
+
+    ApiResponse<List<MessageBoardView>> queryRecycleBin(PageQuery dto);
+
+    ApiResponse<Void> restore(List<Integer> ids);
 
     ApiResponse<Void> reply(Integer id, String reply);
 }

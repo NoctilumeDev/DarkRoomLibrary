@@ -14,8 +14,6 @@ public interface BookReviewMapper extends BaseMapper<BookReview> {
 
     default BookReview getById(Integer id) { return selectById(id); }
     default int update(BookReview entity) { return updateById(entity); }
-    default int batchDelete(List<Integer> ids) { return deleteByIds(ids); }
-
     BookReview findByIdForUpdate(@Param("id") Integer id);
 
     List<BookReview> findByIdsForUpdate(@Param("ids") List<Integer> ids);
@@ -23,4 +21,25 @@ public interface BookReviewMapper extends BaseMapper<BookReview> {
     List<BookReviewView> query(BookReviewPageQuery dto);
 
     Integer queryCount(BookReviewPageQuery dto);
+
+    int moveToRecycleBin(@Param("ids") List<Integer> ids,
+                         @Param("userId") Integer userId,
+                         @Param("deletedAt") java.time.LocalDateTime deletedAt,
+                         @Param("restoreDeadline") java.time.LocalDateTime restoreDeadline);
+
+    int hideByAdministrator(@Param("ids") List<Integer> ids);
+
+    int restoreFromRecycleBin(@Param("ids") List<Integer> ids,
+                              @Param("userId") Integer userId,
+                              @Param("now") java.time.LocalDateTime now);
+
+    List<BookReviewView> queryRecycleBin(@Param("userId") Integer userId,
+                                         @Param("current") Integer current,
+                                         @Param("size") Integer size,
+                                         @Param("now") java.time.LocalDateTime now);
+
+    Integer queryRecycleBinCount(@Param("userId") Integer userId,
+                                 @Param("now") java.time.LocalDateTime now);
+
+    int markExpired(@Param("now") java.time.LocalDateTime now);
 }

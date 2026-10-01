@@ -6,6 +6,7 @@ import org.darkroomlibrary.domain.type.UserRole;
 import org.darkroomlibrary.aop.ManualAudit;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.dto.query.BookReviewPageQuery;
+import org.darkroomlibrary.web.dto.query.PageQuery;
 import org.darkroomlibrary.web.dto.command.BookReviewCreateDto;
 import org.darkroomlibrary.web.dto.command.BookReviewReplyDto;
 import org.darkroomlibrary.web.dto.command.BookReviewReportDto;
@@ -55,6 +56,19 @@ public class BookReviewController {
     @PostMapping("/query")
     public ApiResponse<List<BookReviewView>> query(@RequestBody BookReviewPageQuery dto) {
         return bookReviewService.query(dto);
+    }
+
+    @NormalizePageQuery
+    @RequireRole(UserRole.READER)
+    @PostMapping("/recycle/query")
+    public ApiResponse<List<BookReviewView>> queryRecycleBin(@RequestBody PageQuery dto) {
+        return bookReviewService.queryRecycleBin(dto);
+    }
+
+    @RequireRole(UserRole.READER)
+    @PostMapping("/restore")
+    public ApiResponse<Void> restore(@RequestBody List<Integer> ids) {
+        return bookReviewService.restore(ids);
     }
 
     @RequireRole(UserRole.READER)

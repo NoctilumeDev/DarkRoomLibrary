@@ -61,7 +61,8 @@ class BookFavoriteServiceImplTest extends BaseTest {
     @DisplayName("已下架图书不能收藏")
     void deletedBookIsRejected() {
         Book book = createTestBook("下架收藏图书-" + System.nanoTime(), "收藏作者", 1);
-        bookMapper.softDelete(java.util.List.of(book.getId()));
+        java.time.LocalDateTime deletedAt = java.time.LocalDateTime.now();
+        bookMapper.softDelete(java.util.List.of(book.getId()), deletedAt, deletedAt.plusDays(30));
 
         ApiResponse<Void> result = bookFavoriteService.addFavorite(book.getId());
 

@@ -215,6 +215,14 @@ const routes = [
         component: () => import("@/views/user/Main.vue"),
         meta: { requireAuth: true },
       },
+      {
+        name: "回收笺",
+        functionalName: "内容回收站",
+        path: "/recycleBin",
+        icon: "Delete",
+        component: () => import("@/views/user/RecycleBin.vue"),
+        meta: { requireAuth: true },
+      },
     ],
   },
   {

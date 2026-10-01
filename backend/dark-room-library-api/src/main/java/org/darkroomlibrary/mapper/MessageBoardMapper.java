@@ -14,8 +14,6 @@ public interface MessageBoardMapper extends BaseMapper<MessageBoard> {
 
     default MessageBoard getById(Integer id) { return selectById(id); }
     default int update(MessageBoard entity) { return updateById(entity); }
-    default int batchDelete(List<Integer> ids) { return deleteByIds(ids); }
-
     MessageBoard findByIdForUpdate(@Param("id") Integer id);
 
     List<MessageBoard> findByIdsForUpdate(@Param("ids") List<Integer> ids);
@@ -23,4 +21,30 @@ public interface MessageBoardMapper extends BaseMapper<MessageBoard> {
     List<MessageBoardView> query(MessageBoardPageQuery dto);
 
     Integer queryCount(MessageBoardPageQuery dto);
+
+    int moveToRecycleBin(@Param("ids") List<Integer> ids,
+                         @Param("userId") Integer userId,
+                         @Param("deletedAt") java.time.LocalDateTime deletedAt,
+                         @Param("restoreDeadline") java.time.LocalDateTime restoreDeadline);
+
+    int hideByAdministrator(@Param("ids") List<Integer> ids);
+
+    int restoreFromRecycleBin(@Param("ids") List<Integer> ids,
+                              @Param("userId") Integer userId,
+                              @Param("now") java.time.LocalDateTime now);
+
+    List<MessageBoardView> queryRecycleBin(@Param("userId") Integer userId,
+                                           @Param("current") Integer current,
+                                           @Param("size") Integer size,
+                                           @Param("now") java.time.LocalDateTime now);
+
+    Integer queryRecycleBinCount(@Param("userId") Integer userId,
+                                 @Param("now") java.time.LocalDateTime now);
+
+    List<Integer> findExpirationCandidates(@Param("now") java.time.LocalDateTime now,
+                                           @Param("limit") Integer limit);
+
+    int markExpired(@Param("id") Integer id,
+                    @Param("restoreDeadline") java.time.LocalDateTime restoreDeadline,
+                    @Param("now") java.time.LocalDateTime now);
 }

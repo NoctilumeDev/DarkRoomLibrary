@@ -55,4 +55,10 @@ public class MessageBoardView {
      * 管理员回复
      */
     private String reply;
+    private Boolean isDeleted;
+    private Integer moderationStatus;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime deletedAt;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime restoreDeadline;
 }

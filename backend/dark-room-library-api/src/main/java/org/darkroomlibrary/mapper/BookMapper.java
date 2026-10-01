@@ -39,9 +39,13 @@ public interface BookMapper extends BaseMapper<Book> {
 
     Integer queryCount(BookPageQuery dto);
 
-    int softDelete(@Param(value = "ids") List<Integer> ids);
+    int softDelete(@Param("ids") List<Integer> ids,
+                   @Param("deletedAt") LocalDateTime deletedAt,
+                   @Param("restoreDeadline") LocalDateTime restoreDeadline);
 
-    int restore(@Param(value = "ids") List<Integer> ids);
+    int restore(@Param("ids") List<Integer> ids, @Param("now") LocalDateTime now);
+
+    int markExpired(@Param("now") LocalDateTime now);
 
     List<Book> queryLowStock(@Param("threshold") Integer threshold);
 

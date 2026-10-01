@@ -2,9 +2,11 @@ package org.darkroomlibrary.controller;
 
 import org.darkroomlibrary.aop.NormalizePageQuery;
 import org.darkroomlibrary.aop.RequireRole;
+import org.darkroomlibrary.aop.ManualAudit;
 import org.darkroomlibrary.domain.type.UserRole;
 import org.darkroomlibrary.web.response.ApiResponse;
 import org.darkroomlibrary.web.dto.query.MessageBoardPageQuery;
+import org.darkroomlibrary.web.dto.query.PageQuery;
 import org.darkroomlibrary.web.dto.command.MessageReplyDto;
 import org.darkroomlibrary.domain.model.MessageBoard;
 import org.darkroomlibrary.web.view.MessageBoardView;
@@ -35,6 +37,7 @@ public class MessageBoardController {
     }
 
     @RequireRole({UserRole.READER, UserRole.ADMIN})
+    @ManualAudit
     @PostMapping("/batchDelete")
     public ApiResponse<Void> batchDelete(@RequestBody List<Integer> ids) {
         return messageBoardService.batchDelete(ids);
@@ -45,6 +48,19 @@ public class MessageBoardController {
     @PostMapping("/query")
     public ApiResponse<List<MessageBoardView>> query(@RequestBody MessageBoardPageQuery dto) {
         return messageBoardService.query(dto);
+    }
+
+    @NormalizePageQuery
+    @RequireRole(UserRole.READER)
+    @PostMapping("/recycle/query")
+    public ApiResponse<List<MessageBoardView>> queryRecycleBin(@RequestBody PageQuery dto) {
+        return messageBoardService.queryRecycleBin(dto);
+    }
+
+    @RequireRole(UserRole.READER)
+    @PostMapping("/restore")
+    public ApiResponse<Void> restore(@RequestBody List<Integer> ids) {
+        return messageBoardService.restore(ids);
     }
 
     @RequireRole(UserRole.ADMIN)

@@ -18,6 +18,8 @@ import org.darkroomlibrary.service.BookService;
 import org.darkroomlibrary.service.FileStorageService;
 import org.darkroomlibrary.service.ReservationWorkflowService;
 import org.darkroomlibrary.service.support.RecommendationSourceVersionService;
+import org.darkroomlibrary.service.support.RecycleBinPolicy;
+import org.darkroomlibrary.context.CurrentUserContext;
 import org.darkroomlibrary.utils.AnalyticsTimeline;
 import org.darkroomlibrary.utils.IdListUtils;
 import org.darkroomlibrary.utils.TransactionCallbacks;
@@ -65,6 +67,9 @@ public class BookServiceImpl implements BookService {
 
     @Resource
     private RecommendationSourceVersionService recommendationSourceVersionService;
+
+    @Resource
+    private RecycleBinPolicy recycleBinPolicy;
 
     /**
      * 新增图书
@@ -249,7 +254,9 @@ public class BookServiceImpl implements BookService {
         if (procurementOrderMapper.countActiveByBookIds(uniqueIds) > 0) {
             return ApiResponse.error("存在进行中的采购单，不能删除相关图书");
         }
-        if (bookMapper.softDelete(uniqueIds) != uniqueIds.size()) {
+        LocalDateTime deletedAt = recycleBinPolicy.now();
+        if (bookMapper.softDelete(
+                uniqueIds, deletedAt, recycleBinPolicy.restoreDeadline(deletedAt)) != uniqueIds.size()) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("图书状态已变化，请刷新后重试");
         }
@@ -273,7 +280,7 @@ public class BookServiceImpl implements BookService {
         if (bookMapper.findByIdsForUpdate(uniqueIds).size() != uniqueIds.size()) {
             return ApiResponse.error("部分图书不存在");
         }
-        if (bookMapper.restore(uniqueIds) != uniqueIds.size()) {
+        if (bookMapper.restore(uniqueIds, recycleBinPolicy.now()) != uniqueIds.size()) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ApiResponse.error("图书状态已变化，请刷新后重试");
         }
@@ -289,6 +296,12 @@ public class BookServiceImpl implements BookService {
      */
     @Override
     public ApiResponse<List<Book>> query(BookPageQuery dto) {
+        if (Boolean.TRUE.equals(dto.getDeleted()) && !CurrentUserContext.isAdministrator()) {
+            return ApiResponse.error("只有管理员可以查看图书回收站");
+        }
+        if (Boolean.TRUE.equals(dto.getDeleted())) {
+            dto.setRecycleReferenceTime(recycleBinPolicy.now());
+        }
         List<Book> bookList = bookMapper.query(dto);
         Integer totalCount = bookMapper.queryCount(dto);
         return PageResponse.success(bookList, totalCount);

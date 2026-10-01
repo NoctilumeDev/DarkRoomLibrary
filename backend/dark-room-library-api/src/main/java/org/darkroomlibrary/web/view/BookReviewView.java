@@ -39,6 +39,11 @@ public class BookReviewView {
      * 状态：0=正常，1=隐藏
      */
     private Integer status;
+    private Boolean isDeleted;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime deletedAt;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime restoreDeadline;
     /**
      * 评价时间
      */

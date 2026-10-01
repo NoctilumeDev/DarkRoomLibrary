@@ -5,8 +5,10 @@
     <!-- ==================== 公共 SQL 片段 ==================== -->
     <sql id="queryWhere">
         <choose>
-            <when test="deleted != null">
-                AND b.is_deleted = #{deleted}
+            <when test="deleted != null and deleted">
+                AND b.is_deleted = 1
+                AND b.expired_at IS NULL
+                AND b.restore_deadline &gt; #{recycleReferenceTime}
             </when>
             <otherwise>
                 AND b.is_deleted = 0
@@ -79,24 +81,43 @@
         WHERE category = #{oldName}
     </update>
 
-    <update id="softDelete" parameterType="list">
+    <update id="softDelete">
         UPDATE book
         SET is_deleted = 1,
+            deleted_at = #{deletedAt},
+            restore_deadline = #{restoreDeadline},
+            expired_at = NULL,
             version = version + 1
         WHERE id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+          AND is_deleted = 0
     </update>
 
-    <update id="restore" parameterType="list">
+    <update id="restore">
         UPDATE book
         SET is_deleted = 0,
+            deleted_at = NULL,
+            restore_deadline = NULL,
+            expired_at = NULL,
             version = version + 1
         WHERE id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+          AND is_deleted = 1
+          AND expired_at IS NULL
+          AND restore_deadline &gt; #{now}
+    </update>
+
+    <update id="markExpired">
+        UPDATE book
+        SET expired_at = #{now},
+            version = version + 1
+        WHERE is_deleted = 1
+          AND expired_at IS NULL
+          AND restore_deadline &lt;= #{now}
     </update>
 
     <!-- ==================== 查询操作 ==================== -->
@@ -202,6 +223,9 @@
         <result column="description" property="description"/>
         <result column="create_time" property="createTime"/>
         <result column="is_deleted" property="isDeleted"/>
+        <result column="deleted_at" property="deletedAt"/>
+        <result column="restore_deadline" property="restoreDeadline"/>
+        <result column="expired_at" property="expiredAt"/>
         <result column="bookshelf_id" property="bookshelfId"/>
     </resultMap>
 

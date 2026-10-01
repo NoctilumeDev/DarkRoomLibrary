@@ -7,7 +7,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DRL_MYSQL_ROOT_PASSWORD:-DarkRoomMySQL@20606}
       MYSQL_ROOT_HOST: "%"
-      TZ: Asia/Shanghai
+      TZ: ${DRL_APP_TIME_ZONE:-Asia/Shanghai}
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_0900_ai_ci
@@ -47,7 +47,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${DRL_RABBITMQ_USERNAME:-drl}
       RABBITMQ_DEFAULT_PASS: ${DRL_RABBITMQ_PASSWORD:-DarkRoomRabbit@20606}
-      TZ: Asia/Shanghai
+      TZ: ${DRL_APP_TIME_ZONE:-Asia/Shanghai}
     ports:
       - "127.0.0.1:${DRL_RABBITMQ_PORT:-5673}:5672"
       - "127.0.0.1:${DRL_RABBITMQ_MANAGEMENT_PORT:-15673}:15672"
@@ -82,6 +82,9 @@ services:
       RATE_LIMIT_ACCOUNT_CAPACITY: ${DRL_RATE_LIMIT_ACCOUNT_CAPACITY:-12}
       RATE_LIMIT_VERIFICATION_CAPACITY: ${DRL_RATE_LIMIT_VERIFICATION_CAPACITY:-6}
       RATE_LIMIT_CAPTCHA_CAPACITY: ${DRL_RATE_LIMIT_CAPTCHA_CAPACITY:-60}
+      RECYCLE_BIN_RETENTION_DAYS: ${DRL_RECYCLE_BIN_RETENTION_DAYS:-30}
+      RECYCLE_BIN_CLEANUP_CRON: ${DRL_RECYCLE_BIN_CLEANUP_CRON:-0 15 3 * * ?}
+      RECYCLE_BIN_CLEANUP_BATCH_SIZE: ${DRL_RECYCLE_BIN_CLEANUP_BATCH_SIZE:-100}
       FILE_UPLOAD_DIR: /app/upload/pic
       REDIS_ENABLED: "true"
       REDIS_HOST: redis
@@ -99,7 +102,8 @@ services:
       NOTIFICATION_ALERT_DEAD_LETTER_INITIAL_DELAY_MS: ${DRL_NOTIFICATION_ALERT_DEAD_LETTER_INITIAL_DELAY_MS:-30000}
       NOTIFICATION_ALERT_DEAD_LETTER_INTERVAL_MS: ${DRL_NOTIFICATION_ALERT_DEAD_LETTER_INTERVAL_MS:-60000}
       NOTIFICATION_ALERT_DEAD_LETTER_COOLDOWN_MINUTES: ${DRL_NOTIFICATION_ALERT_DEAD_LETTER_COOLDOWN_MINUTES:-15}
-      TZ: Asia/Shanghai
+      TZ: ${DRL_APP_TIME_ZONE:-Asia/Shanghai}
+      APP_TIME_ZONE: ${DRL_APP_TIME_ZONE:-Asia/Shanghai}
       JAVA_TOOL_OPTIONS: ${DRL_JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75.0}
     ports:
       - "127.0.0.1:20606:20606"
@@ -128,6 +132,7 @@ services:
       context: ./frontend/dark-room-library-web
       args:
         VITE_API_BASE_URL: /api/dark-room-library/v1
+        VITE_APP_TIME_ZONE: ${DRL_APP_TIME_ZONE:-Asia/Shanghai}
     restart: unless-stopped
     ports:
       - "127.0.0.1:5175:80"

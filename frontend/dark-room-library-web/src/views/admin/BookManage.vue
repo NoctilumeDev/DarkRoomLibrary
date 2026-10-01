@@ -78,7 +78,7 @@
           @change="switchDeletedView"
         >
           <el-radio-button :value="false">正常馆藏</el-radio-button>
-          <el-radio-button :value="true">已删除</el-radio-button>
+          <el-radio-button :value="true">图书回收站</el-radio-button>
         </el-radio-group>
       </div>
       <div class="toolbar-action">
@@ -182,6 +182,11 @@
           width="160"
           label="入库时间"
         ></el-table-column>
+        <el-table-column v-if="showDeleted" width="170" label="恢复期限">
+          <template #default="scope">
+            <span>{{ restoreWindowText(scope.row.restoreDeadline) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="140" :fixed="isCompactViewport ? false : 'right'">
           <template #default="scope">
             <span v-if="!showDeleted" class="text-button" @click="handleEdit(scope.row)">编辑</span>
@@ -349,6 +354,10 @@
 <script>
 import { DEMO_MODE } from "@/demo/runtime.js";
 import compactViewport from "@/mixins/compactViewport.js";
+import {
+  formatAppMonthDayTime,
+  remainingAppDays,
+} from "@/utils/dateTime.js";
 import { buildApiUrl, resolveFileUrl } from "@/utils/fileUrl.js";
 import { toDayRange } from "@/utils/pageQuery.js";
 import { getToken } from "@/utils/storage.js";
@@ -443,8 +452,8 @@ export default {
         return;
       }
       const confirmed = await this.$swalConfirm({
-        title: "删除图书数据",
-        text: "图书将进入已删除列表，之后仍可恢复。",
+        title: "将图书移入回收站？",
+        text: "图书将从馆藏检索中隐藏，并可在 30 天内恢复；借阅与历史记录不会被删除。",
         icon: "warning",
       });
       if (confirmed) {
@@ -497,6 +506,12 @@ export default {
       } catch (error) {
         this.$message.error(error.response?.data?.msg || "恢复失败");
       }
+    },
+    restoreWindowText(deadline) {
+      const days = remainingAppDays(deadline);
+      const displayDeadline = formatAppMonthDayTime(deadline);
+      if (days === null || !displayDeadline) return "期限未知";
+      return `${displayDeadline}（北京时间，约 ${days} 天）`;
     },
     switchDeletedView() {
       this.currentPage = 1;

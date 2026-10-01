@@ -31,12 +31,15 @@ flowchart TB
     Reader --> MyReservations["我的预约"]
     Reader --> Recommendation["沿着书签"]
     Reader --> MessageBoard["留言板"]
+    Reader --> RecycleBin["回收笺"]
     Reader --> Profile["个人资料"]
     Reader --> Review["书评 / 点赞 / 回复 / 举报"]
     Review --> ReviewSort["最新 / 最热切换"]
     Review --> ReviewLike["点赞 / 取消点赞"]
     Review --> ReviewReply["一级回复"]
     Review --> ReviewReport["举报书评"]
+    RecycleBin --> RecycleReview["书评 30 天内恢复"]
+    RecycleBin --> RecycleMessage["留言与附件 30 天内恢复"]
 
     BookBorrow --> SearchBooks["图书查询"]
     BookBorrow --> BorrowBook["借书"]
@@ -64,7 +67,7 @@ flowchart TB
     Admin --> ProcurementOverview["采购进度查看"]
 
     BookManage --> BookCrud["图书增删改查"]
-    BookManage --> BookRestore["软删除与恢复"]
+    BookManage --> BookRestore["图书回收站 / 30 天恢复"]
     CategoryManage --> CategoryCrud["分类增删改查"]
     BookshelfManage --> BookshelfCrud["书架增删改查"]
     BorrowManage --> AdminReturn["管理员代还"]
@@ -72,6 +75,7 @@ flowchart TB
     ContentAudit --> ReviewReportManage["书评举报审核"]
     ContentAudit --> HideReview["隐藏违规书评"]
     MessageManage --> MessageReply["留言查看与回复"]
+    MessageManage --> HideMessage["移出公开区 / 释放附件"]
     UserManage --> RoleManage["用户角色与状态管理"]
     UserManage --> CoordinatorAdminManage["馆务协调员任免（仅超级管理员）"]
     UserManage --> FreezeManage["冻结/解冻用户"]
@@ -106,6 +110,7 @@ flowchart TB
     FileLifecycle --> FileBind["业务引用绑定与释放"]
     FileLifecycle --> FileAccess["公开预览 / 鉴权下载"]
     FileLifecycle --> FileCleanup["临时文件 / 孤立文件定时清理"]
+    FileLifecycle --> RecycleCleanup["回收期限清理 / 过期附件释放"]
     Support --> OperationAudit["操作审计"]
     Support --> LoginProtection["登录失败限流与账号锁定"]
     Support --> RequestTrace["请求 ID 与日志关联"]
@@ -137,11 +142,11 @@ flowchart TB
     StateFlow --> UserState["用户：正常 / 禁用 / 禁言"]
     StateFlow --> BorrowState["借阅：借阅中 / 已归还 / 逾期派生"]
     StateFlow --> ReservationState["预约：等待 / 已通知 / 已借阅 / 已取消 / 已过期"]
-    StateFlow --> MessageState["留言：待回复 / 已回复"]
+    StateFlow --> MessageState["留言：公开 / 用户回收 / 管理员治理 / 恢复过期"]
     StateFlow --> NotifyState["通知：待发送 / 已发送 / 失败重试"]
     StateFlow --> ReviewReportState["书评举报：待处理 / 已处理 / 忽略"]
-    StateFlow --> ReviewState["书评：正常 / 隐藏"]
-    StateFlow --> BookState["图书：在架 / 借出 / 软删除"]
+    StateFlow --> ReviewState["书评：公开 / 用户回收 / 管理员隐藏 / 恢复过期"]
+    StateFlow --> BookState["图书：在架 / 借出 / 回收 / 恢复过期"]
     StateFlow --> ProcurementState["采购：待采购 / 采购中 / 已下单 / 已发货 / 已到货 / 已入库 / 已完成 / 已取消"]
     StateFlow --> LogisticsState["物流：待接收 / 运输中 / 已到馆 / 已入库"]
     StateFlow --> CollaborationState["协作消息：未读 / 已读"]
@@ -210,11 +215,11 @@ stateDiagram-v2
 | 一级模块 | 主要功能 |
 | --- | --- |
 | 认证与账号模块 | 登录、注册、重置密码、邮箱验证码、登录数学验证码、验证码场景隔离与每日发送尝试上限、邮箱三账号上限、新邮箱换绑验证、JWT 鉴权、认证版本失效 |
-| 读者端功能 | 图书查询、借阅、归还、续借、收藏、预约、可解释荐书、公共降级、不感兴趣、隐私开关、推荐记录清除、留言、个人资料与书评互动 |
-| 管理端功能 | 用户（含冻结/解冻/禁言与馆务协调员任免）、图书（含软删除恢复）、分类、书架、借阅、公告、内容审核、留言回复、书评举报状态跟踪、日志、统计、导出和超级管理员文件管理 |
+| 读者端功能 | 图书查询、借阅、归还、续借、收藏、预约、可解释荐书、公共降级、不感兴趣、隐私开关、推荐记录清除、留言、个人资料、书评互动，以及本人书评/留言的 30 天回收笺 |
+| 管理端功能 | 用户（含冻结/解冻/禁言与馆务协调员任免）、图书回收站、分类、书架、借阅、公告、内容审核、留言回复与治理、书评举报状态跟踪、日志、统计、导出和超级管理员文件管理 |
 | 采购物流协作 | 普通管理员只处理自己创建的采购需求并和采购员沟通；采购员认领/推进采购、分配物流员；物流员同步自己的物流进度；入库后自动补充图书库存；协作消息支持已读/未读；超级管理员拥有全局审计视角 |
-| 通用支撑功能 | 文件上传、元数据登记、引用绑定与释放、公开预览、鉴权下载、临时/孤立文件定时清理、操作审计、请求 ID、CSP 与浏览器安全响应头、IP 接入限流、登录失败限流与账号锁定、逾期罚款、查询缓存、邮件通知（补偿）、死信积压告警、到期提醒邮件、预约到货通知、续借管理、低库存告警、访问统计、数据导出、Redis/RabbitMQ 可降级增强 |
-| 后台流程与状态 | Controller 校验、Service 事务、Mapper 条件更新、缓存降级、领域事件、通知补偿、操作审计、借阅/预约/留言/通知/举报/采购/物流状态流转 |
+| 通用支撑功能 | 文件上传、元数据登记、引用绑定与释放、公开预览、鉴权下载、临时/孤立文件定时清理、回收期限清理、操作审计、请求 ID、CSP 与浏览器安全响应头、IP 接入限流、登录失败限流与账号锁定、逾期罚款、查询缓存、邮件通知（补偿）、死信积压告警、到期提醒邮件、预约到货通知、续借管理、低库存告警、访问统计、数据导出、Redis/RabbitMQ 可降级增强 |
+| 后台流程与状态 | Controller 校验、Service 事务、Mapper 条件更新、缓存降级、领域事件、通知补偿、操作审计、借阅/预约/内容回收/管理员治理/通知/举报/采购/物流状态流转 |
 | 数据存储 | 共 24 张物理表：23 张业务与派生表保存用户、馆藏、流通、推荐、互动、采购物流、通知和文件数据；1 张邮箱配额技术控制表负责跨实例三账号上限 |
 
 ## 当前验证基线
