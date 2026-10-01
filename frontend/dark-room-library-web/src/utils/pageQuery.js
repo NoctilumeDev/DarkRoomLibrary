@@ -24,3 +24,14 @@ export function toDayRange(range) {
     endTime: `${formatLocalDate(end)}T23:59:59`,
   };
 }
+
+export function positiveIntegerFromQuery(value, fallback = 1) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  const parsed = Number.parseInt(String(candidate ?? ""), 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export function pageSizeFromQuery(value, allowed, fallback) {
+  const parsed = positiveIntegerFromQuery(value, fallback);
+  return allowed.includes(parsed) ? parsed : fallback;
+}
