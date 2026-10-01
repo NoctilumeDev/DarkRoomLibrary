@@ -14,7 +14,7 @@ All notable changes to DarkRoomLibrary are documented in this file.
 
 ### Verification
 
-- Expanded the local maintenance suite to `299/299` backend tests and `83/83` frontend tests; ESLint, production build, Demo build, Compose rendering, real MySQL lifecycle readback, and desktop/mobile browser acceptance pass. The published v1.2.7 coverage and protected-CI evidence remain historical until this change is merged and requalified on GitHub.
+- Expanded the maintenance suite to `299/299` backend tests with `3996/5453` lines covered (`73.28%`) and `83/83` frontend tests with `650/824` key-logic lines covered (`78.88%`); ESLint, production build, Demo build, Compose rendering, real MySQL lifecycle readback, and focused desktop/mobile browser acceptance pass. Published v1.2.7 and earlier full-chain evidence remains historical rather than being rewritten as a rerun.
 
 ### Documentation
 
