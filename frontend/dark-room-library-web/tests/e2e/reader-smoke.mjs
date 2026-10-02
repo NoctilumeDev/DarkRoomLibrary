@@ -111,7 +111,7 @@ try {
     if (index === 0) {
       await desktop.page.screenshot({ path: `${outputDir}/book-detail-v2.png` });
     }
-    await desktop.page.getByRole("button", { name: "Close" }).click();
+    await desktop.page.getByRole("button", { name: "关闭此对话框" }).click();
     await desktop.page.locator(".book-detail-sheet").waitFor({ state: "hidden" });
   }
 
