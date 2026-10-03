@@ -6,8 +6,15 @@
 
 ## 一、验收准备
 
-- [ ] 使用 `scripts/setup-e2e-database.ps1 -Reset` 初始化独立的 `dark_room_library_e2e`，确认 6 个固定演示身份可以登录。
-- [ ] 启动后端 `20606` 和前端 `5175`，浏览器控制台无持续报错。
+- [ ] 使用 `scripts/setup-e2e-database.ps1 -Reset` 初始化独立的 `dark_room_library_e2e`。
+- [ ] 在实际启动后端的环境中设置 `DB_URL`，明确连接验收库。在同一个 PowerShell 终端设置变量后启动后端；若使用 IDE 或另一终端启动，也要在对应启动环境配置同一变量。
+
+  ```powershell
+  $env:DB_URL = 'jdbc:mysql://127.0.0.1:3306/dark_room_library_e2e?characterEncoding=UTF-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true'
+  ```
+
+  示例使用初始化脚本的默认主机、端口和库名；若修改脚本参数，按其返回的 `Host`、`Port`、`Database` 调整连接地址，并保持后端 `DB_USERNAME`、`DB_PASSWORD` 与初始化凭据一致。
+- [ ] 启动后端 `20606` 和前端 `5175`，确认 6 个固定演示身份可以登录，浏览器控制台无持续报错。
 - [ ] 核对演示账号角色与数据范围，再额外创建第二个读者用于并发借阅和越权测试。
 - [ ] 核对虚构书目、书评、回复、留言、公告和采购物流演示数据，再准备已下架图书。
 - [ ] 准备 PDF、DOCX、PNG、HTML、非法格式文件以及超过 10 MB 的文件。
