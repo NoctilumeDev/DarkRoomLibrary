@@ -98,17 +98,20 @@ docker compose ps
 1. 全新安装只执行 [初始化 SQL](sql/init-dark-room-library.sql)，结构与演示数据已经完整包含；已有数据库按 [升级说明](docs/deployment.md#22-初始化与数据卷) 保留数据升级：
 
 ```powershell
-cmd /c "mysql --default-character-set=utf8mb4 -u root -p < sql\init-dark-room-library.sql"
+cmd /c "mysql --default-character-set=utf8mb4 -h 127.0.0.1 -P 3306 -u root -p < sql\init-dark-room-library.sql"
 ```
 
-2. 启动后端：
+2. 在同一终端把后端连接到刚导入的数据库，再启动。将下面的占位密码替换为刚才输入的 MySQL 密码；自定义端口或账号时同步修改三个变量：
 
 ```powershell
+$env:DB_URL="jdbc:mysql://127.0.0.1:3306/dark_room_library?characterEncoding=UTF-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true"
+$env:DB_USERNAME="root"
+$env:DB_PASSWORD="替换成导入 SQL 时输入的 MySQL 密码"
 cd backend/dark-room-library-api
 mvn spring-boot:run
 ```
 
-3. 启动前端：
+3. 另开终端，从仓库根目录启动前端：
 
 ```powershell
 cd frontend/dark-room-library-web
