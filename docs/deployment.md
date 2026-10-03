@@ -15,7 +15,7 @@
 
 ### 1.1 GitHub Pages 浏览器演示
 
-公开地址为 <https://noctilumedev.github.io/DarkRoomLibrary/>。`main` 分支更新后，`.github/workflows/pages.yml` 在测试、覆盖率与构建通过后部署；失败时线上继续保留上一次成功的版本。当前分支可在前端目录执行 `npm ci`、`npm run build:demo`、`npm run preview` 体验。Demo 构建启用 Hash 路由和 `/DarkRoomLibrary/` 资源基路径。
+公开地址为 <https://noctilumedev.github.io/DarkRoomLibrary/>。`main` 分支更新后，`.github/workflows/pages.yml` 在测试、覆盖率与构建通过后部署；失败时线上继续保留上一次成功的版本。当前分支可在前端目录执行 `npm ci`、`npm run build:demo`、`npm run preview:demo`，打开 `http://localhost:4175/DarkRoomLibrary/` 体验。Demo 构建启用 Hash 路由和 `/DarkRoomLibrary/` 资源基路径。
 
 浏览器演示通过 Axios adapter 提供会话级数据，只用于低门槛查看界面、六个固定身份和关键业务状态变化，包含图书回收、读者书评/留言回收与恢复。状态保存在 `sessionStorage`，不会上传到 GitHub，也不会持久化到服务器。上传下载、邮件、注册、注销、真实定时过期和导出均明确禁用。
 

@@ -18,7 +18,7 @@
 
 Pages 演示使用独立的浏览器会话数据，不连接真实后端和数据库；借还、预约收藏、可解释荐书、书评留言、读者回收笺、采购物流和幂等入库可以直接体验，上传下载、邮件、注册、注销与数据导出会明确阻止。真实事务、中间件、定时过期与并发一致性请使用下方完整环境验证。
 
-在线内容对应最近一次成功的 [Pages 部署](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/pages.yml)，部署失败时会继续保留上一版本。要体验当前分支，可在前端目录执行 `npm ci`、`npm run build:demo`、`npm run preview`。
+在线内容对应最近一次成功的 [Pages 部署](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/pages.yml)，部署失败时会继续保留上一版本。要体验当前分支，可在前端目录执行 `npm ci`、`npm run build:demo`、`npm run preview:demo`，然后打开 `http://localhost:4175/DarkRoomLibrary/`。
 
 | 登录与昼夜氛围 | 读者阅览室 |
 | --- | --- |
