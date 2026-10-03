@@ -68,8 +68,10 @@ ALTER TABLE `user`
 已有数据卷升级到包含回收笺生命周期的版本时，必须先备份数据库，再**只执行一次**：
 
 ```powershell
-cmd /c "mysql --default-character-set=utf8mb4 -u root -p dark_room_library < sql\upgrade-recycle-bin-lifecycle.sql"
+cmd /c "mysql --host=127.0.0.1 --port=3307 --default-character-set=utf8mb4 -u root -p dark_room_library < sql\upgrade-recycle-bin-lifecycle.sql"
 ```
+
+示例使用 Compose 默认宿主机端口 `3307`；若在 `.env` 中设置了 `DRL_MYSQL_PORT`，请将 `--port` 替换为该值。
 
 该脚本为 `book`、`book_review` 与 `message_board` 增加恢复期限、过期时间和治理状态。历史上已经软删除、但没有期限的图书会从迁移执行时起获得一次 30 天恢复窗口。脚本不是可重复迁移；执行前应核对目标库，并在执行后检查三张表的新列和索引。全新数据卷不执行此脚本，因为初始化 SQL 已包含最终结构。
 
