@@ -6,6 +6,8 @@ All notable changes to DarkRoomLibrary are documented in this file.
 
 ### Fixed
 
+- Made the three existing CAPTCHA unit tests deterministically exercise addition, subtraction, and multiplication, removing random two-line coverage gaps without changing the production generator or the coverage threshold.
+
 - Closed the existing soft-delete lifecycle for books and reader-authored content: books, reviews, and messages now have an explicit 30-day restore deadline, while administrator moderation remains a separate non-restorable state.
 - Kept review interactions and audit history when readers retract content; message attachments remain bound during the restore window and are released only after expiry or administrator removal.
 - Prevented the shared SweetAlert theme from forcing dark dialogs into daytime reader and administration views.
