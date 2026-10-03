@@ -15,7 +15,7 @@
 
 ### 1.1 GitHub Pages 浏览器演示
 
-公开地址为 <https://noctilumedev.github.io/DarkRoomLibrary/>。`main` 分支更新后，`.github/workflows/pages.yml` 使用 `npm run build:demo` 自动部署；该构建启用 Hash 路由和 `/DarkRoomLibrary/` 资源基路径。
+公开地址为 <https://noctilumedev.github.io/DarkRoomLibrary/>。`main` 分支更新后，`.github/workflows/pages.yml` 在测试、覆盖率与构建通过后部署；失败时线上继续保留上一次成功的版本。当前分支可在前端目录执行 `npm ci`、`npm run build:demo`、`npm run preview` 体验。Demo 构建启用 Hash 路由和 `/DarkRoomLibrary/` 资源基路径。
 
 浏览器演示通过 Axios adapter 提供会话级数据，只用于低门槛查看界面、六个固定身份和关键业务状态变化，包含图书回收、读者书评/留言回收与恢复。状态保存在 `sessionStorage`，不会上传到 GitHub，也不会持久化到服务器。上传下载、邮件、注册、注销、真实定时过期和导出均明确禁用。
 
@@ -54,6 +54,8 @@ docker compose ps
 
 MySQL 数据卷首次创建时，会自动执行唯一入口 `sql/init-dark-room-library.sql`。以后重新构建镜像不会重复覆盖已有数据。
 
+`sql/` 只提供全新安装入口；已有库的一次性增量脚本单独放在 `deploy/mysql/upgrades/`，不会被 Compose 自动执行，也不能与初始化 SQL 拼接导入。先核对连接的主机、端口、库名及现有列，再备份并选择需要的升级。
+
 从 `v1.2.0` 保留数据卷升级到 `v1.2.1` 时，先备份数据库，再确认 `user` 表是否已有 `auth_version`。旧表没有该列时只需执行一次：
 
 ```sql
@@ -68,10 +70,12 @@ ALTER TABLE `user`
 已有数据卷升级到包含回收笺生命周期的版本时，必须先备份数据库，再**只执行一次**：
 
 ```powershell
-cmd /c "mysql --default-character-set=utf8mb4 -u root -p dark_room_library < sql\upgrade-recycle-bin-lifecycle.sql"
+cmd /c "mysql --default-character-set=utf8mb4 -h 127.0.0.1 -P 3307 -u root -p dark_room_library < deploy\mysql\upgrades\upgrade-recycle-bin-lifecycle.sql"
 ```
 
 该脚本为 `book`、`book_review` 与 `message_board` 增加恢复期限、过期时间和治理状态。历史上已经软删除、但没有期限的图书会从迁移执行时起获得一次 30 天恢复窗口。脚本不是可重复迁移；执行前应核对目标库，并在执行后检查三张表的新列和索引。全新数据卷不执行此脚本，因为初始化 SQL 已包含最终结构。
+
+以上连接参数对应默认 Compose 宿主端口。本机 MySQL 默认使用 `3306`；自定义 `DRL_MYSQL_PORT` 时使用实际映射值。执行前可用相同连接参数运行 `SELECT @@hostname, @@port, DATABASE();` 确认目标；`@@port` 返回的是服务器内部端口，Compose 映射仍使用宿主 `3307`。SQL 会话时区及自定义恢复期限按脚本开头说明配置。
 
 普通停止：
 
@@ -206,7 +210,7 @@ RabbitMQ 消费异常不会无限重新入队，而是分别进入
 
 ## 6. 数据库版本演进
 
-仓库继续保留一份可直接执行的 `init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 24 张物理表（23 张业务与派生表及 1 张邮箱配额技术控制表）和演示数据初始化。已有长期数据卷则按明确边界执行增量脚本：`v1.2.1` 的 `auth_version` 单列升级，以及本版本的 `upgrade-recycle-bin-lifecycle.sql`。两者都必须在数据库备份后按需执行一次，不能把全新安装快照当成已有库的覆盖脚本。
+仓库继续保留一份可直接执行的 `sql/init-dark-room-library.sql`，让首次使用者复制或导入一次即可完成 24 张物理表（23 张业务与派生表及 1 张邮箱配额技术控制表）和演示数据初始化。已有长期数据卷则按本指南第 2.2 节执行增量升级：`v1.2.1` 的 `auth_version` 单列升级，以及 `deploy/mysql/upgrades/upgrade-recycle-bin-lifecycle.sql`。两者都必须在数据库备份后按需执行一次，不能把全新安装快照当成已有库的覆盖脚本。
 
 回收策略默认保留 30 天，每天 03:15 分批撤销过期恢复资格；分别由 `RECYCLE_BIN_RETENTION_DAYS`、`RECYCLE_BIN_CLEANUP_CRON` 和 `RECYCLE_BIN_CLEANUP_BATCH_SIZE` 配置。业务墙上时间由 `APP_TIME_ZONE` 统一解释，默认 `Asia/Shanghai`；Compose 通过同一个 `DRL_APP_TIME_ZONE` 同时配置 MySQL、RabbitMQ、后端运行环境、后端应用时钟与前端构建，不能只改其中一层。前后端展示和回收截止判断都使用该配置，不依赖浏览器、宿主 JVM 或容器碰巧采用的本地时区。
 

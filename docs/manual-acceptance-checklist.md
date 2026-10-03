@@ -6,12 +6,26 @@
 
 ## 一、验收准备
 
-- [ ] 使用 `scripts/setup-e2e-database.ps1 -Reset` 初始化独立的 `dark_room_library_e2e`，确认 6 个固定演示身份可以登录。
-- [ ] 启动后端 `20606` 和前端 `5175`，浏览器控制台无持续报错。
+- [ ] 按下面命令初始化独立的 `dark_room_library_e2e`，在启动后端的同一终端设置 `DB_URL`、端口和凭据。
+- [ ] 启动后端 `20606` 和前端 `5175`，确认连接的是独立验收库、6 个固定演示身份可以登录，浏览器控制台无持续报错。
 - [ ] 核对演示账号角色与数据范围，再额外创建第二个读者用于并发借阅和越权测试。
 - [ ] 核对虚构书目、书评、回复、留言、公告和采购物流演示数据，再准备已下架图书。
 - [ ] 准备 PDF、DOCX、PNG、HTML、非法格式文件以及超过 10 MB 的文件。
 - [ ] 配置真实测试邮箱；Redis、RabbitMQ 先保持关闭。
+
+从仓库根目录执行；`3306` 对应本机 MySQL，使用默认 Compose MySQL 时把 `$dbPort` 改为 `3307`，并使用该环境的实际凭据：
+
+```powershell
+$dbPort = 3306
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "root" # 本机演示默认值；自定义环境使用实际凭据
+$env:DB_URL = "jdbc:mysql://127.0.0.1:$dbPort/dark_room_library_e2e?characterEncoding=UTF-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true"
+./scripts/setup-e2e-database.ps1 -Reset -HostName 127.0.0.1 -Port $dbPort
+Set-Location backend/dark-room-library-api
+mvn spring-boot:run
+```
+
+另开终端，从仓库根目录进入 `frontend/dark-room-library-web`，执行 `npm ci`、`npm run dev`。开始操作前，在同一 MySQL 主机和端口查询 `dark_room_library_e2e`，确认库名与后端启动日志一致。`-Reset` 会清空指定的 `_e2e` 库，只用于本轮独立验收。
 
 ## 二、超级管理员（角色 0）
 

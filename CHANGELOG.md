@@ -18,6 +18,10 @@ All notable changes to DarkRoomLibrary are documented in this file.
 
 ### Documentation
 
+- Kept one fresh-install SQL entry, separated the existing one-time upgrade, and specified the Compose port and isolated acceptance database connection.
+- Classified historical plans, work logs, PDFs, presentations, and the Pages failure record under `history/` without rewriting their contents or release evidence.
+- Clarified that the browser demo follows the last successful Pages deployment; retained JaCoCo diagnostics for comparing local and CI coverage failures.
+
 - Updated the README, system design, deployment upgrade path, acceptance checklist, and both module diagrams for the recycle-bin lifecycle without rewriting historical release evidence.
 - Synchronized the repository overview, technical documents, presentation, PDFs, and interactive module map with the released v1.2.7 implementation without changing product behavior.
 - Corrected the v1.2.7 backend coverage evidence to the JaCoCo report-level unique source-line total: `3837/5293` (`72.49%`). The former CSV class-row sum double-counted source lines shared by outer and nested classes; the `290/290` test result and 70% gate are unchanged.

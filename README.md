@@ -18,6 +18,8 @@
 
 Pages 演示使用独立的浏览器会话数据，不连接真实后端和数据库；借还、预约收藏、可解释荐书、书评留言、读者回收笺、采购物流和幂等入库可以直接体验，上传下载、邮件、注册、注销与数据导出会明确阻止。真实事务、中间件、定时过期与并发一致性请使用下方完整环境验证。
 
+在线内容对应最近一次成功的 [Pages 部署](https://github.com/NoctilumeDev/DarkRoomLibrary/actions/workflows/pages.yml)，部署失败时会继续保留上一版本。要体验当前分支，可在前端目录执行 `npm ci`、`npm run build:demo`、`npm run preview`。
+
 | 登录与昼夜氛围 | 读者阅览室 |
 | --- | --- |
 | ![暗室藏书登录页](docs/images/login-night.jpg) | ![读者阅览室](docs/images/reader-room.jpg) |
@@ -39,12 +41,14 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 | 资料 | 内容 |
 | --- | --- |
 | [交互式功能模块图](https://noctilumedev.github.io/DarkRoomLibrary/library-system-modules.html) | 快速浏览角色、模块和业务边界 |
-| [项目介绍 PPT](docs/DarkRoomLibrary-project-overview.pptx) | v1.2.7 的 18 页项目定位、业务闭环、架构与验证证据快照 |
-| [项目起源 PDF](docs/暗室藏书_项目起源.pdf) | 2026 年 8 月交付时，从个人构想到独立工程化实现的历史快照 |
-| [项目计划书 PDF](docs/暗室藏书_项目计划书.pdf) | 2026 年 8 月交付时的需求、架构、数据设计与实施记录 |
-| [项目复盘 PDF](docs/暗室藏书项目复盘.pdf) | v1.2.7 阶段的重构取舍、验证顺序与历史证据边界 |
+| [项目介绍 PPT](history/materials/DarkRoomLibrary-project-overview.pptx) | v1.2.7 的 18 页项目定位、业务闭环、架构与验证证据快照 |
+| [项目起源 PDF](history/materials/暗室藏书_项目起源.pdf) | 2026 年 8 月交付时，从个人构想到独立工程化实现的历史快照 |
+| [项目计划书 PDF](history/plans/暗室藏书_项目计划书.pdf) | 2026 年 8 月交付时的需求、架构、数据设计与实施记录 |
+| [项目复盘 PDF](history/materials/暗室藏书项目复盘.pdf) | v1.2.7 阶段的重构取舍、验证顺序与历史证据边界 |
 
 以上 PPT/PDF 保留其生成时的版本坐标，不追溯覆盖新功能；当前实现边界以本 README、系统设计、部署指南、可维护模块图和验证报告为准。
+
+分类目录见 [历史资料](history/README.md)，当前规范从 [文档中心](docs/README.md) 进入。
 
 ## 核心能力与证据
 
@@ -91,7 +95,7 @@ docker compose ps
 
 准备 JDK 17、Maven 3.8+、Node.js 22+、npm 和 MySQL 8。Redis、RabbitMQ 默认关闭，可按需启用。
 
-1. 使用唯一 SQL 入口初始化数据库：
+1. 全新安装只执行 [初始化 SQL](sql/init-dark-room-library.sql)，结构与演示数据已经完整包含；已有数据库按 [升级说明](docs/deployment.md#22-初始化与数据卷) 保留数据升级：
 
 ```powershell
 cmd /c "mysql --default-character-set=utf8mb4 -u root -p < sql\init-dark-room-library.sql"
