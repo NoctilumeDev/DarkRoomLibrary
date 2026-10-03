@@ -15,7 +15,7 @@
     "lineCoverageMinimum": 70
   },
   "frontend": {
-    "criticalLogicTests": 83,
+    "criticalLogicTests": 84,
     "lineCoverage": 78.88,
     "lineCoverageMinimum": 70,
     "eslintErrors": 0,

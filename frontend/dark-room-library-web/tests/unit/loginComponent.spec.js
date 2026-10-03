@@ -3,6 +3,7 @@ import Login from "../../src/views/login/Login.vue";
 
 const mocks = vi.hoisted(() => ({
   requestGet: vi.fn(),
+  requestPost: vi.fn(),
   getToken: vi.fn(() => null),
   clearAuthSession: vi.fn(),
   setToken: vi.fn(),
@@ -18,7 +19,7 @@ vi.mock("@/demo/runtime.js", () => ({
 vi.mock("@/utils/request.js", () => ({
   default: {
     get: mocks.requestGet,
-    post: vi.fn(),
+    post: mocks.requestPost,
   },
 }));
 
@@ -67,6 +68,34 @@ describe("Login component", () => {
 
     expect(wrapper.find(".auth-card").exists()).toBe(true);
     expect(sessionStorage.getItem("auth-intro-seen")).toBe("1");
+    wrapper.unmount();
+  });
+
+  it("names every credential group when the login request is rejected", async () => {
+    const messageError = vi.fn();
+    mocks.requestPost.mockRejectedValue({ response: { status: 403 } });
+    const wrapper = shallowMount(Login, {
+      global: {
+        mocks: {
+          $message: { error: messageError },
+          $router: { push: vi.fn() },
+          $swal: { fire: vi.fn() },
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.setData({
+      act: "reader",
+      pwd: "secret",
+      captchaId: "captcha-1",
+      captchaAnswer: "5",
+    });
+    await wrapper.vm.login();
+
+    expect(messageError).toHaveBeenCalledWith(
+      "登录失败，请检查账号、密码或验证题后重试。"
+    );
     wrapper.unmount();
   });
 });
