@@ -6,6 +6,8 @@ All notable changes to DarkRoomLibrary are documented in this file.
 
 ### Fixed
 
+- Made the three existing CAPTCHA unit tests deterministically exercise addition, subtraction, and multiplication, removing random two-line coverage gaps without changing the production generator or the coverage threshold.
+
 - Closed the existing soft-delete lifecycle for books and reader-authored content: books, reviews, and messages now have an explicit 30-day restore deadline, while administrator moderation remains a separate non-restorable state.
 - Kept review interactions and audit history when readers retract content; message attachments remain bound during the restore window and are released only after expiry or administrator removal.
 - Prevented the shared SweetAlert theme from forcing dark dialogs into daytime reader and administration views.
@@ -17,6 +19,10 @@ All notable changes to DarkRoomLibrary are documented in this file.
 - Expanded the maintenance suite to `299/299` backend tests with `3996/5453` lines covered (`73.28%`) and `83/83` frontend tests with `650/824` key-logic lines covered (`78.88%`); ESLint, production build, Demo build, Compose rendering, real MySQL lifecycle readback, and focused desktop/mobile browser acceptance pass. Published v1.2.7 and earlier full-chain evidence remains historical rather than being rewritten as a rerun.
 
 ### Documentation
+
+- Kept one fresh-install SQL entry, separated the existing one-time upgrade, and specified the Compose port and isolated acceptance database connection.
+- Classified historical plans, work logs, PDFs, presentations, and the Pages failure record under `history/` without rewriting their contents or release evidence.
+- Clarified that the browser demo follows the last successful Pages deployment; retained JaCoCo diagnostics for comparing local and CI coverage failures.
 
 - Updated the README, system design, deployment upgrade path, acceptance checklist, and both module diagrams for the recycle-bin lifecycle without rewriting historical release evidence.
 - Synchronized the repository overview, technical documents, presentation, PDFs, and interactive module map with the released v1.2.7 implementation without changing product behavior.

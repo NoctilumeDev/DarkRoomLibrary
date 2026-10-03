@@ -8,7 +8,7 @@
 
 1. 先读项目根目录的 [README](../README.md)。
 2. 打开 [功能模块图 HTML 版](library-system-modules.html)，快速浏览完整功能。
-3. 查看 [项目介绍 PPT](DarkRoomLibrary-project-overview.pptx)，理解角色、闭环、架构和技术亮点。
+3. 需要历史展示快照时查看 [项目介绍 PPT](../history/materials/DarkRoomLibrary-project-overview.pptx)，当前角色和实现以本 README 的现行设计入口为准。
 4. 需要了解形成过程时查看项目计划书与项目起源，需要总结工程过程时查看项目复盘。
 
 ### 15 分钟理解设计
@@ -19,7 +19,7 @@
 4. 查看 [部署指南](deployment.md)，理解 Compose、健康检查和多实例文件边界。
 5. 需要在 Windows 单机执行高连接测试时，先读 [本地全链路测试网络边界](local-test-network-boundary.md)。
 6. 查看 [最终验证报告](verification-report.md)。
-7. 全新安装查看 [数据库初始化脚本](../sql/init-dark-room-library.sql)；保留旧数据升级时，再按部署指南核对一次性 [回收生命周期迁移脚本](../sql/upgrade-recycle-bin-lifecycle.sql)。
+7. 全新安装只使用 [数据库初始化脚本](../sql/init-dark-room-library.sql)；已有库先读 [部署指南](deployment.md#22-初始化与数据卷)，再按需执行一次性 [回收生命周期升级脚本](../deploy/mysql/upgrades/upgrade-recycle-bin-lifecycle.sql)。
 
 ### 按角色验收系统
 
@@ -38,16 +38,18 @@
 | `function-module-diagram.md` | 可维护的 Mermaid 功能图、后台流程图和状态图 | 开发者、代码托管平台 |
 | `library-system-modules.html` | 独立打开即可展示的可视化功能模块图 | 演示、汇报、截图 |
 | `manual-acceptance-checklist.md` | 按角色逐项人工验证功能 | 测试人员、交付人员 |
-| `../sql/upgrade-recycle-bin-lifecycle.sql` | 为已有数据库增加 30 天回收期限与治理状态；备份后只执行一次 | 部署者、维护者 |
+| `../deploy/mysql/upgrades/upgrade-recycle-bin-lifecycle.sql` | 为已有数据库增加 30 天回收期限与治理状态；备份后只执行一次 | 部署者、维护者 |
 | `project-history.md` | 说明 5 月构想、7 月课程落地、独立重构和 Git 中途加入 | 维护者、代码使用者 |
 | `verification-report.md` | 汇总最终全链路、并发、浏览器、数据库与中间件证据 | 开发者、答辩评委 |
-| `DarkRoomLibrary-project-overview.pptx` | v1.2.7 的 18 页项目介绍快照，不追溯覆盖后续功能 | 答辩、展示、项目交流 |
-| `暗室藏书_项目起源.pdf` | 2026 年 8 月交付时，从构想到课程落地、持续重构的历史快照 | 答辩、项目交流 |
-| `暗室藏书_项目计划书.pdf` | 2026 年 8 月交付时的命名、阅读氛围、角色秩序和实施记录 | 答辩、设计交流 |
-| `暗室藏书项目复盘.pdf` | v1.2.7 阶段的业务、架构、验证、文档、Git 与发布治理复盘 | 答辩、维护者 |
+| [项目介绍 PPT](../history/materials/DarkRoomLibrary-project-overview.pptx) | v1.2.7 的 18 页项目介绍快照，不追溯覆盖后续功能 | 答辩、展示、项目交流 |
+| [项目起源 PDF](../history/materials/暗室藏书_项目起源.pdf) | 2026 年 8 月交付时，从构想到课程落地、持续重构的历史快照 | 答辩、项目交流 |
+| [项目计划书 PDF](../history/plans/暗室藏书_项目计划书.pdf) | 2026 年 8 月交付时的命名、阅读氛围、角色秩序和实施记录 | 答辩、设计交流 |
+| [项目复盘 PDF](../history/materials/暗室藏书项目复盘.pdf) | v1.2.7 阶段的业务、架构、验证、文档、Git 与发布治理复盘 | 答辩、维护者 |
 | `../NOTICE.md` | 说明归档底座对比、当前实现边界和第三方许可边界 | 维护者、代码使用者 |
 
 ## 文档维护原则
+
+旧计划、施工记录、历史展示资料与失败记录分类保留在 [历史资料](../history/README.md)。
 
 - README 只承担“这是什么、立即体验、核心能力与证据、如何运行”四个入口，细节继续沉到 `docs/`。
 - 系统设计文档解释“为什么这样设计”。
