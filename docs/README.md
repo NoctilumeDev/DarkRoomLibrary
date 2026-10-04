@@ -19,7 +19,8 @@
 4. 查看 [部署指南](deployment.md)，理解 Compose、健康检查和多实例文件边界。
 5. 需要在 Windows 单机执行高连接测试时，先读 [本地全链路测试网络边界](local-test-network-boundary.md)。
 6. 查看 [最终验证报告](verification-report.md)。
-7. 全新安装查看 [数据库初始化脚本](../sql/init-dark-room-library.sql)；保留旧数据升级时，再按部署指南核对一次性 [回收生命周期迁移脚本](../sql/upgrade-recycle-bin-lifecycle.sql)。
+7. 阶段退出前查看 [遗留物收口门禁](residual-hygiene.md)，确认施工产物没有被带入下一阶段。
+8. 全新安装查看 [数据库初始化脚本](../sql/init-dark-room-library.sql)；保留旧数据升级时，再按部署指南核对一次性 [回收生命周期迁移脚本](../sql/upgrade-recycle-bin-lifecycle.sql)。
 
 ### 按角色验收系统
 
@@ -41,6 +42,7 @@
 | `../sql/upgrade-recycle-bin-lifecycle.sql` | 为已有数据库增加 30 天回收期限与治理状态；备份后只执行一次 | 部署者、维护者 |
 | `project-history.md` | 说明 5 月构想、7 月课程落地、独立重构和 Git 中途加入 | 维护者、代码使用者 |
 | `verification-report.md` | 汇总最终全链路、并发、浏览器、数据库与中间件证据 | 开发者、答辩评委 |
+| `residual-hygiene.md` | 定义当前交付物、可重建产物和本地运行状态的收口边界 | 维护者、发布人员 |
 | `DarkRoomLibrary-project-overview.pptx` | v1.2.7 的 18 页项目介绍快照，不追溯覆盖后续功能 | 答辩、展示、项目交流 |
 | `暗室藏书_项目起源.pdf` | 2026 年 8 月交付时，从构想到课程落地、持续重构的历史快照 | 答辩、项目交流 |
 | `暗室藏书_项目计划书.pdf` | 2026 年 8 月交付时的命名、阅读氛围、角色秩序和实施记录 | 答辩、设计交流 |

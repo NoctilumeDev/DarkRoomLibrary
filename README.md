@@ -142,4 +142,4 @@ npm run build:demo
 
 涉及角色、库存、预约、采购物流、推荐或浏览器行为时，还应运行 `frontend/dark-room-library-web/tests/e2e` 中对应的真实服务脚本。Windows 单机执行高连接测试前先阅读 [网络边界](docs/local-test-network-boundary.md)，并保持后端、并发和浏览器阶段串行。
 
-从 [文档中心](docs/README.md) 进入完整资料，重点包括 [系统设计](docs/system-design.md)、[架构审查](docs/architecture-review.md)、[部署指南](docs/deployment.md)、[人工验收清单](docs/manual-acceptance-checklist.md) 与 [最终验证报告](docs/verification-report.md)。参与贡献前请阅读 [CONTRIBUTING](CONTRIBUTING.md)，安全问题按 [SECURITY](SECURITY.md) 报告。
+从 [文档中心](docs/README.md) 进入完整资料，重点包括 [系统设计](docs/system-design.md)、[架构审查](docs/architecture-review.md)、[部署指南](docs/deployment.md)、[人工验收清单](docs/manual-acceptance-checklist.md)、[最终验证报告](docs/verification-report.md) 与 [遗留物收口门禁](docs/residual-hygiene.md)。参与贡献前请阅读 [CONTRIBUTING](CONTRIBUTING.md)，安全问题按 [SECURITY](SECURITY.md) 报告。

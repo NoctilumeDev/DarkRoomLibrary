@@ -44,6 +44,7 @@ jobs:
         run: |
           node scripts/check-architecture.mjs
           node scripts/check-doc-links.mjs
+          node scripts/check-residual-hygiene.mjs
           node scripts/check-release-version.mjs
 
   backend:
