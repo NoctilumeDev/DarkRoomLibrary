@@ -414,7 +414,7 @@ public class BookReviewServiceImplTest extends BaseTest {
         assertEquals(200, bookReviewService.batchDelete(List.of(review.getId())).getCode());
         bookReviewMapper.update(BookReview.builder()
                 .id(review.getId())
-                .restoreDeadline(java.time.LocalDateTime.now().minusSeconds(1))
+                .restoreDeadline(java.time.LocalDateTime.now(applicationClock).minusSeconds(1))
                 .build());
         recycleBinExpiryService.cleanupExpiredEntries();
 

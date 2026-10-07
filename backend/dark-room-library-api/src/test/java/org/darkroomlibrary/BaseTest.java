@@ -18,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import jakarta.annotation.Resource;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /**
@@ -28,6 +29,9 @@ import java.time.LocalDateTime;
 public abstract class BaseTest {
 
     private static final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
+    @Resource
+    protected Clock applicationClock;
 
     @Resource
     protected UserMapper userMapper;

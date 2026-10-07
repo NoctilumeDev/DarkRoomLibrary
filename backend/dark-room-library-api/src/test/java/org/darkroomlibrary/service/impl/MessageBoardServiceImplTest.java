@@ -157,7 +157,7 @@ class MessageBoardServiceImplTest extends BaseTest {
         assertEquals(200, messageBoardService.batchDelete(List.of(message.getId())).getCode());
         messageBoardMapper.update(MessageBoard.builder()
                 .id(message.getId())
-                .restoreDeadline(java.time.LocalDateTime.now().minusSeconds(1))
+                .restoreDeadline(java.time.LocalDateTime.now(applicationClock).minusSeconds(1))
                 .build());
         recycleBinExpiryService.cleanupExpiredEntries();
 
@@ -199,7 +199,7 @@ class MessageBoardServiceImplTest extends BaseTest {
         assertEquals(200, messageBoardService.batchDelete(List.of(message.getId())).getCode());
         messageBoardMapper.update(MessageBoard.builder()
                 .id(message.getId())
-                .restoreDeadline(LocalDateTime.now().minusSeconds(1))
+                .restoreDeadline(LocalDateTime.now(applicationClock).minusSeconds(1))
                 .build());
         recycleBinExpiryService.cleanupExpiredEntries();
 

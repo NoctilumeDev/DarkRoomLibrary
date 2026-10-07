@@ -70,8 +70,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Run Maven tests and enforce coverage
-        run: mvn -B -ntp clean verify
+      - name: Run Maven tests in a non-business timezone and enforce coverage
+        run: mvn -B -ntp -Duser.timezone=Asia/Tokyo clean verify
 
       - name: Match backend coverage to the public baseline
         run: node ../../scripts/check-backend-coverage.mjs
