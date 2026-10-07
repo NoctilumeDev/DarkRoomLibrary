@@ -65,7 +65,7 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 
 公开覆盖率报告：[后端 JaCoCo](https://noctilumedev.github.io/DarkRoomLibrary/coverage/backend/) · [前端 Vitest V8](https://noctilumedev.github.io/DarkRoomLibrary/coverage/frontend/)。两份生成报告使用同一套低饱和“验证证据”主题，保留原生排序、筛选、源码导航与覆盖状态语义。后端模块与前端关键逻辑范围均在 GitHub Actions 中执行至少 70% 的行覆盖率门禁；Vue 组件、路由守卫和真实页面行为另由组件测试及浏览器 E2E 验证，不把局部覆盖率包装成整个前端代码库覆盖率。
 
-技术栈为 JDK 17、Spring Boot 3.5.16、MyBatis-Plus 3.5.17、MySQL 8、Vue 3.5.40、Element Plus 2.14.3、ECharts 6.1 和 Vite 8.1.5。完整的事务边界、竞态分析、测试条件与原始结论见 [架构审查](docs/architecture-review.md) 和 [最终验证报告](docs/verification-report.md)。这些结果证明当前环境下的正确性，不构成生产容量承诺。
+技术栈为 JDK 17、Spring Boot 3.5.16、MyBatis-Plus 3.5.17、MySQL 8、Vue 3.5.43、Element Plus 2.14.3、ECharts 6.1 和 Vite 8.1.5。完整的事务边界、竞态分析、测试条件与原始结论见 [架构审查](docs/architecture-review.md) 和 [最终验证报告](docs/verification-report.md)。这些结果证明当前环境下的正确性，不构成生产容量承诺。
 
 **维护状态：** `v1.2.0` 起冻结大型领域范围。仓库继续接受明确缺陷、安全、依赖兼容、既有业务闭环、测试和文档修正，不再主动增加与项目规模不匹配的新领域；具体边界见 [贡献指南](CONTRIBUTING.md)。
 
