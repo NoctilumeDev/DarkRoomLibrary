@@ -36,14 +36,14 @@
     "element-plus": "^2.14.3",
     "jwt-decode": "^3.1.2",
     "sweetalert2": "^11.7.0",
-    "vue": "^3.5.40",
+    "vue": "^3.5.43",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitest/coverage-v8": "^4.1.11",
-    "@vue/compiler-sfc": "^3.5.40",
+    "@vue/compiler-sfc": "^3.5.43",
     "@vue/test-utils": "^2.4.6",
     "eslint": "^10.8.0",
     "eslint-plugin-vue": "^10.10.0",
