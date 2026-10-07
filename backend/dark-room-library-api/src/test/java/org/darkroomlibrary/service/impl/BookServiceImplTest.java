@@ -412,7 +412,7 @@ public class BookServiceImplTest extends BaseTest {
 
         bookMapper.update(Book.builder()
                 .id(book.getId())
-                .restoreDeadline(LocalDateTime.now().minusSeconds(1))
+                .restoreDeadline(LocalDateTime.now(applicationClock).minusSeconds(1))
                 .build());
         recycleBinExpiryService.cleanupExpiredEntries();
 
