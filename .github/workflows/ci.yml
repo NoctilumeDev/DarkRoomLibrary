@@ -51,6 +51,20 @@ jobs:
     name: Backend tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      rabbitmq:
+        image: rabbitmq:4.3.2
+        env:
+          RABBITMQ_DEFAULT_VHOST: darkroom-test-ci
+          RABBITMQ_DEFAULT_USER: darkroom_ci
+          RABBITMQ_DEFAULT_PASS: darkroom-ci-fixture-only
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
     defaults:
       run:
         working-directory: backend/dark-room-library-api
@@ -75,6 +89,58 @@ jobs:
 
       - name: Match backend coverage to the public baseline
         run: node ../../scripts/check-backend-coverage.mjs
+
+      - name: Check the old client as a bounded negative control
+        run: |
+          status=0
+          mvn -B -ntp -Duser.timezone=Asia/Tokyo -Drabbit-amqp-client.version=5.25.0 -Ddarkroom.expected-client-version=5.25.0 -Dtest=RabbitClientBoundaryTest -Dtest.report.directory=target/rabbitmq-old-reports -l target/rabbitmq-old.log test || status=$?
+          test "$status" -eq 1
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          suite = ET.parse('target/rabbitmq-old-reports/TEST-org.darkroomlibrary.config.RabbitClientBoundaryTest.xml').getroot()
+          assert [int(suite.get(k)) for k in ('tests', 'failures', 'errors', 'skipped')] == [7, 5, 0, 0]
+          cases = suite.findall('testcase')
+          failed = [c.get('name') for c in cases if c.find('failure') is not None]
+          assert sum(n.startswith('refusesDeclaredLength') for n in failed) == 2
+          assert sum(n.startswith('rejectsDeepTables') for n in failed) == 2
+          assert sum(n.startswith('springConnectionRejects') for n in failed) == 1
+          assert all(c.get('name').startswith('preservesOrdinary') for c in cases if c.find('failure') is None)
+          for c in cases:
+              failure = c.find('failure')
+              if failure is None:
+                  continue
+              assert failure.get('type') == 'org.opentest4j.AssertionFailedError'
+              message = failure.get('message')
+              if c.get('name').startswith('refusesDeclaredLength'):
+                  assert message == 'Unexpected exception type thrown, expected: <com.rabbitmq.client.MalformedFrameException> but was: <java.io.EOFException>'
+              elif c.get('name').startswith('rejectsDeepTables'):
+                  assert message == 'Expected com.rabbitmq.client.MalformedFrameException to be thrown, but nothing was thrown.'
+              else:
+                  assert message == 'Spring must retain the malformed wire-field cause; root=java.io.EOFException ==> expected: not <null>'
+          assert 'RabbitMQ boundary client=5.25.0' in ''.join(n.text or '' for n in suite.iter('system-out'))
+          PY
+
+      - name: Verify Spring AMQP against an isolated real broker
+        env:
+          DARKROOM_MQ_TEST: "1"
+          DARKROOM_MQ_TEST_VHOST: darkroom-test-ci
+          DARKROOM_MQ_TEST_USER: darkroom_ci
+          DARKROOM_MQ_TEST_PASSWORD: darkroom-ci-fixture-only
+        run: mvn -B -ntp -Duser.timezone=Asia/Tokyo -Dtest=RabbitSpringLifecycleIT -l target/rabbitmq-live.log test
+
+      - name: Retain backend evidence including failed candidates
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: backend-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 90
+          if-no-files-found: warn
+          path: |
+            backend/dark-room-library-api/target/surefire-reports/
+            backend/dark-room-library-api/target/site/jacoco/
+            backend/dark-room-library-api/target/rabbitmq-live.log
+            backend/dark-room-library-api/target/rabbitmq-old.log
+            backend/dark-room-library-api/target/rabbitmq-old-reports/
 
   frontend:
     name: Frontend checks

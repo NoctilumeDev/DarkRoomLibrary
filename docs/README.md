@@ -21,6 +21,7 @@
 6. 查看 [最终验证报告](verification-report.md)。
 7. 阶段退出前查看 [遗留物收口门禁](residual-hygiene.md)，确认施工产物没有被带入下一阶段。
 8. 全新安装查看 [数据库初始化脚本](../sql/init-dark-room-library.sql)；保留旧数据升级时，再按部署指南核对一次性 [回收生命周期迁移脚本](../sql/upgrade-recycle-bin-lifecycle.sql)。
+9. RabbitMQ 依赖维护查看 [客户端专项复验与剩余边界](rabbitmq-client-maintenance.md)，与历史发行验收分开阅读。
 
 ### 按角色验收系统
 

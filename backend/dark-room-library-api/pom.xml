@@ -17,6 +17,9 @@
         <jjwt.version>0.13.0</jjwt.version>
         <jsoup.version>1.23.1</jsoup.version>
         <jacoco.version>0.8.13</jacoco.version>
+        <!-- Keep Boot/Spring AMQP unchanged; bounded client maintenance, see docs/rabbitmq-client-maintenance.md. -->
+        <rabbit-amqp-client.version>5.37.0</rabbit-amqp-client.version>
+        <test.report.directory>${project.build.directory}/surefire-reports</test.report.directory>
     </properties>
 
     <parent>
@@ -144,6 +147,13 @@
         </resources>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <reportsDirectory>${test.report.directory}</reportsDirectory>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
