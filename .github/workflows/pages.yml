@@ -54,6 +54,17 @@ jobs:
         working-directory: backend/dark-room-library-api
         run: node ../../scripts/check-backend-coverage.mjs
 
+      - name: Retain backend coverage evidence even when the baseline check fails
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: pages-backend-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 90
+          if-no-files-found: warn
+          path: |
+            backend/dark-room-library-api/target/surefire-reports/
+            backend/dark-room-library-api/target/site/jacoco/jacoco.xml
+
       - name: Build frontend coverage report
         run: npm run test:coverage
 
