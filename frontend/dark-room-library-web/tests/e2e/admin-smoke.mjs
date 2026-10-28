@@ -382,7 +382,7 @@ try {
   });
   await desktop.page.getByRole("button", { name: "取消" }).click();
 
-  await desktop.page.getByText("已删除", { exact: true }).click();
+  await desktop.page.getByText("图书回收站", { exact: true }).click();
   await desktop.page.waitForTimeout(350);
   await assertToolbarBaseline(desktop.page);
   const toggleSeams = await desktop.page
@@ -439,6 +439,20 @@ try {
       await assertInlineFilterToolbar(desktop.page, route);
     }
   }
+
+  await desktop.page.setViewportSize({ width: 390, height: 844 });
+  await desktop.page.goto(`${baseUrl}/#/dashboard`, { waitUntil: "networkidle" });
+  await desktop.page.locator(".module-nav").waitFor();
+  const mobileModuleTargets = await desktop.page
+    .locator(".module-nav button")
+    .evaluateAll((buttons) => buttons.map((button) => {
+      const box = button.getBoundingClientRect();
+      return { width: box.width, height: box.height, label: button.textContent?.trim() };
+    }));
+  if (mobileModuleTargets.some(({ width, height }) => width < 44 || height < 44)) {
+    throw new Error(`admin mobile module target is smaller than 44px: ${JSON.stringify(mobileModuleTargets)}`);
+  }
+  await assertNoHorizontalOverflow(desktop.page, "admin dashboard mobile");
   await desktop.context.close();
 } finally {
   await browser.close();

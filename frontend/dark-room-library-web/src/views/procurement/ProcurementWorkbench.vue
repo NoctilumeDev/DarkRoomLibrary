@@ -990,8 +990,12 @@ export default {
   .mobile-order-item dt { color: var(--workbench-muted); font-size: 11px; }
   .mobile-order-item dd { margin: 4px 0 0; overflow-wrap: anywhere; color: var(--workbench-ink-soft); line-height: 1.5; }
   .mobile-order-item footer { display: flex; flex-wrap: wrap; gap: 5px 12px; align-items: center; }
-  .mobile-order-item footer :deep(.el-button) { margin: 0; }
-  .mobile-order-item footer :deep(.el-badge) { display: inline-flex; align-items: center; line-height: 24px; }
+  .mobile-order-item footer :deep(.el-button) {
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 12px;
+  }
+  .mobile-order-item footer :deep(.el-badge) { display: inline-flex; align-items: center; line-height: 44px; }
   .mobile-order-item footer :deep(.el-badge__content.is-fixed) { top: 1px; right: 1px; transform: translate(58%, -42%); }
   .message-row { max-width: 92%; }
   .message-compose { grid-template-columns: 1fr; }

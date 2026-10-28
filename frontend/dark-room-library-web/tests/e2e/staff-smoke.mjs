@@ -60,6 +60,24 @@ async function assertOperationAlignment(page) {
   }
 }
 
+async function assertMobileActionTouchTargets(page) {
+  const buttons = page.locator(".mobile-order-item footer .el-button");
+  const count = await buttons.count();
+  if (count === 0) {
+    throw new Error("staff mobile workbench expected at least one order action");
+  }
+  const undersized = [];
+  for (let index = 0; index < count; index += 1) {
+    const box = await buttons.nth(index).boundingBox();
+    if (!box || box.height < 44) {
+      undersized.push({ index, width: box?.width ?? 0, height: box?.height ?? 0 });
+    }
+  }
+  if (undersized.length) {
+    throw new Error(`staff mobile action target is smaller than 44px: ${JSON.stringify(undersized)}`);
+  }
+}
+
 try {
   const desktop = await openWorkbench({ width: 1440, height: 1000 });
   await assertNoHorizontalOverflow(desktop.page, "staff workbench desktop");
@@ -79,6 +97,7 @@ try {
   if (await mobile.page.locator(".order-table").isVisible()) {
     throw new Error("desktop order table should be hidden on mobile");
   }
+  await assertMobileActionTouchTargets(mobile.page);
   await mobile.page.screenshot({
     path: `${outputDir}/workbench-mobile.png`,
     fullPage: true,

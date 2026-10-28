@@ -3,7 +3,7 @@
     <header class="page-title">
       <p>暂存的墨迹</p>
       <h1>回收笺</h1>
-      <span>你主动收起的留言与书评会在这里保留 30 天。管理员治理的内容不会出现在这里。</span>
+      <span>你主动收起的留言与书评会在这里保留 30 天；到期后将自动失效，不能再恢复。管理员治理的内容不会出现在这里。</span>
     </header>
 
     <div class="recycle-tabs" role="tablist" aria-label="回收内容类型">

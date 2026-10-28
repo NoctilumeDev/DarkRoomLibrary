@@ -437,7 +437,8 @@ export default {
     gap: 0;
 
     button {
-      min-width: 38px;
+      min-width: 44px;
+      min-height: 44px;
       padding-inline: 1px;
     }
   }

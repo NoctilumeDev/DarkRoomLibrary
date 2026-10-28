@@ -356,7 +356,7 @@ export default {
       } catch (error) {
         console.error("登录请求错误:", error);
         const message = error.response
-          ? "登录请求失败，请检查账号和验证码。"
+          ? "登录失败，请检查账号、密码或验证题后重试。"
           : "无法连接后端服务，请确认 20606 端口已经启动。";
         this.$message.error(message);
         this.fetchCaptcha();
