@@ -33,7 +33,7 @@ flowchart TB
 - **Mapper/XML**：执行条件更新、分页查询和统计聚合。
 - **基础设施适配层**：封装 Redis、RabbitMQ、邮件和文件系统，业务服务不依赖具体中间件实现。
 
-当前后端基线为 JDK 25、Spring Boot 3.5.16 和 MyBatis-Plus 3.5.17，编译目标为 Java 17。框架升级已完成 Jakarta API、JWT 新接口、MySQL 驱动和批处理调用适配；RabbitMQ 反序列化只信任项目领域模型包。
+当前后端基线为 JDK 25、Spring Boot 4.1.2 和 MyBatis-Plus 3.5.17，编译目标为 Java 17。HTTP 和 RabbitMQ 使用 Jackson 2 保持现有序列化约定。RabbitMQ 反序列化只信任项目领域模型包。
 
 ## 3. 五个角色码与六个固定权限身份
 

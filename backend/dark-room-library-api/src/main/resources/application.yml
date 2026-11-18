@@ -13,6 +13,9 @@ app:
 
 # MySQL 与文件上传限制配置
 spring:
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   servlet:
     multipart:
       max-file-size: 10MB
