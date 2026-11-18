@@ -55,5 +55,13 @@
     "vite": "^8.1.6",
     "vitest": "^4.1.12",
     "vue-eslint-parser": "^10.4.1"
+  },
+  "overrides": {
+    "editorconfig": {
+      "minimatch": "11.0.5"
+    },
+    "js-beautify": {
+      "glob": "14.0.6"
+    }
   }
 }
