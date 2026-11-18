@@ -1,6 +1,7 @@
 package org.darkroomlibrary.service.impl;
 
 import org.darkroomlibrary.BaseTest;
+import org.darkroomlibrary.domain.model.Book;
 import org.darkroomlibrary.web.dto.query.BookPageQuery;
 import org.darkroomlibrary.web.dto.query.BorrowRecordPageQuery;
 import org.darkroomlibrary.web.dto.query.UserPageQuery;
@@ -12,9 +13,11 @@ import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.Resource;
 import java.io.ByteArrayInputStream;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -53,14 +56,27 @@ public class ExportServiceImplTest extends BaseTest {
 
     @Test
     @Order(2)
-    @DisplayName("导出借阅记录-空数据")
+    @Transactional
+    @DisplayName("导出借阅记录-包含筛选后的记录")
     void testExportBorrowRecords() throws Exception {
+        User reader = createTestUser("borrow-export-reader", "导出借阅读者", "borrow-export@example.test");
+        Book book = createTestBook("导出借阅测试书", "测试作者", 1);
+        createTestBorrowRecord(reader.getId(), book.getId(), LocalDateTime.of(2030, 4, 15, 10, 30));
+
         MockHttpServletResponse response = new MockHttpServletResponse();
         BorrowRecordPageQuery dto = new BorrowRecordPageQuery();
+        dto.setUserId(reader.getId());
+        dto.setBookId(book.getId());
         exportService.exportBorrowRecords(response, dto);
 
         assertEquals(200, response.getStatus());
-        assertTrue(response.getContentAsByteArray().length > 0);
+        List<Map<Integer, String>> rows = readRows(response);
+        assertEquals(2, rows.size());
+        Map<Integer, String> row = rows.get(1);
+        assertEquals(reader.getUserName(), row.get(0));
+        assertEquals(book.getName(), row.get(1));
+        assertEquals("2030-04-15 10:30:00", row.get(3));
+        assertEquals("借阅中", row.get(5));
     }
 
     @Test
