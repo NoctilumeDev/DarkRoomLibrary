@@ -136,7 +136,8 @@ CREATE TABLE IF NOT EXISTS `book_reservation` (
     `reserve_time` DATETIME NOT NULL,
     `status` TINYINT DEFAULT 0,
     `notify_time` DATETIME,
-    `active_flag` TINYINT GENERATED ALWAYS AS (CASE WHEN `status` IN (0, 3) THEN 1 ELSE NULL END),
+    -- H2 2.4 can retain the schema initializer's session in a generated IN predicate.
+    `active_flag` TINYINT GENERATED ALWAYS AS (CASE `status` WHEN 0 THEN 1 WHEN 3 THEN 1 ELSE NULL END),
     UNIQUE KEY `uk_reservation_active` (`user_id`, `book_id`, `active_flag`)
 );
 

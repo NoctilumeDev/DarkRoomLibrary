@@ -53,7 +53,7 @@ public class WebhookOperationalAlertService implements OperationalAlertService {
     }
 
     @Override
-    public void deadLetterQueueBacklog(String queueName, int messageCount) {
+    public void deadLetterQueueBacklog(String queueName, long messageCount) {
         if (queueName == null || queueName.isBlank()) {
             return;
         }

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "measuredSourceRevision": "c812a98c8ea7aeec07a748db94ba6164016e8b24",
+  "springBootVersion": "4.1.2",
+  "lineCoverageCovered": 3996,
+  "lineCoverageTotal": 5454,
+  "lineCoverage": 73.26
+}

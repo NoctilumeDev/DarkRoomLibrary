@@ -16,7 +16,7 @@ import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.amqp.SimpleRabbitListenerContainerFactoryConfigurer;
+import org.springframework.boot.amqp.autoconfigure.SimpleRabbitListenerContainerFactoryConfigurer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -81,7 +81,7 @@ public class RabbitEventConfig {
         factory.setDefaultRequeueRejected(false);
         factory.setContainerCustomizer(container -> container.setAdviceChain(
                 RetryInterceptorBuilder.stateless()
-                        .maxAttempts(1)
+                        .maxRetries(0)
                         .recoverer(poisonMessageRecoverer)
                         .build()));
         return factory;
@@ -90,7 +90,7 @@ public class RabbitEventConfig {
     @Bean
     public MessageRecoverer poisonMessageRecoverer(RabbitTemplate rabbitTemplate) {
         RepublishMessageRecoverer recoverer =
-                new RepublishMessageRecoverer(rabbitTemplate, deadLetterExchangeName);
+                new RepublishMessageRecoverer(rabbitTemplate, deadLetterExchangeName).includeStackTrace(true);
         recoverer.errorRoutingKeyPrefix("dead.");
         return recoverer;
     }

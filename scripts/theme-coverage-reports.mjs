@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const baselinePath = path.join(repositoryRoot, ".github", "verification-baseline.json");
+const backendBaselinePath = path.join(repositoryRoot, ".github", "backend-coverage-baseline.json");
 const distRoot = path.resolve(
   process.cwd(),
   process.argv[2] ?? path.join("frontend", "dark-room-library-web", "dist"),
@@ -11,6 +12,7 @@ const distRoot = path.resolve(
 const coverageRoot = path.join(distRoot, "coverage");
 const themePath = path.join(coverageRoot, "coverage-theme.css");
 const baseline = JSON.parse(await fs.readFile(baselinePath, "utf8"));
+const backend = JSON.parse(await fs.readFile(backendBaselinePath, "utf8"));
 
 const themeCss = `
 :root {
@@ -521,7 +523,6 @@ function toHref(fromDirectory, targetPath) {
 function reportDetails(filePath) {
   const relativePath = path.relative(coverageRoot, filePath);
   const isBackend = relativePath === "backend" || relativePath.startsWith(`backend${path.sep}`);
-  const backend = baseline.backend;
   const frontend = baseline.frontend;
   return isBackend
     ? {

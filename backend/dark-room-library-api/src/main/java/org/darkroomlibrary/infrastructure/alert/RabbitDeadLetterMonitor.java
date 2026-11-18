@@ -68,7 +68,7 @@ public class RabbitDeadLetterMonitor {
                 log.warn("RabbitMQ死信队列不存在或暂不可读取: queue={}", queueName);
                 return;
             }
-            int messageCount = queue.getMessageCount();
+            long messageCount = queue.getMessageCount();
             if (messageCount < alertThreshold) {
                 localAlertExpiry.remove(queueName);
                 return;
@@ -84,13 +84,13 @@ public class RabbitDeadLetterMonitor {
         }
     }
 
-    private boolean reserveAlertWindow(String queueName, int messageCount) {
+    private boolean reserveAlertWindow(String queueName, long messageCount) {
         String key = ALERT_KEY_PREFIX + queueName;
         long now = System.currentTimeMillis();
         long expiresAt = now + alertCooldown.toMillis();
         Optional<Boolean> distributed = cacheService.setIfAbsent(
                 key,
-                Integer.toString(messageCount),
+                Long.toString(messageCount),
                 alertCooldown);
         if (distributed.isPresent()) {
             localAlertExpiry.put(queueName, expiresAt);

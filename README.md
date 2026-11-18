@@ -56,7 +56,7 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 
 | 验证维度 | 当前维护基线与 v1.2.7 / v1.2.4 / v1.2.3 历史证据 |
 | --- | --- |
-| 自动测试 | 当前维护基线后端 `299/299`，行覆盖率 `3996/5453`（`73.28%`）；前端 `83/83`，关键逻辑行覆盖率 `650/824`（`78.88%`）；ESLint、正式构建和 Demo 构建通过。`v1.2.7` 发布证据与下列历史真实链路证据不追溯改写 |
+| 自动测试 | 当前维护基线后端 `306/306`，行覆盖率 `3996/5454`（`73.26%`）；前端 `83/83`，关键逻辑行覆盖率 `650/824`（`78.88%`）；ESLint、正式构建和 Demo 构建通过。`v1.2.7` 发布证据与下列历史真实链路证据不追溯改写 |
 | 角色链路 | 5 个角色码、6 个固定权限身份真实登录，`v1.2.4` 完成 `70` 次页面 API 全链路 |
 | 多实例一致性 | 20 场景 `393` 次并发回归于 `v1.2.4` 重跑；3 个后端实例的 8 场景 `176` 次请求保留为 `v1.2.3` 历史基线 |
 | 推荐并发 | 8 个首次并发请求只生成 1 个批次，三实例得到一致的协同结果 |
@@ -65,11 +65,11 @@ Pages 演示使用独立的浏览器会话数据，不连接真实后端和数�
 
 公开覆盖率报告：[后端 JaCoCo](https://noctilumedev.github.io/DarkRoomLibrary/coverage/backend/) · [前端 Vitest V8](https://noctilumedev.github.io/DarkRoomLibrary/coverage/frontend/)。两份生成报告使用同一套低饱和“验证证据”主题，保留原生排序、筛选、源码导航与覆盖状态语义。后端模块与前端关键逻辑范围均在 GitHub Actions 中执行至少 70% 的行覆盖率门禁；Vue 组件、路由守卫和真实页面行为另由组件测试及浏览器 E2E 验证，不把局部覆盖率包装成整个前端代码库覆盖率。
 
-技术栈为 JDK 25（Java 17 字节码目标）、Spring Boot 3.5.16、MyBatis-Plus 3.5.17、MySQL 8、Vue 3.5.43、Element Plus 2.14.3、ECharts 6.1 和 Vite 8.1.5。完整的事务边界、竞态分析、测试条件与原始结论见 [架构审查](docs/architecture-review.md) 和 [最终验证报告](docs/verification-report.md)。这些结果证明当前环境下的正确性，不构成生产容量承诺。
+技术栈为 JDK 25（Java 17 字节码目标）、Spring Boot 4.1.2、MyBatis-Plus 3.5.17、MySQL 8、Vue 3.5.43、Element Plus 2.14.3、ECharts 6.1 和 Vite 8.1.5。完整的事务边界、竞态分析、测试条件与原始结论见 [架构审查](docs/architecture-review.md) 和 [最终验证报告](docs/verification-report.md)。这些结果证明当前环境下的正确性，不构成生产容量承诺。
 
 **维护状态：** `v1.2.0` 起冻结大型领域范围。仓库继续接受明确缺陷、安全、依赖兼容、既有业务闭环、测试和文档修正，不再主动增加与项目规模不匹配的新领域；具体边界见 [贡献指南](CONTRIBUTING.md)。
 
-当前版本、自动测试和真实链路证据的机器可读边界见 [验证基线](.github/verification-baseline.json)，版本演进见 [CHANGELOG](CHANGELOG.md)。
+当前后端覆盖率和发布验证记录分别见 [后端覆盖率基线](.github/backend-coverage-baseline.json) 与 [发布验证记录](.github/verification-baseline.json)。版本演进见 [CHANGELOG](CHANGELOG.md)。
 
 ## 如何运行
 

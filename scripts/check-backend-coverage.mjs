@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const baselinePath = path.join(repositoryRoot, ".github", "verification-baseline.json");
+const baselinePath = path.join(repositoryRoot, ".github", "backend-coverage-baseline.json");
 const reportPath = path.join(
   repositoryRoot,
   "backend",
@@ -14,7 +14,7 @@ const reportPath = path.join(
   "jacoco.xml",
 );
 
-const baseline = JSON.parse(await fs.readFile(baselinePath, "utf8"));
+const expected = JSON.parse(await fs.readFile(baselinePath, "utf8"));
 const report = await fs.readFile(reportPath, "utf8");
 const lineCounters = [
   ...report.matchAll(/<counter type="LINE" missed="(\d+)" covered="(\d+)"\s*\/>/gu),
@@ -34,7 +34,6 @@ const covered = Number.parseInt(coveredText, 10);
 
 const total = missed + covered;
 const displayedRate = Math.floor((covered / total) * 10_000) / 100;
-const expected = baseline.backend;
 const violations = [];
 
 if (covered !== expected.lineCoverageCovered) {
