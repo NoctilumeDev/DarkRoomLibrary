@@ -32,7 +32,7 @@
 教师发放的底座是课程早期的实现辅助，不是项目想法的来源。归档原件与当前仓库对比后，可以确认两者在技术栈、包名、数据库、角色模型和业务范围上已经是不同工程：
 
 - 原件采用 Vue 2、Vue CLI、Element UI、Java 8、Spring Boot 2.2 和 `cn.kmbeast` 包名。
-- 当前项目采用 Vue 3、Vite、Element Plus、Java 17、Spring Boot 3.5、MyBatis-Plus 和 `org.darkroomlibrary` 包名。
+- 当前项目采用 Vue 3、Vite、Element Plus、JDK 25（Java 17 字节码目标）、Spring Boot 3.5、MyBatis-Plus 和 `org.darkroomlibrary` 包名。
 - 原件数据库只有 `user`、`notice` 两张表，并混有问卷、考试模板残留。
 - 当前数据库共 24 张物理表，包括二十三张业务与派生表及一张邮箱配额技术控制表；系统使用 5 个角色码和 6 个固定权限身份，覆盖借阅、推荐、评论、审核、采购、物流、通知、文件与审计。
 - 对比范围内没有逐字节相同的源码或配置文件；少量历史组织方式也在公开前完成独立重写。

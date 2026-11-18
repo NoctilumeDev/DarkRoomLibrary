@@ -42,7 +42,7 @@ docker compose ps
 | RabbitMQ | `localhost:5673` |
 | RabbitMQ 管理页 | `http://localhost:15673` |
 
-当前 Compose 使用明确的兼容系列标签：MySQL 8.4、Redis 7.4 Alpine、RabbitMQ 4.2.3 Management Alpine、Eclipse Temurin JRE 17 和 Nginx 1.28 Alpine。后端构建阶段固定 Maven 3.9.9 + Eclipse Temurin 17，减少构建环境漂移。
+当前 Compose 使用 MySQL 8.4、Redis 7.4 Alpine、RabbitMQ 4.2.3 Management Alpine 和 Nginx 1.28 Alpine。后端使用 Maven 3.9.9 和 Eclipse Temurin JDK 25.0.5+8 构建，在同版本的 Alpine JRE 镜像中运行。Java 字节码目标为 17。
 
 若当前网络无法稳定访问 Docker Hub，应优先稍后重试官方仓库。确需使用国内镜像缓存时，只把它作为一次性下载通道：拉取同一 `library/*` 官方镜像后，在本机重新标记为 `compose.yaml` 中的标准镜像名。不要把个人镜像加速地址、登录凭据或地域镜像路径提交到项目文件。
 
